@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "project_root": "/media/zen/AI/zensquid",
+  "global_denies": ["systemctl.system", "proc.exec.dangerous"],
+  "zones": {
+    "workspace": {
+      "allow": ["fs.read", "proc.exec"],
+      "deny": ["fs.write", "fs.write.outside_root", "systemctl.user", "pkg.install"],
+      "exec_allowlist": ["ls", "cat", "rg", "git", "node", "pnpm", "python", "jq"],
+      "exec_denylist": ["sudo", "rm", "dd", "mkfs", "chmod", "chown", "mount", "umount", "curl|sh"]
+    },
+    "forge": {
+      "allow": ["fs.read", "fs.write", "proc.exec", "systemctl.user", "net.egress"],
+      "deny": ["fs.write.outside_root", "systemctl.system", "pkg.install"],
+      "exec_denylist": ["sudo", "dd", "mkfs", "mount", "umount", "curl|sh"]
+    }
+  }
+}

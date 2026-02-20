@@ -1,0 +1,24 @@
+{
+  "name": "@zensquid/api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "dist/server.js",
+  "types": "dist/server.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -w -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@zensquid/core": "workspace:*",
+    "@zensquid/provider-ollama": "workspace:*",
+    "@zensquid/provider-openai": "workspace:*",
+    "@fastify/cors": "^10.0.0",
+    "fastify": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.11",
+    "typescript": "^5.9.3"
+  }
+}

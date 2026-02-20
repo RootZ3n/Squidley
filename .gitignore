@@ -1,0 +1,69 @@
+# OS / editors
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Node / pnpm
+node_modules/
+.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp.*
+.pnp.js
+
+# Next.js
+.next/
+out/
+.vercel/
+
+# Build outputs
+dist/
+build/
+coverage/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# secrets
+config/secrets/*
+**/.env.local
+**/.env.*.local
+!config/secrets/*.example
+# Local data (keep your receipts/memory unless you explicitly want them tracked)
+tmp/
+data/
+ops/
+memory/
+
+# backups
+*.bak.*
+*.bak
+
+# secrets
+config/secrets/*
+!config/secrets/.gitkeep
+.env
+.env.*
+*.key
+*.pem
+
+# deps/build
+node_modules/
+.next/
+dist/
+build/
+
+# runtime
+tmp/
+data/
+*.log
+
+# backups
+*.bak.*
+*.bak
