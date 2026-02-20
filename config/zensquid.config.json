@@ -1,28 +1,53 @@
+
 {
   "meta": {
-    "name": "ZenSquid",
+    "name": "Squidley",
     "node": "ZenPop",
     "local_first": true
   },
   "tiers": [
-    { "name": "mini",  "provider": "openai", "model": "gpt-5-mini",   "role": "default assistant (cloud primary)" },
-    { "name": "local", "provider": "ollama", "model": "qwen2.5:14b-instruct", "role": "baseline local fallback" },
-    { "name": "qwen",  "provider": "ollama", "model": "glm-4.7-flash:latest",   "role": "fast generalist" },
-    { "name": "coder", "provider": "ollama", "model": "qwen3-coder:30b",        "role": "local coding + architecture" },
-    { "name": "codex", "provider": "openai", "model": "gpt-5.1-codex",          "role": "reviewer" },
-    { "name": "opus",  "provider": "anthropic", "model": "claude-opus",         "role": "break-glass" }
+    {
+      "name": "local",
+      "provider": "ollama",
+      "model": "qwen2.5:14b-instruct",
+      "role": "Tier 0: local-only (heartbeat + tools + safe fallback)"
+    },
+    {
+      "name": "chat",
+      "provider": "modelstudio",
+      "model": "qwen3-flash",
+      "role": "Tier 1: Chat Mode (cloud text-only)"
+    },
+    {
+      "name": "plan",
+      "provider": "modelstudio",
+      "model": "qwen3.5",
+      "role": "Tier 2: Planning Mode (cloud text-only)"
+    },
+    {
+      "name": "build",
+      "provider": "modelstudio",
+      "model": "qwen3-coder-flash",
+      "role": "Tier 2: Build Mode (cloud text-only, code generation)"
+    },
+    {
+      "name": "big_brain",
+      "provider": "modelstudio",
+      "model": "qwen-397b",
+      "role": "Tier 3: Big Brain (explicit approval required)"
+    }
   ],
   "budgets": {
-    "monthly_usd": 20,
-    "escalation_requires_reason": true
+    "monthly_usd": 40,
+    "strict_local_only": false,
+    "escalation_requires_reason": true,
+    "big_brain_requires_approval": true
   },
-  "budgets": {
-  "escalation_requires_reason": true,
-  "strict_local_only": true
-  },
-   "providers": {
+  "providers": {
     "ollama": { "base_url": "http://127.0.0.1:11434" },
-    "openai": { "env_key": "OPENAI_API_KEY" },
-    "anthropic": { "env_key": "ANTHROPIC_API_KEY" }
+    "modelstudio": {
+      "env_key": "QWEN_API_KEY",
+      "base_url": "https://api.modelstudio.ai"
+    }
   }
 }
