@@ -3,11 +3,8 @@ import Fastify from "fastify";
 import corsPkg from "@fastify/cors";
 import { readdir, readFile, mkdir, writeFile, stat } from "node:fs/promises";
 import path from "node:path";
-import { spawn } from "node:child_process";
+
 import { buildChatSystemPrompt, normalizeRelPath, memoryAbs, ensureMemoryRoot } from "./chat/systemPrompt.js";
-import { registerToolsRoutes } from "./http/routes/tools.js";
-import { registerReceiptsRoutes } from "./http/routes/receipts.js";
-import { registerDoctorRoutes } from "./http/routes/doctor.js";
 
 import {
   loadConfig,
@@ -24,9 +21,15 @@ import { modelstudioChat } from "@zensquid/provider-modelstudio";
 
 import { loadCapabilityPolicy, normalizeZone, zonePolicy } from "./capabilities/policy.js";
 import { checkCapabilityAction } from "./capabilities/gate.js";
-import type { SafetyZone, CapabilityAction } from "./capabilities/types.js";
+import type { CapabilityAction } from "./capabilities/types.js";
+
+import { makeRuntimePaths, type RuntimeState, type SafetyZone } from "./runtime/state.js";
 
 import { registerSkillsRoutes } from "./http/routes/skills.js";
+import { registerToolsRoutes } from "./http/routes/tools.js";
+import { registerReceiptsRoutes } from "./http/routes/receipts.js";
+import { registerDoctorRoutes } from "./http/routes/doctor.js";
+import { registerRuntimeRoutes } from "./http/routes/runtime.js";
 
 type RequestKind = "chat" | "heartbeat" | "tool" | "system";
 
@@ -47,10 +50,6 @@ function receiptsDir(): string {
   return path.resolve(dataDir(), "receipts");
 }
 
-function runtimeFile(): string {
-  return path.resolve(dataDir(), "runtime.json");
-}
-
 function memoryRoot(): string {
   return path.resolve(zensquidRoot(), "memory");
 }
@@ -67,37 +66,22 @@ function identityFile(): string {
   return path.resolve(zensquidRoot(), "IDENTITY.md");
 }
 
-type RuntimeState = {
-  strict_local_only?: boolean | null;
-  safety_zone?: SafetyZone | null;
-};
-
-let runtimeState: RuntimeState = { strict_local_only: null, safety_zone: null };
-
+/**
+ * Runtime state (loaded via runtimePaths)
+ */
 function isSafetyZone(v: unknown): v is SafetyZone {
   return v === "workspace" || v === "diagnostics" || v === "forge" || v === "godmode";
 }
 
-async function loadRuntimeState(): Promise<void> {
-  try {
-    const raw = await readFile(runtimeFile(), "utf-8");
-    const parsed = JSON.parse(raw) as RuntimeState;
+const runtimePaths = makeRuntimePaths(zensquidRoot);
 
-    runtimeState = {
-      strict_local_only: typeof parsed.strict_local_only === "boolean" ? parsed.strict_local_only : null,
-      safety_zone: isSafetyZone(parsed.safety_zone) ? parsed.safety_zone : null
-    };
-  } catch {
-    runtimeState = { strict_local_only: null, safety_zone: null };
-  }
-}
+let runtimeState: RuntimeState = { strict_local_only: null, safety_zone: null };
+runtimeState = await runtimePaths.loadRuntimeState();
 
-async function saveRuntimeState(): Promise<void> {
-  await mkdir(dataDir(), { recursive: true }).catch(() => {});
-  await writeFile(runtimeFile(), JSON.stringify(runtimeState, null, 2) + "\n", "utf-8");
-}
-
-await loadRuntimeState();
+const getRuntimeState = () => runtimeState;
+const setRuntimeState = (s: RuntimeState) => {
+  runtimeState = s;
+};
 
 function adminTokenOk(req: any): boolean {
   const expected = process.env.ZENSQUID_ADMIN_TOKEN;
@@ -557,7 +541,7 @@ function parseMemorySuggestion(inputRaw: string, now: Date): SuggestedAction | n
 }
 
 /**
- * Agent profile + skills listing (used by UI)
+ * Agent profile (used by UI)
  */
 app.get("/agent/profile", async () => {
   const soul = await safeReadText(soulFile());
@@ -579,91 +563,7 @@ app.get("/agent/profile", async () => {
 });
 
 /**
- * Runtime / policy
- */
-app.get("/runtime", async () => {
-  const cfg = await loadConfig(process.env.ZENSQUID_CONFIG);
-  const effStrict = effectiveStrictLocal(cfg);
-  const effZone = effectiveSafetyZone(cfg);
-
-  return {
-    ok: true,
-    runtime: runtimeState,
-    effective: {
-      strict_local_only: effStrict.effective,
-      strict_local_only_source: effStrict.source,
-      safety_zone: effZone.effective,
-      safety_zone_source: effZone.source
-    }
-  };
-});
-
-app.post("/runtime/safety_zone", async (req, reply) => {
-  if (!adminTokenOk(req)) return reply.code(401).send({ ok: false, error: "Unauthorized" });
-
-  const body = (req.body ?? {}) as any;
-  const value = body?.value;
-
-  if (value === null) runtimeState.safety_zone = null;
-  else if (isSafetyZone(value)) runtimeState.safety_zone = value;
-  else {
-    return reply.code(400).send({
-      ok: false,
-      error: 'Invalid body. Send JSON: { "value": "workspace" } | "diagnostics" | "forge" | "godmode" | null'
-    });
-  }
-
-  await saveRuntimeState();
-  return reply.send({ ok: true, runtime: runtimeState });
-});
-
-app.post("/budgets/strict_local_only", async (req, reply) => {
-  if (!adminTokenOk(req)) return reply.code(401).send({ ok: false, error: "Unauthorized" });
-
-  const body = (req.body ?? {}) as any;
-  const value = body?.value;
-
-  if (value === null) runtimeState.strict_local_only = null;
-  else if (typeof value === "boolean") runtimeState.strict_local_only = value;
-  else {
-    return reply.code(400).send({
-      ok: false,
-      error: 'Invalid body. Send JSON: { "value": true } | { "value": false } | { "value": null }'
-    });
-  }
-
-  await saveRuntimeState();
-  return reply.send({ ok: true, runtime: runtimeState });
-});
-
-app.get("/runtime/effective_policy", async () => {
-  const cfg = await loadConfig(process.env.ZENSQUID_CONFIG);
-  const effStrict = effectiveStrictLocal(cfg);
-  const eff = await getEffectivePolicy(cfg);
-
-  return {
-    ok: true,
-    runtime: runtimeState,
-    effective: {
-      strict_local_only: effStrict.effective,
-      strict_local_only_source: effStrict.source,
-      safety_zone: eff.zone,
-      safety_zone_source: eff.zone_source
-    },
-    policy: {
-      policy_path: eff.policy_path,
-      project_root: eff.project_root,
-      global_denies: eff.global_denies,
-      allow: eff.zone_allow,
-      deny: eff.zone_deny,
-      exec_allowlist: eff.exec_allowlist,
-      exec_denylist: eff.exec_denylist
-    }
-  };
-});
-
-/**
- * Snapshot
+ * Snapshot (kept here for now)
  */
 app.get("/snapshot", async () => {
   const cfg = await loadConfig(process.env.ZENSQUID_CONFIG);
@@ -925,16 +825,517 @@ app.get("/memory/search", async (req, reply) => {
   return reply.send({ ok: true, q, folder: folderRelPrefix, count: results.length, results });
 });
 
-// (…everything else in your server.ts remains unchanged…)
-// NOTE: I am intentionally not moving chat/tools/etc in Stage 1.
+/**
+ * Chat — uses Soul/Identity/Memory (+ optional skill context)
+ */
+function detectPromptInjection(input: string): { blocked: boolean; reason?: string } {
+  const s = (input ?? "").toLowerCase();
+
+  const patterns: Array<{ id: string; re: RegExp }> = [
+    { id: "ignore_previous", re: /\bignore (all|any|the) (previous|prior) (instructions|rules|messages)\b/i },
+    { id: "override_system", re: /\boverride (the )?(system|developer) (prompt|message|instructions)\b/i },
+    { id: "reveal_system", re: /\b(reveal|show|print|dump|leak) (the )?(system|developer) (prompt|message|instructions)\b/i },
+    { id: "bypass_safety", re: /\b(bypass|disable|remove) (safety|filters|guardrails|policy)\b/i },
+    { id: "act_as_root", re: /\b(act as|you are now|pretend to be) (root|administrator|admin|system)\b/i }
+  ];
+
+  for (const p of patterns) {
+    if (p.re.test(s)) return { blocked: true, reason: `prompt_injection:${p.id}` };
+  }
+
+  return { blocked: false };
+}
+
+function looksInfraOrTooling(input: string): boolean {
+  const s = input.toLowerCase();
+  return (
+    s.includes("zensquid") ||
+    s.includes("squidley") ||
+    s.includes("openclaw") ||
+    s.includes("receipt") ||
+    s.includes("receipts") ||
+    s.includes("snapshot") ||
+    s.includes("doctor") ||
+    s.includes("sanity") ||
+    s.includes("systemctl") ||
+    s.includes("journalctl") ||
+    s.includes("curl ") ||
+    s.includes("port ") ||
+    s.includes("http://") ||
+    s.includes("https://") ||
+    s.includes("/health") ||
+    s.includes("/runtime") ||
+    s.includes("/skills") ||
+    s.includes("/memory")
+  );
+}
+
+function looksCodey(input: string): boolean {
+  const s = input.toLowerCase();
+  return (
+    s.includes("diff --git") ||
+    s.includes("--- a/") ||
+    s.includes("+++ b/") ||
+    s.includes("@@ ") ||
+    s.includes("stack trace") ||
+    s.includes("traceback") ||
+    s.includes("tsconfig") ||
+    s.includes("package.json") ||
+    s.includes("systemd") ||
+    s.includes("dockerfile") ||
+    s.includes("error ts") ||
+    s.includes("cannot find module") ||
+    s.includes("module not found")
+  );
+}
+
+app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", async (req, reply) => {
+  const cfg = await loadConfig(process.env.ZENSQUID_CONFIG);
+  const body = (req.body ?? {}) as Partial<ChatRequest> & { selected_skill?: string | null };
+
+  const input = typeof body.input === "string" ? body.input.trim() : "";
+  const selectedSkill = typeof body.selected_skill === "string" ? body.selected_skill : null;
+
+  if (!input) return reply.code(400).send({ error: "Missing input" });
+
+  const inj = detectPromptInjection(input);
+  if (inj.blocked) {
+    const receipt_id = newReceiptId();
+    const receipt: any = withKind("chat", {
+      schema: "zensquid.receipt.v1" as any,
+      receipt_id,
+      created_at: new Date().toISOString(),
+      node: cfg.meta.node,
+      request: {
+        input,
+        mode: body.mode ?? "auto",
+        force_tier: body.force_tier,
+        reason: body.reason,
+        selected_skill: selectedSkill
+      },
+      decision: {
+        tier: "guard",
+        provider: "local",
+        model: "prompt-injection-guard",
+        escalated: false,
+        escalation_reason: null
+      },
+      guard_event: {
+        blocked: true,
+        reason: inj.reason
+      }
+    });
+
+    await writeReceipt(zensquidRoot(), receipt as ReceiptV1);
+
+    return reply.code(400).send({
+      error: "Potential prompt injection detected",
+      reason: inj.reason,
+      receipt_id
+    });
+  }
+
+  const now = new Date();
+
+  // ✅ Deterministic parse BEFORE model call (no LLM)
+  const preSuggestion = parseMemorySuggestion(input, now);
+
+  // Build dynamic system prompt + intelligence-visible meta context
+  const { system, meta } = await buildChatSystemPrompt({
+    input,
+    selected_skill: selectedSkill,
+    now
+  });
+
+  // Ensure action list is ALWAYS present, and include the pre-parse suggestion
+  (meta as any).actions = Array.isArray((meta as any).actions) ? (meta as any).actions : [];
+  if (preSuggestion) {
+    const exists =
+      (meta as any).actions.some(
+        (a: any) =>
+          a.type === "suggest_memory_write" &&
+          a.folder === preSuggestion.folder &&
+          a.content === preSuggestion.content &&
+          a.raw_trigger === preSuggestion.raw_trigger
+      ) ?? false;
+
+    if (!exists) (meta as any).actions.push(preSuggestion);
+  }
+
+  const normalized: ChatRequest = {
+    input,
+    mode: body.mode ?? "auto",
+    force_tier: body.force_tier,
+    reason: body.reason
+  };
+
+  if (normalized.mode === "auto" && looksInfraOrTooling(normalized.input)) {
+    normalized.mode = "force_tier";
+    normalized.force_tier = "local";
+  }
+
+  if (normalized.mode === "auto" && looksCodey(normalized.input)) {
+    normalized.mode = "force_tier";
+    normalized.force_tier = "coder";
+  }
+
+  // IMPORTANT: apply runtime override into cfg BEFORE tier selection
+  const effStrict = effectiveStrictLocal(cfg);
+  (cfg as any).budgets = (cfg as any).budgets ?? {};
+  (cfg as any).budgets.strict_local_only = effStrict.effective;
+
+  const decision = chooseTier(cfg, normalized);
+  const receipt_id = newReceiptId();
+
+  const strictLocalOnly = effStrict.effective;
+
+  // ✅ If memory suggestion exists, write a receipt about the suggestion (NOT a write)
+  if ((meta as any).actions.length > 0) {
+    try {
+      const receipt: any = withKind("system", {
+        schema: "zensquid.receipt.v1" as any,
+        receipt_id: newReceiptId(),
+        created_at: new Date().toISOString(),
+        node: cfg.meta.node,
+        request: { input: `[memory suggestion] ${preview(input, 200)}` },
+        decision: {
+          tier: "deterministic",
+          provider: "local",
+          model: "memory-suggest",
+          escalated: false,
+          escalation_reason: null
+        },
+        memory_suggestion: (meta as any).actions.map((a: any) => ({
+          folder: a.folder,
+          filename_hint: a.filename_hint,
+          suggested_path: a.suggested_path,
+          content_preview: preview(a.content, 160),
+          requires_approval: a.requires_approval,
+          trigger: a.raw_trigger
+        }))
+      });
+      await writeReceipt(zensquidRoot(), receipt as ReceiptV1);
+    } catch {
+      // best-effort; do not fail chat on receipt error
+    }
+  }
+
+  if (strictLocalOnly && decision.tier.provider !== "ollama") {
+    const receipt: any = withKind("chat", {
+      schema: "zensquid.receipt.v1" as any,
+      receipt_id,
+      created_at: new Date().toISOString(),
+      node: cfg.meta.node,
+      request: {
+        input: normalized.input,
+        mode: normalized.mode ?? "auto",
+        force_tier: normalized.force_tier,
+        reason: normalized.reason,
+        selected_skill: selectedSkill
+      },
+      decision: {
+        tier: decision.tier.name,
+        provider: decision.tier.provider,
+        model: decision.tier.model,
+        escalated: true,
+        escalation_reason: `blocked: strict_local_only enabled (source=${effStrict.source})`
+      },
+      context: meta
+    });
+
+    await writeReceipt(zensquidRoot(), receipt as ReceiptV1);
+
+    return reply.code(403).send({
+      error: "Strict local mode enabled: non-local providers are blocked",
+      tier: decision.tier.name,
+      provider: decision.tier.provider,
+      model: decision.tier.model,
+      receipt_id,
+      context: meta
+    });
+  }
+
+  const needsReason = !isLocalProvider(decision.tier.provider);
+  const hasReason = typeof normalized.reason === "string" && normalized.reason.trim().length > 0;
+
+  if (needsReason && cfg.budgets.escalation_requires_reason && !hasReason) {
+    const receipt: any = withKind("chat", {
+      schema: "zensquid.receipt.v1" as any,
+      receipt_id,
+      created_at: new Date().toISOString(),
+      node: cfg.meta.node,
+      request: {
+        input: normalized.input,
+        mode: normalized.mode ?? "auto",
+        force_tier: normalized.force_tier,
+        reason: normalized.reason,
+        selected_skill: selectedSkill
+      },
+      decision: {
+        tier: decision.tier.name,
+        provider: decision.tier.provider,
+        model: decision.tier.model,
+        escalated: true,
+        escalation_reason: "blocked: missing required reason for non-local escalation"
+      },
+      context: meta
+    });
+
+    await writeReceipt(zensquidRoot(), receipt as ReceiptV1);
+
+    return reply.code(400).send({
+      error: "Escalation reason required for non-local providers",
+      tier: decision.tier.name,
+      provider: decision.tier.provider,
+      model: decision.tier.model,
+      receipt_id,
+      context: meta
+    });
+  }
+
+  const messages = [
+    { role: "system", content: system },
+    { role: "user", content: normalized.input }
+  ] as const;
+
+  // ===============================
+  // OLLAMA (local)
+  // ===============================
+  if (decision.tier.provider === "ollama") {
+    const out = await ollamaChat({
+      baseUrl: cfg.providers.ollama.base_url,
+      model: decision.tier.model,
+      messages: [...messages]
+    });
+
+    const receipt: any = withKind("chat", {
+      schema: "zensquid.receipt.v1",
+      receipt_id,
+      created_at: new Date().toISOString(),
+      node: cfg.meta.node,
+      request: {
+        input: normalized.input,
+        mode: normalized.mode ?? "auto",
+        force_tier: normalized.force_tier,
+        reason: normalized.reason,
+        selected_skill: selectedSkill
+      },
+      decision: {
+        tier: decision.tier.name,
+        provider: decision.tier.provider,
+        model: decision.tier.model,
+        escalated: decision.escalated,
+        escalation_reason: decision.escalation_reason
+      },
+      context: meta,
+      provider_response: out.raw
+    });
+
+    await writeReceipt(zensquidRoot(), receipt as ReceiptV1);
+
+    return reply.send({
+      output: out.output,
+      tier: decision.tier.name,
+      provider: decision.tier.provider,
+      model: decision.tier.model,
+      receipt_id,
+      escalated: decision.escalated,
+      escalation_reason: decision.escalation_reason,
+      context: meta
+    });
+  }
+
+  // ===============================
+  // MODELSTUDIO (DashScope OpenAI-compatible)
+  // ===============================
+  if (decision.tier.provider === "modelstudio") {
+    const apiKey =
+      process.env.DASHSCOPE_API_KEY ??
+      process.env.ZENSQUID_MODELSTUDIO_API_KEY ??
+      process.env.MODELSTUDIO_API_KEY ??
+      "";
+
+    const baseUrl =
+      (cfg as any)?.providers?.modelstudio?.base_url ??
+      process.env.ZENSQUID_MODELSTUDIO_BASE_URL ??
+      process.env.MODELSTUDIO_BASE_URL ??
+      "https://dashscope-us.aliyuncs.com/compatible-mode/v1";
+
+    if (!apiKey || apiKey.trim().length < 10) {
+      const receipt: any = withKind("chat", {
+        schema: "zensquid.receipt.v1",
+        receipt_id,
+        created_at: new Date().toISOString(),
+        node: cfg.meta.node,
+        request: {
+          input: normalized.input,
+          mode: normalized.mode ?? "auto",
+          force_tier: normalized.force_tier,
+          reason: normalized.reason,
+          selected_skill: selectedSkill
+        },
+        decision: {
+          tier: decision.tier.name,
+          provider: decision.tier.provider,
+          model: decision.tier.model,
+          escalated: true,
+          escalation_reason: "blocked: missing DASHSCOPE_API_KEY"
+        },
+        context: meta
+      });
+
+      await writeReceipt(zensquidRoot(), receipt);
+
+      return reply.code(400).send({
+        error: "Missing DASHSCOPE_API_KEY for modelstudio provider",
+        tier: decision.tier.name,
+        provider: decision.tier.provider,
+        model: decision.tier.model,
+        receipt_id,
+        context: meta
+      });
+    }
+
+    const out = await modelstudioChat({
+      baseUrl,
+      model: decision.tier.model,
+      messages: [...messages],
+      apiKey
+    });
+
+    const receipt: any = withKind("chat", {
+      schema: "zensquid.receipt.v1",
+      receipt_id,
+      created_at: new Date().toISOString(),
+      node: cfg.meta.node,
+      request: {
+        input: normalized.input,
+        mode: normalized.mode ?? "auto",
+        force_tier: normalized.force_tier,
+        reason: normalized.reason,
+        selected_skill: selectedSkill
+      },
+      decision: {
+        tier: decision.tier.name,
+        provider: decision.tier.provider,
+        model: decision.tier.model,
+        escalated: decision.escalated,
+        escalation_reason: decision.escalation_reason
+      },
+      context: meta,
+      provider_response: out.raw
+    });
+
+    await writeReceipt(zensquidRoot(), receipt);
+
+    return reply.send({
+      output: out.content,
+      tier: decision.tier.name,
+      provider: decision.tier.provider,
+      model: decision.tier.model,
+      receipt_id,
+      escalated: decision.escalated,
+      escalation_reason: decision.escalation_reason,
+      context: meta
+    });
+  }
+
+  // ===============================
+  // OPENAI (lazy import)
+  // ===============================
+  if (decision.tier.provider === "openai") {
+    const { openaiChat } = await import("@zensquid/provider-openai");
+
+    const apiKey = process.env.ZENSQUID_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY ?? undefined;
+
+    const apiKeyFile = process.env.ZENSQUID_OPENAI_KEY_FILE ?? process.env.OPENAI_API_KEY_FILE ?? undefined;
+
+    const out = await openaiChat({
+      model: decision.tier.model,
+      messages: [...messages],
+      apiKey,
+      apiKeyFile
+    });
+
+    const receipt: any = withKind("chat", {
+      schema: "zensquid.receipt.v1" as any,
+      receipt_id,
+      created_at: new Date().toISOString(),
+      node: cfg.meta.node,
+      request: {
+        input: normalized.input,
+        mode: normalized.mode ?? "auto",
+        force_tier: normalized.force_tier,
+        reason: normalized.reason,
+        selected_skill: selectedSkill
+      },
+      decision: {
+        tier: decision.tier.name,
+        provider: decision.tier.provider,
+        model: decision.tier.model,
+        escalated: decision.escalated,
+        escalation_reason: decision.escalation_reason
+      },
+      context: meta,
+      provider_response: (out as any).raw
+    });
+
+    await writeReceipt(zensquidRoot(), receipt as ReceiptV1);
+
+    return reply.send({
+      output: (out as any).output,
+      tier: decision.tier.name,
+      provider: decision.tier.provider,
+      model: decision.tier.model,
+      receipt_id,
+      escalated: decision.escalated,
+      escalation_reason: decision.escalation_reason,
+      context: meta
+    });
+  }
+
+  const receipt: any = withKind("chat", {
+    schema: "zensquid.receipt.v1" as any,
+    receipt_id,
+    created_at: new Date().toISOString(),
+    node: cfg.meta.node,
+    request: {
+      input: normalized.input,
+      mode: normalized.mode ?? "auto",
+      force_tier: normalized.force_tier,
+      reason: normalized.reason,
+      selected_skill: selectedSkill
+    },
+    decision: {
+      tier: decision.tier.name,
+      provider: decision.tier.provider,
+      model: decision.tier.model,
+      escalated: decision.escalated,
+      escalation_reason: "provider not implemented yet"
+    },
+    context: meta
+  });
+
+  await writeReceipt(zensquidRoot(), receipt as ReceiptV1);
+
+  return reply.code(501).send({
+    error: "Provider not implemented yet",
+    tier: decision.tier.name,
+    provider: decision.tier.provider,
+    model: decision.tier.model,
+    receipt_id,
+    context: meta
+  });
+});
 
 const port = Number(process.env.ZENSQUID_PORT ?? "18790");
 const host = process.env.ZENSQUID_HOST ?? "127.0.0.1";
 
 /**
- * Skills endpoints (moved to module)
+ * Extracted route modules
  */
 await registerSkillsRoutes(app, { zensquidRoot });
+
 await registerToolsRoutes(app, {
   adminTokenOk,
   gateOrDenyTool,
@@ -951,6 +1352,17 @@ await registerDoctorRoutes(app, {
   receiptsDir,
   effectiveStrictLocal,
   effectiveSafetyZone
+});
+
+await registerRuntimeRoutes(app, {
+  adminTokenOk,
+  loadState: runtimePaths.loadRuntimeState,
+  saveState: runtimePaths.saveRuntimeState,
+  getState: getRuntimeState,
+  setState: setRuntimeState,
+  effectiveStrictLocal,
+  effectiveSafetyZone,
+  getEffectivePolicy
 });
 
 await app.listen({ port, host });
