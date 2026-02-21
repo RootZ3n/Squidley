@@ -1,4 +1,3 @@
-
 {
   "meta": {
     "name": "Squidley",
@@ -15,25 +14,25 @@
     {
       "name": "chat",
       "provider": "modelstudio",
-      "model": "qwen3-flash",
-      "role": "Tier 1: Chat Mode (cloud text-only)"
+      "model": "qwen-flash-us",
+      "role": "Tier 1: Chat Mode (fast + cheap)"
     },
     {
       "name": "plan",
       "provider": "modelstudio",
-      "model": "qwen3.5",
-      "role": "Tier 2: Planning Mode (cloud text-only)"
+      "model": "qwen-plus-us",
+      "role": "Tier 2: Planning Mode (smarter reasoning)"
     },
     {
       "name": "build",
-      "provider": "modelstudio",
-      "model": "qwen3-coder-flash",
-      "role": "Tier 2: Build Mode (cloud text-only, code generation)"
+      "provider": "ollama",
+      "model": "qwen3-coder:30b",
+      "role": "Tier 2: Build Mode (local code generation)"
     },
     {
       "name": "big_brain",
       "provider": "modelstudio",
-      "model": "qwen-397b",
+      "model": "qwen-plus-2025-12-01-us",
       "role": "Tier 3: Big Brain (explicit approval required)"
     }
   ],
@@ -46,8 +45,8 @@
   "providers": {
     "ollama": { "base_url": "http://127.0.0.1:11434" },
     "modelstudio": {
-      "env_key": "QWEN_API_KEY",
-      "base_url": "https://api.modelstudio.ai"
+      "env_key": "DASHSCOPE_API_KEY",
+      "base_url": "https://dashscope-us.aliyuncs.com/compatible-mode"
     }
   }
 }

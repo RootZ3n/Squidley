@@ -1,6 +1,6 @@
 export type TierName = string;
 
-export type ProviderName = "ollama" | "openai" | "anthropic";
+export type ProviderName = "ollama" | "openai" | "anthropic" | "modelstudio";
 
 export interface TierConfig {
   name: TierName;
