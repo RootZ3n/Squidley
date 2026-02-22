@@ -67,3 +67,14 @@ data/
 # backups
 *.bak.*
 *.bak
+
+# Playwright browsers (huge; keep local)
+.playwright-browsers/
+
+# Next / TS build artifacts
+apps/web/.next/
+apps/web/tsconfig.tsbuildinfo
+
+# Playwright artifacts
+apps/web/test-results/
+apps/web/playwright-report/
