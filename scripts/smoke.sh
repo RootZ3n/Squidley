@@ -1,26 +1,39 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+API_URL="${ZENSQUID_API_URL:-http://127.0.0.1:18790}"
 
-cd "$ROOT"
+# Keep Playwright browsers out of home dir + out of git (you already .gitignore this)
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-$REPO_ROOT/.playwright-browsers}"
 
 echo "== restart api =="
 systemctl --user restart squidley-api.service
-"$ROOT/scripts/wait-api.sh" "http://127.0.0.1:18790/health" 60 0.25
+./scripts/wait-api.sh
 
 echo "== api health =="
-curl -fsS http://127.0.0.1:18790/health | jq
+curl -fsS "$API_URL/health" | jq .
 
 echo "== tools list =="
-curl -fsS http://127.0.0.1:18790/tools/list | jq '.ok, (.tools|length)'
+curl -fsS "$API_URL/tools/list" | jq '.ok, (.tools | length)'
+
+echo "== receipts =="
+# receipts endpoint returns: { count, receipts: [...] }
+curl -fsS "$API_URL/receipts?limit=1" | jq -e '.count >= 0' >/dev/null
+echo "✅ receipts ok"
 
 echo "== web build =="
 pnpm -C apps/web build >/dev/null
 echo "✅ web build ok"
 
+echo "== playwright setup =="
+# Ensure browsers exist (idempotent; safe to run every time)
+mkdir -p "$PLAYWRIGHT_BROWSERS_PATH"
+pnpm -C apps/web exec playwright install chromium >/dev/null
+echo "✅ playwright chromium ready (PLAYWRIGHT_BROWSERS_PATH=$PLAYWRIGHT_BROWSERS_PATH)"
+
 echo "== playwright =="
-PLAYWRIGHT_BROWSERS_PATH="$ROOT/.playwright-browsers" pnpm -C apps/web exec playwright test
+pnpm -C apps/web exec playwright test
 echo "✅ playwright ok"
 
 echo "🎉 SMOKE PASS"

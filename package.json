@@ -8,9 +8,9 @@
     "dev:api": "pnpm --filter @zensquid/api dev",
     "dev:web": "pnpm --filter @zensquid/web dev",
     "build": "pnpm -r build",
+    "smoke": "./scripts/smoke.sh",
     "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck",
-    "smoke": "./scripts/smoke.sh"
+    "typecheck": "pnpm -r typecheck"
   },
   "devDependencies": {
     "@types/node": "^25.3.0",
