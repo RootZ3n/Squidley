@@ -1,8 +1,9 @@
-// apps/web/src/app/api/zensquid.ts
-// Canonical entrypoint for "@/app/api/zensquid" (tsconfig paths -> ./src/*)
+// apps/web/app/api/zensquid/index.ts
 
 export const ZENSQUID_API =
   process.env.NEXT_PUBLIC_ZENSQUID_API || "http://127.0.0.1:18790";
+
+/** ---------- shared helpers ---------- */
 
 async function parseJsonOrText(res: Response) {
   const text = await res.text();
@@ -41,7 +42,7 @@ export async function apiPost<T = any>(
 /** ---------- Skills ---------- */
 
 export type SkillInfo = { name: string; description?: string };
-export type SkillsList = { ok: boolean; skills: SkillInfo[]; [k: string]: any };
+export type SkillsList = { ok: boolean; name?: string; skills: SkillInfo[]; [k: string]: any };
 
 export async function getSkills(): Promise<SkillsList> {
   const res = await apiGet<any>("/skills/list");
@@ -69,10 +70,6 @@ export async function chat(input: string, skill?: string | null): Promise<ChatRe
 export type ToolListItem = { id: string; title: string };
 export type ToolsListResponse = { ok: boolean; tools: ToolListItem[] };
 
-export async function getToolsList(): Promise<ToolsListResponse> {
-  return apiGet<ToolsListResponse>("/tools/list");
-}
-
 export type ToolRunRequest = {
   workspace: string;
   tool_id: string;
@@ -99,6 +96,10 @@ export type ToolRunResult = {
 export type ToolRunResponse =
   | { ok: true; result: ToolRunResult }
   | { ok: false; error: string; receipt_id?: string | null };
+
+export async function getToolsList(): Promise<ToolsListResponse> {
+  return apiGet<ToolsListResponse>("/tools/list");
+}
 
 export async function runTool(req: ToolRunRequest, adminToken: string): Promise<ToolRunResponse> {
   return apiPost<ToolRunResponse>("/tools/run", req, adminToken);

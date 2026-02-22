@@ -7,6 +7,8 @@ import { spawn } from "node:child_process";
 import { loadConfig, newReceiptId, type ReceiptV1 } from "@zensquid/core";
 import type { CapabilityAction } from "../../capabilities/types.js";
 
+type SafetyZone = "workspace" | "diagnostics" | "forge" | "godmode";
+
 type Deps = {
   adminTokenOk: (req: any) => boolean;
   gateOrDenyTool: (args: {
@@ -14,9 +16,16 @@ type Deps = {
     action: CapabilityAction;
     reply: any;
     receiptBase: Partial<ReceiptV1>;
+    zoneOverride?: SafetyZone | null;
   }) => Promise<any>;
   safeReadText: (p: string, maxBytes?: number) => Promise<string>;
 };
+
+function parseZoneOverride(body: any): SafetyZone | null {
+  const z = body?.safety_zone;
+  if (z === "workspace" || z === "diagnostics" || z === "forge" || z === "godmode") return z;
+  return null;
+}
 
 async function runCommand(cmd: string[], cwd?: string | null) {
   return new Promise<{ code: number; stdout: string; stderr: string }>((resolve) => {
@@ -51,6 +60,7 @@ export async function registerToolsRoutes(app: FastifyInstance, deps: Deps): Pro
 
     const cfg = await loadConfig(process.env.ZENSQUID_CONFIG);
     const body = (req.body ?? {}) as any;
+    const zoneOverride = parseZoneOverride(body);
 
     const p = typeof body?.path === "string" ? body.path : "";
     const content = typeof body?.content === "string" ? body.content : null;
@@ -69,9 +79,12 @@ export async function registerToolsRoutes(app: FastifyInstance, deps: Deps): Pro
       cfg,
       action: { kind: "fs.write", capability: "fs.write", path: p, bytes: Buffer.byteLength(content) } as any,
       reply,
-      receiptBase: base
+      receiptBase: base,
+      zoneOverride
     });
-    if (deny) return deny;
+
+    // gateOrDenyTool may have already sent the response; STOP in that case
+    if (deny || (reply as any).sent) return;
 
     const abs = path.resolve(p);
     await mkdir(path.dirname(abs), { recursive: true }).catch(() => {});
@@ -84,6 +97,7 @@ export async function registerToolsRoutes(app: FastifyInstance, deps: Deps): Pro
 
     const cfg = await loadConfig(process.env.ZENSQUID_CONFIG);
     const body = (req.body ?? {}) as any;
+    const zoneOverride = parseZoneOverride(body);
 
     const p = typeof body?.path === "string" ? body.path : "";
     if (!p) return reply.code(400).send({ ok: false, error: "Missing path" });
@@ -101,9 +115,12 @@ export async function registerToolsRoutes(app: FastifyInstance, deps: Deps): Pro
       cfg,
       action: { kind: "fs.read", capability: "fs.read", path: p } as any,
       reply,
-      receiptBase: base
+      receiptBase: base,
+      zoneOverride
     });
-    if (deny) return deny;
+
+    // gateOrDenyTool may have already sent the response; STOP in that case
+    if (deny || (reply as any).sent) return;
 
     const abs = path.resolve(p);
     const raw = await deps.safeReadText(abs, 200_000);
@@ -115,6 +132,7 @@ export async function registerToolsRoutes(app: FastifyInstance, deps: Deps): Pro
 
     const cfg = await loadConfig(process.env.ZENSQUID_CONFIG);
     const body = (req.body ?? {}) as any;
+    const zoneOverride = parseZoneOverride(body);
 
     let cmd: string[] = [];
     if (Array.isArray(body?.cmd)) cmd = body.cmd.map((x: any) => String(x));
@@ -136,9 +154,12 @@ export async function registerToolsRoutes(app: FastifyInstance, deps: Deps): Pro
       cfg,
       action: { kind: "proc.exec", capability: "proc.exec", cmd, cwd } as any,
       reply,
-      receiptBase: base
+      receiptBase: base,
+      zoneOverride
     });
-    if (deny) return deny;
+
+    // gateOrDenyTool may have already sent the response; STOP in that case
+    if (deny || (reply as any).sent) return;
 
     const res = await runCommand(cmd, cwd);
     return reply.send({ ok: true, code: res.code, stdout: res.stdout, stderr: res.stderr, receipt_id });
@@ -149,6 +170,7 @@ export async function registerToolsRoutes(app: FastifyInstance, deps: Deps): Pro
 
     const cfg = await loadConfig(process.env.ZENSQUID_CONFIG);
     const body = (req.body ?? {}) as any;
+    const zoneOverride = parseZoneOverride(body);
 
     const action = typeof body?.action === "string" ? body.action : "";
     const unit = typeof body?.unit === "string" ? body.unit : "";
@@ -169,9 +191,12 @@ export async function registerToolsRoutes(app: FastifyInstance, deps: Deps): Pro
       cfg,
       action: { kind: "systemctl.user", capability: "systemctl.user", cmd } as any,
       reply,
-      receiptBase: base
+      receiptBase: base,
+      zoneOverride
     });
-    if (deny) return deny;
+
+    // gateOrDenyTool may have already sent the response; STOP in that case
+    if (deny || (reply as any).sent) return;
 
     const res = await runCommand(cmd, null);
     return reply.send({ ok: res.code === 0, code: res.code, stdout: res.stdout, stderr: res.stderr, receipt_id });

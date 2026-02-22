@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "project_root": "/media/zen/AI/zensquid",
+  "project_root": "/media/zen/AI/squidley",
   "global_denies": ["systemctl.system", "proc.exec.dangerous"],
   "zones": {
     "workspace": {

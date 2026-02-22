@@ -1,7 +1,7 @@
 // apps/api/src/server.ts
 import Fastify from "fastify";
 import corsPkg from "@fastify/cors";
-import { readdir, readFile, stat } from "node:fs/promises";
+import { readdir, readFile, mkdir, writeFile, stat } from "node:fs/promises";
 import path from "node:path";
 
 import { buildChatSystemPrompt, normalizeRelPath, memoryAbs, ensureMemoryRoot } from "./chat/systemPrompt.js";
@@ -34,18 +34,11 @@ import { registerMemoryRoutes } from "./http/routes/memory.js";
 import { registerTokenMonitorRoutes } from "./http/routes/token_monitor.js";
 import { registerOnboardingRoutes } from "./http/routes/onboarding.js";
 import { registerCapabilitiesRoutes } from "./http/routes/capabilities.js";
-import { registerGuardRoutes, evaluateGuard } from "./http/routes/guard.js";
-
-// ✅ Tool Runner (local-only allowlisted execution)
-import { toolsRoutes } from "./routes/tools.js";
 
 type RequestKind = "chat" | "heartbeat" | "tool" | "system";
 
 const app = Fastify({ logger: true });
 await app.register(corsPkg, { origin: true });
-
-// ✅ Register Tool Runner routes AFTER app exists
-await app.register(toolsRoutes);
 
 app.get("/health", async () => ({ ok: true, name: "Squidley API" }));
 
@@ -189,7 +182,7 @@ async function gateOrDenyTool(args: {
     projectRootResolved: eff.projectRootResolved
   });
 
-  const receipt: any = {
+  const receipt: any = withKind("tool", {
     ...(args.receiptBase ?? {}),
     schema: "zensquid.receipt.v1",
     tool_event: {
@@ -200,7 +193,7 @@ async function gateOrDenyTool(args: {
       matched_rule: decision.matched_rule,
       action: args.action
     }
-  };
+  });
 
   await writeReceipt(zensquidRoot(), receipt as ReceiptV1);
 
@@ -212,7 +205,7 @@ async function gateOrDenyTool(args: {
       capability: decision.capability,
       reason: decision.reason,
       matched_rule: decision.matched_rule,
-      receipt_id: (args.receiptBase as any)?.receipt_id ?? null
+      receipt_id: (receipt as any)?.receipt_id ?? (args.receiptBase as any)?.receipt_id ?? null
     });
   }
 
@@ -238,6 +231,318 @@ async function loadAgentTexts() {
   const soul = await safeReadText(soulFile());
   const identity = await safeReadText(identityFile());
   return { soul, identity };
+}
+
+/**
+ * Memory search for chat (simple + fast enough)
+ */
+function extractKeywords(input: string): string[] {
+  const raw = input
+    .toLowerCase()
+    .replace(/[^a-z0-9\s\-_/]/g, " ")
+    .split(/\s+/)
+    .map((w) => w.trim())
+    .filter(Boolean);
+
+  const stop = new Set([
+    "the",
+    "and",
+    "or",
+    "to",
+    "of",
+    "a",
+    "an",
+    "is",
+    "are",
+    "am",
+    "be",
+    "been",
+    "being",
+    "i",
+    "you",
+    "we",
+    "they",
+    "it",
+    "this",
+    "that",
+    "these",
+    "those",
+    "for",
+    "with",
+    "on",
+    "in",
+    "at",
+    "from",
+    "as",
+    "by",
+    "do",
+    "does",
+    "did",
+    "done",
+    "not",
+    "no",
+    "yes",
+    "ok",
+    "please",
+    "can",
+    "could",
+    "would",
+    "should",
+    "will",
+    "just",
+    "like"
+  ]);
+
+  const filtered = raw.filter((w) => w.length >= 4 && !stop.has(w));
+  return [...new Set(filtered)].slice(0, 8);
+}
+
+async function walkMarkdownFiles(root: string, maxFiles = 600): Promise<string[]> {
+  const out: string[] = [];
+  async function walk(dir: string) {
+    if (out.length >= maxFiles) return;
+    const entries = await readdir(dir, { withFileTypes: true }).catch(() => []);
+    for (const e of entries) {
+      if (out.length >= maxFiles) return;
+      const p = path.resolve(dir, e.name);
+      if (e.isDirectory()) await walk(p);
+      else if (e.isFile() && (e.name.endsWith(".md") || e.name.endsWith(".markdown"))) out.push(p);
+    }
+  }
+  await walk(root);
+  return out;
+}
+
+type MemoryHit = { rel: string; score: number; snippet: string };
+
+function makeSnippet(text: string, needle: string, maxLen = 180): string {
+  const idx = text.toLowerCase().indexOf(needle.toLowerCase());
+  if (idx < 0) return preview(text, maxLen);
+  const start = Math.max(0, idx - 60);
+  const end = Math.min(text.length, idx + 120);
+  const slice = text.slice(start, end).replace(/\s+/g, " ").trim();
+  return slice.length > maxLen ? slice.slice(0, maxLen - 1) + "…" : slice;
+}
+
+async function searchMemoryForChat(input: string, maxHits = 5): Promise<MemoryHit[]> {
+  const root = memoryRoot();
+  const keywords = extractKeywords(input);
+  if (keywords.length === 0) return [];
+
+  const files = await walkMarkdownFiles(root, 600);
+  const hits: MemoryHit[] = [];
+
+  for (const abs of files) {
+    const raw = await safeReadText(abs, 120_000);
+    if (!raw) continue;
+
+    let score = 0;
+    let bestNeedle = "";
+
+    for (const k of keywords) {
+      const count = raw.toLowerCase().split(k).length - 1;
+      if (count > 0) {
+        score += Math.min(6, count) * 2;
+        if (!bestNeedle) bestNeedle = k;
+      }
+    }
+
+    if (score > 0) {
+      const rel = path.relative(zensquidRoot(), abs).replace(/\\/g, "/");
+      hits.push({ rel, score, snippet: makeSnippet(raw, bestNeedle || keywords[0]) });
+    }
+  }
+
+  hits.sort((a, b) => b.score - a.score);
+  return hits.slice(0, maxHits);
+}
+
+/**
+ * Skill doc loading (for chat context)
+ */
+async function loadSkillDoc(skillName: string): Promise<string> {
+  const safe = String(skillName ?? "").trim();
+  if (!safe) return "";
+  if (safe.includes("..") || safe.includes("/") || safe.includes("\\")) return "";
+  const p = path.resolve(skillsRoot(), safe, "skill.md");
+  return await safeReadText(p, 120_000);
+}
+
+/**
+ * ✅ Intelligence-visible chat context
+ */
+type ChatContextUsed = {
+  base: boolean;
+  identity: boolean;
+  soul: boolean;
+  skill: string | null;
+  memory_hit_count: number;
+};
+
+type ChatContextMemoryHit = { path: string; score: number; snippet: string };
+
+type SuggestedAction = {
+  type: "suggest_memory_write";
+  folder: string;
+  filename_hint: string;
+  suggested_path: string;
+  content: string;
+  source: "deterministic_parser";
+  confidence: 1.0;
+  requires_approval: true;
+  raw_trigger: string;
+};
+
+type ChatContextMeta = {
+  used: ChatContextUsed;
+  memory_hits: ChatContextMemoryHit[];
+  actions: SuggestedAction[];
+};
+
+/**
+ * Deterministic Memory Suggestion Parser (NO LLM)
+ */
+function normalizeSpaces(s: string): string {
+  return s.trim().replace(/\s+/g, " ");
+}
+
+function sanitizeFolderName(folder: string): string {
+  const cleaned = normalizeSpaces(folder).replace(/[^\w\-\/ ]/g, "").trim();
+  if (!cleaned) return "general";
+  if (cleaned.startsWith("/")) return "general";
+  if (cleaned.includes("..")) return "general";
+  return cleaned;
+}
+
+function slugifySimple(s: string, maxLen = 48): string {
+  const t = String(s ?? "")
+    .toLowerCase()
+    .replace(/['"]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  const out = t.slice(0, maxLen);
+  return out.length > 0 ? out : "note";
+}
+
+function safeFolderPath(folder: string): string {
+  const cleaned = sanitizeFolderName(folder);
+  const parts = cleaned
+    .split("/")
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => slugifySimple(p, 32));
+
+  if (parts.length === 0) return "general";
+  return parts.join("/");
+}
+
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function formatLocalStamp(d: Date): string {
+  const y = d.getFullYear();
+  const m = pad2(d.getMonth() + 1);
+  const day = pad2(d.getDate());
+  const hh = pad2(d.getHours());
+  const mm = pad2(d.getMinutes());
+  return `${y}-${m}-${day}_${hh}${mm}`;
+}
+
+function djb2Hex(s: string): string {
+  let h = 5381;
+  const str = String(s ?? "");
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) + h) ^ str.charCodeAt(i);
+    h >>>= 0;
+  }
+  return (h >>> 0).toString(16).padStart(8, "0").slice(0, 8);
+}
+
+function buildSuggestedMemoryPath(args: { folder: string; content: string; now: Date }): string {
+  const folderSafe = safeFolderPath(args.folder);
+  const stamp = formatLocalStamp(args.now);
+  const slug = slugifySimple(args.content, 48);
+  const hash = djb2Hex(args.content);
+  const filename = `${stamp}_${slug}-${hash}.md`;
+  return `${folderSafe}/${filename}`;
+}
+
+function parseMemorySuggestion(inputRaw: string, now: Date): SuggestedAction | null {
+  const raw = String(inputRaw ?? "");
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  {
+    const m = trimmed.match(/^\s*log this under\s+([^:]{1,64})\s*:\s*([\s\S]+)$/i);
+    if (m) {
+      const folder = sanitizeFolderName(String(m[1] ?? ""));
+      const content = String(m[2] ?? "").trim();
+      if (content.length > 0) {
+        const suggested_path = buildSuggestedMemoryPath({ folder, content, now });
+        return {
+          type: "suggest_memory_write",
+          folder,
+          filename_hint: "remembered-note.md",
+          suggested_path,
+          content,
+          source: "deterministic_parser",
+          confidence: 1.0,
+          requires_approval: true,
+          raw_trigger: "log this under"
+        };
+      }
+    }
+  }
+
+  const triggers = ["remember this", "save this", "store this", "add to long term", "add to long-term", "add to memory"];
+  for (const t of triggers) {
+    const re = new RegExp(`^\\s*(${t})\\s*:\\s*([\\s\\S]+)$`, "i");
+    const m = trimmed.match(re);
+    if (m) {
+      const content = String(m[2] ?? "").trim();
+      if (content.length > 0) {
+        const folder = "general";
+        const suggested_path = buildSuggestedMemoryPath({ folder, content, now });
+        return {
+          type: "suggest_memory_write",
+          folder,
+          filename_hint: "remembered-note.md",
+          suggested_path,
+          content,
+          source: "deterministic_parser",
+          confidence: 1.0,
+          requires_approval: true,
+          raw_trigger: String(m[1] ?? t)
+        };
+      }
+    }
+  }
+
+  {
+    const m = trimmed.match(/^\s*remember this[.\s]+([\s\S]+)$/i);
+    if (m) {
+      const content = String(m[1] ?? "").trim();
+      if (content.length > 0) {
+        const folder = "general";
+        const suggested_path = buildSuggestedMemoryPath({ folder, content, now });
+        return {
+          type: "suggest_memory_write",
+          folder,
+          filename_hint: "remembered-note.md",
+          suggested_path,
+          content,
+          source: "deterministic_parser",
+          confidence: 1.0,
+          requires_approval: true,
+          raw_trigger: "remember this."
+        };
+      }
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -378,6 +683,27 @@ app.post("/heartbeat", async (req, reply) => {
 /**
  * Chat — uses Soul/Identity/Memory (+ optional skill context)
  */
+function detectPromptInjection(input: string): { blocked: boolean; reason?: string } {
+  const s = (input ?? "").toLowerCase();
+
+  const patterns: Array<{ id: string; re: RegExp }> = [
+    { id: "ignore_previous", re: /\bignore (all|any|the) (previous|prior) (instructions|rules|messages)\b/i },
+    { id: "override_system", re: /\boverride (the )?(system|developer) (prompt|message|instructions)\b/i },
+    {
+      id: "reveal_system",
+      re: /\b(reveal|show|print|dump|leak) (the )?(system|developer) (prompt|message|instructions)\b/i
+    },
+    { id: "bypass_safety", re: /\b(bypass|disable|remove) (safety|filters|guardrails|policy)\b/i },
+    { id: "act_as_root", re: /\b(act as|you are now|pretend to be) (root|administrator|admin|system)\b/i }
+  ];
+
+  for (const p of patterns) {
+    if (p.re.test(s)) return { blocked: true, reason: `prompt_injection:${p.id}` };
+  }
+
+  return { blocked: false };
+}
+
 function looksInfraOrTooling(input: string): boolean {
   const s = input.toLowerCase();
   return (
@@ -430,11 +756,9 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
 
   if (!input) return reply.code(400).send({ error: "Missing input" });
 
-  // ✅ Server-side guard enforcement (single source of truth)
-  const g = evaluateGuard(input);
-  if (g.blocked) {
+  const inj = detectPromptInjection(input);
+  if (inj.blocked) {
     const receipt_id = newReceiptId();
-
     const receipt: any = withKind("chat", {
       schema: "zensquid.receipt.v1" as any,
       receipt_id,
@@ -450,16 +774,13 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       decision: {
         tier: "guard",
         provider: "local",
-        model: g.score === 999 ? "prompt-injection-guard" : "intent-score-guard",
+        model: "prompt-injection-guard",
         escalated: false,
         escalation_reason: null
       },
       guard_event: {
         blocked: true,
-        reason: g.reason ?? "guard:blocked",
-        score: g.score,
-        signals: g.signals,
-        matched_pattern: g.matched_pattern ?? null
+        reason: inj.reason
       }
     });
 
@@ -467,18 +788,37 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
 
     return reply.code(400).send({
       error: "Potential prompt injection detected",
-      reason: g.reason ?? "guard:blocked",
+      reason: inj.reason,
       receipt_id
     });
   }
 
   const now = new Date();
 
+  // ✅ Deterministic parse BEFORE model call (no LLM)
+  const preSuggestion = parseMemorySuggestion(input, now);
+
+  // Build dynamic system prompt + intelligence-visible meta context
   const { system, meta } = await buildChatSystemPrompt({
     input,
     selected_skill: selectedSkill,
     now
   });
+
+  // Ensure action list is ALWAYS present, and include the pre-parse suggestion
+  (meta as any).actions = Array.isArray((meta as any).actions) ? (meta as any).actions : [];
+  if (preSuggestion) {
+    const exists =
+      (meta as any).actions.some(
+        (a: any) =>
+          a.type === "suggest_memory_write" &&
+          a.folder === preSuggestion.folder &&
+          a.content === preSuggestion.content &&
+          a.raw_trigger === preSuggestion.raw_trigger
+      ) ?? false;
+
+    if (!exists) (meta as any).actions.push(preSuggestion);
+  }
 
   const normalized: ChatRequest = {
     input,
@@ -506,6 +846,37 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
   const receipt_id = newReceiptId();
 
   const strictLocalOnly = effStrict.effective;
+
+  // ✅ If memory suggestion exists, write a receipt about the suggestion (NOT a write)
+  if ((meta as any).actions.length > 0) {
+    try {
+      const receipt: any = withKind("system", {
+        schema: "zensquid.receipt.v1" as any,
+        receipt_id: newReceiptId(),
+        created_at: new Date().toISOString(),
+        node: cfg.meta.node,
+        request: { input: `[memory suggestion] ${preview(input, 200)}` },
+        decision: {
+          tier: "deterministic",
+          provider: "local",
+          model: "memory-suggest",
+          escalated: false,
+          escalation_reason: null
+        },
+        memory_suggestion: (meta as any).actions.map((a: any) => ({
+          folder: a.folder,
+          filename_hint: a.filename_hint,
+          suggested_path: a.suggested_path,
+          content_preview: preview(a.content, 160),
+          requires_approval: a.requires_approval,
+          trigger: a.raw_trigger
+        }))
+      });
+      await writeReceipt(zensquidRoot(), receipt as ReceiptV1);
+    } catch {
+      // best-effort; do not fail chat on receipt error
+    }
+  }
 
   if (strictLocalOnly && decision.tier.provider !== "ollama") {
     const receipt: any = withKind("chat", {
@@ -545,7 +916,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
   const needsReason = !isLocalProvider(decision.tier.provider);
   const hasReason = typeof normalized.reason === "string" && normalized.reason.trim().length > 0;
 
-  if (needsReason && (cfg as any)?.budgets?.escalation_requires_reason && !hasReason) {
+  if (needsReason && cfg.budgets.escalation_requires_reason && !hasReason) {
     const receipt: any = withKind("chat", {
       schema: "zensquid.receipt.v1" as any,
       receipt_id,
@@ -616,6 +987,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       receipt_id,
       created_at: new Date().toISOString(),
       node: cfg.meta.node,
+
       request: {
         input: normalized.input,
         mode: normalized.mode ?? "auto",
@@ -623,6 +995,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
         reason: normalized.reason,
         selected_skill: selectedSkill
       },
+
       decision: {
         tier: decision.tier.name,
         provider: decision.tier.provider,
@@ -630,6 +1003,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
         escalated: decision.escalated,
         escalation_reason: decision.escalation_reason
       },
+
       context: meta,
       usage,
       provider_response: out.raw
@@ -865,6 +1239,8 @@ await registerRuntimeRoutes(app, {
   effectiveStrictLocal,
   effectiveSafetyZone,
   getEffectivePolicy,
+
+  // ✅ onboarding gate (per-PC)
   getOnboarding: async () => {
     try {
       const { readFile } = await import("node:fs/promises");
@@ -903,11 +1279,6 @@ await registerTokenMonitorRoutes(app, {
   receiptsDir
 });
 
-// ✅ New deterministic guard preflight for UI wiring
-await registerGuardRoutes(app, {
-  zensquidRoot
-});
-
 app.get("/debug/routes/list", async (req, reply) => {
   if (!adminTokenOk(req)) return reply.code(401).send({ ok: false, error: "Unauthorized" });
 
@@ -920,13 +1291,19 @@ app.get("/debug/routes/list", async (req, reply) => {
   return reply.type("text/plain").send(out.join("\n") + "\n");
 });
 
+// --- Onboarding routes (per-PC, persisted under /data/onboarding.json) ---
 await registerOnboardingRoutes(app, {
   adminTokenOk,
+
+  // stored on THIS machine only
   dataDir: () => runtimePaths.dataDir(),
+
+  // reuse the EXISTING /runtime/preset endpoint (no internal helper needed)
   applyPresetByName: async (name, opts) => {
     try {
       const req = opts?.req;
 
+      // forward auth headers the client used (admin token + optional godmode password)
       const headers: Record<string, string> = {
         "content-type": "application/json"
       };
@@ -937,10 +1314,9 @@ await registerOnboardingRoutes(app, {
       const gpass = req?.headers?.["x-zensquid-godmode-password"];
       if (gpass) headers["x-zensquid-godmode-password"] = String(gpass);
 
+      // confirm phrase can come from the incoming request body or header
       const confirm =
-        (req?.body as any)?.confirm ??
-        (req?.headers?.["x-zensquid-confirm"] as string | undefined) ??
-        null;
+        (req?.body as any)?.confirm ?? (req?.headers?.["x-zensquid-confirm"] as string | undefined) ?? null;
 
       const payload: any = { name };
       if (confirm) payload.confirm = confirm;
@@ -975,19 +1351,30 @@ await registerOnboardingRoutes(app, {
 });
 
 // --- Bind / exposure guardrails -------------------------------------------
-const bindHostRaw = String(process.env.ZENSQUID_BIND_HOST ?? process.env.ZENSQUID_HOST ?? "127.0.0.1").trim();
+// One source of truth:
+// - Use ZENSQUID_BIND_HOST for binding.
+// - (Optional backwards-compat) accept ZENSQUID_HOST, but we treat it as fallback ONLY.
+// - Never bind non-localhost unless ZENSQUID_ALLOW_REMOTE_BIND=true.
 
-const allowRemoteBind =
-  String(process.env.ZENSQUID_ALLOW_REMOTE_BIND ?? "false").trim().toLowerCase() === "true";
+const bindHostRaw = String(
+  process.env.ZENSQUID_BIND_HOST ??
+    process.env.ZENSQUID_HOST ?? // fallback only, prefer BIND_HOST everywhere
+    "127.0.0.1"
+).trim();
 
+const allowRemoteBind = String(process.env.ZENSQUID_ALLOW_REMOTE_BIND ?? "false").trim().toLowerCase() === "true";
+
+// Treat these as local-only targets
 const isLocalhost = bindHostRaw === "127.0.0.1" || bindHostRaw === "localhost" || bindHostRaw === "::1";
 
+// Block dangerous binds unless explicitly allowed
 if (!isLocalhost && !allowRemoteBind) {
   throw new Error(
     `Refusing to bind host="${bindHostRaw}". Set ZENSQUID_ALLOW_REMOTE_BIND=true if you REALLY intend to expose the API.`
   );
 }
 
+// Normalize localhost variants
 const host = isLocalhost ? "127.0.0.1" : bindHostRaw;
 
 await app.listen({ port, host });

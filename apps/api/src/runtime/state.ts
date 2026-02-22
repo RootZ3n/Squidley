@@ -17,16 +17,28 @@ export function makeRuntimePaths(zensquidRoot: () => string) {
   const dataDir = () => path.resolve(zensquidRoot(), "data");
   const runtimeFile = () => path.resolve(dataDir(), "runtime.json");
 
+  const BEGINNER_DEFAULT: RuntimeState = {
+    strict_local_only: true,
+    safety_zone: "workspace"
+  };
+
+  function normalize(parsed: any): RuntimeState {
+    return {
+      strict_local_only: typeof parsed?.strict_local_only === "boolean" ? parsed.strict_local_only : null,
+      safety_zone: isSafetyZone(parsed?.safety_zone) ? parsed.safety_zone : null
+    };
+  }
+
   async function loadRuntimeState(): Promise<RuntimeState> {
     try {
       const raw = await readFile(runtimeFile(), "utf-8");
-      const parsed = JSON.parse(raw) as RuntimeState;
-      return {
-        strict_local_only: typeof parsed.strict_local_only === "boolean" ? parsed.strict_local_only : null,
-        safety_zone: isSafetyZone(parsed.safety_zone) ? parsed.safety_zone : null
-      };
+      const parsed = JSON.parse(raw);
+      return normalize(parsed);
     } catch {
-      return { strict_local_only: null, safety_zone: null };
+      // If runtime.json is missing or broken, default to Beginner.
+      // We also write it out so future boots are stable and visible on disk.
+      await saveRuntimeState(BEGINNER_DEFAULT).catch(() => {});
+      return { ...BEGINNER_DEFAULT };
     }
   }
 
