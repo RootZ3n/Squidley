@@ -2,38 +2,146 @@
 set -euo pipefail
 
 API_URL="${ZENSQUID_API_URL:-http://127.0.0.1:18790}"
+WEB_URL="${ZENSQUID_WEB_URL:-http://127.0.0.1:3001}"
 
-# Keep Playwright browsers out of home dir + out of git (you already .gitignore this)
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-$REPO_ROOT/.playwright-browsers}"
 
-echo "== restart api =="
-systemctl --user restart squidley-api.service
-./scripts/wait-api.sh
+log() { echo -e "$*"; }
 
-echo "== api health =="
-curl -fsS "$API_URL/health" | jq .
+step() {
+  local name="$1"; shift
+  log "\n== $name =="
+  "$@"
+}
 
-echo "== tools list =="
-curl -fsS "$API_URL/tools/list" | jq '.ok, (.tools | length)'
+# Load secrets if present (no echo; safe for local dev + smoke)
+load_secrets() {
+  local envfile="$REPO_ROOT/config/secrets/api.env"
+  if [[ -f "$envfile" ]]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$envfile"
+    set +a
+  fi
+}
 
-echo "== receipts =="
-# receipts endpoint returns: { count, receipts: [...] }
-curl -fsS "$API_URL/receipts?limit=1" | jq -e '.count >= 0' >/dev/null
-echo "✅ receipts ok"
+main() {
+  log "== smoke start =="
+  log "REPO_ROOT=$REPO_ROOT"
+  log "API_URL=$API_URL"
+  log "WEB_URL=$WEB_URL"
 
-echo "== web build =="
-pnpm -C apps/web build >/dev/null
-echo "✅ web build ok"
+  load_secrets
 
-echo "== playwright setup =="
-# Ensure browsers exist (idempotent; safe to run every time)
-mkdir -p "$PLAYWRIGHT_BROWSERS_PATH"
-pnpm -C apps/web exec playwright install chromium >/dev/null
-echo "✅ playwright chromium ready (PLAYWRIGHT_BROWSERS_PATH=$PLAYWRIGHT_BROWSERS_PATH)"
+  step "bootstrap deps" bash -lc '
+    set -euo pipefail
+    if [[ -d node_modules ]]; then
+      echo "Deps look OK (skipping install)."
+    else
+      echo "Installing deps…"
+      pnpm -r install --frozen-lockfile
+    fi
+  '
 
-echo "== playwright =="
-pnpm -C apps/web exec playwright test
-echo "✅ playwright ok"
+  step "build api" bash -lc "set -euo pipefail; cd \"$REPO_ROOT\" && pnpm -C apps/api build"
 
-echo "🎉 SMOKE PASS"
+  step "build web" bash -lc "
+    set -euo pipefail
+    cd \"$REPO_ROOT\"
+
+    logf=\".smoke-logs/build_web_\$(date +%F_%H%M%S).log\"
+    mkdir -p .smoke-logs
+
+    echo \"Running: pnpm -C apps/web build\"
+    if pnpm -C apps/web build 2>&1 | tee \"\$logf\"; then
+      exit 0
+    fi
+
+    # If we hit the known Next/punycode invalid package config bug, do a one-time heal+retry
+    if grep -Eq \"ERR_INVALID_PACKAGE_CONFIG|punycode/package\\.json|compiled/punycode/package\\.json\" \"\$logf\"; then
+      echo \"\"
+      echo \"⚠️  Detected pnpm/next compiled punycode invalid package config. Attempting one-time dependency heal…\"
+      pnpm store prune
+      pnpm -r install --prefer-frozen-lockfile --force
+
+      echo \"\"
+      echo \"Retrying: pnpm -C apps/web build\"
+      pnpm -C apps/web build
+      exit 0
+    fi
+
+    echo \"❌ Web build failed (not the known punycode issue). Log: \$logf\" >&2
+    exit 1
+  "
+
+  step "restart services" bash -lc "set -euo pipefail; cd \"$REPO_ROOT\" && \"$REPO_ROOT/scripts/squid\" restart"
+
+  step "api health" bash -lc "set -euo pipefail; curl -fsS --connect-timeout 3 --max-time 10 \"$API_URL/health\""
+  log ""
+
+  step "tools list" bash -lc "set -euo pipefail; curl -fsS --connect-timeout 3 --max-time 10 \"$API_URL/tools/list\""
+  log ""
+
+  # IMPORTANT: keep *all* tmp/jq usage inside the same bash -lc so $tmp exists there.
+  step "receipts endpoint" bash -lc "
+    set -euo pipefail
+
+    tmp=\$(mktemp -t zensquid-receipts.XXXXXX)
+    trap 'rm -f \"\$tmp\"' EXIT
+
+    if [[ -z \"\${ZENSQUID_ADMIN_TOKEN:-}\" ]]; then
+      echo \"ZENSQUID_ADMIN_TOKEN not set; asserting /receipts returns 401 (expected).\" >&2
+
+      curl_rc=0
+      code=\$(curl -sS --connect-timeout 3 --max-time 10 -o \"\$tmp\" -w '%{http_code}' \"$API_URL/receipts?limit=1\") || curl_rc=\$?
+
+      if [[ \"\$curl_rc\" == \"28\" ]]; then
+        echo \"❌ /receipts timed out (curl exit 28) while expecting 401. Server may be hung.\" >&2
+        exit 1
+      fi
+
+      if [[ \"\$code\" != \"401\" ]]; then
+        echo \"Unexpected HTTP \$code from /receipts (expected 401). Body:\" >&2
+        cat \"\$tmp\" >&2 || true
+        exit 1
+      fi
+
+      cat \"\$tmp\" || true
+      exit 0
+    fi
+
+    curl_rc=0
+    code=\$(curl -sS --connect-timeout 3 --max-time 10 -o \"\$tmp\" -w '%{http_code}' \
+      -H \"x-zensquid-admin-token: \${ZENSQUID_ADMIN_TOKEN}\" \
+      \"$API_URL/receipts?limit=1\") || curl_rc=\$?
+
+    if [[ \"\$curl_rc\" == \"28\" ]]; then
+      echo \"❌ /receipts timed out (curl exit 28). Server may be hung.\" >&2
+      exit 1
+    fi
+
+    if [[ \"\$code\" != \"200\" ]]; then
+      echo \"Unexpected HTTP \$code from /receipts (expected 200). Body:\" >&2
+      cat \"\$tmp\" >&2 || true
+      exit 1
+    fi
+
+    # Correctly read decision fields from .decision
+    jq '{
+      ok,
+      count,
+      first_receipt: (
+        .receipts[0]
+        | {
+            receipt_id,
+            created_at,
+            decision: ((.decision // {}) | {tier, provider, model, escalated})
+          }
+      )
+    }' \"\$tmp\"
+  "
+
+  log "\n✅ SMOKE PASSED"
+}
+
+main "$@"

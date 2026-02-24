@@ -1,7 +1,7 @@
 // apps/web/app/api/zensquid/index.ts
 
 export const ZENSQUID_API =
-  process.env.NEXT_PUBLIC_ZENSQUID_API || "http://127.0.0.1:18790";
+  process.env.NEXT_PUBLIC_ZENSQUID_API || "/api/zsq";
 
 /** ---------- shared helpers ---------- */
 

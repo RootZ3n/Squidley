@@ -1,0 +1,409 @@
+#!/usr/bin/env bash
+# Squidley command wrapper (idiot-proof)
+# Place at: /media/zen/AI/squidley/scripts/squid
+# Then: chmod +x /media/zen/AI/squidley/scripts/squid
+# Optional: alias squid='/media/zen/AI/squidley/scripts/squid'
+
+set -euo pipefail
+
+# ----------------------------
+# Config (edit if needed)
+# ----------------------------
+REPO="${SQUIDLEY_DIR:-/media/zen/AI/squidley}"
+WEB_PORT="${SQUIDLEY_WEB_PORT:-3001}"
+API_PORT="${SQUIDLEY_API_PORT:-18790}"
+
+WEB_SVC="${SQUIDLEY_WEB_SVC:-squidley-web.service}"
+API_SVC="${SQUIDLEY_API_SVC:-squidley-api.service}"
+
+API_URL="${ZENSQUID_API_URL:-http://127.0.0.1:${API_PORT}}"
+WEB_URL="${SQUIDLEY_WEB_URL:-http://127.0.0.1:${WEB_PORT}}"
+
+# Keep web + tests pointed at API
+export ZENSQUID_API_URL="${ZENSQUID_API_URL:-$API_URL}"
+export NEXT_PUBLIC_ZENSQUID_API="${NEXT_PUBLIC_ZENSQUID_API:-$API_URL}"
+export PLAYWRIGHT_BASE_URL="${PLAYWRIGHT_BASE_URL:-$WEB_URL}"
+
+# Curl timeouts (so commands never “hang forever”)
+CURL_MAX_TIME="${CURL_MAX_TIME:-4}"
+CURL_CONN_TIME="${CURL_CONN_TIME:-2}"
+
+# ----------------------------
+# Pretty output
+# ----------------------------
+if [[ -t 1 ]]; then
+  _B=$'\033[1m'; _R=$'\033[31m'; _G=$'\033[32m'; _Y=$'\033[33m'; _C=$'\033[36m'; _N=$'\033[0m'
+else
+  _B=""; _R=""; _G=""; _Y=""; _C=""; _N=""
+fi
+
+say()  { echo "${_C}🦑${_N} $*"; }
+ok()   { echo "${_G}✅${_N} $*"; }
+warn() { echo "${_Y}⚠️${_N} $*"; }
+die()  { echo "${_R}❌${_N} $*" >&2; exit 1; }
+
+# If something fails, show helpful context automatically
+on_fail() {
+  local code=$?
+  echo
+  warn "Command failed (exit=$code). Quick debug:"
+  echo "  - squid status"
+  echo "  - squid logs web"
+  echo "  - squid logs api"
+  echo "  - FORCE=1 squid fix   (if ports are stuck)"
+}
+trap on_fail ERR
+
+# ----------------------------
+# Helpers
+# ----------------------------
+require_repo() {
+  [[ -d "$REPO" ]] || die "Repo not found: $REPO"
+}
+
+svc_active() { systemctl --user is-active --quiet "$1"; }
+
+svc_status_short() {
+  systemctl --user --no-pager --plain status "$1" 2>/dev/null | head -n 10 || true
+}
+
+svc_logs() {
+  local unit="$1"
+  local n="${2:-200}"
+  journalctl --user -u "$unit" -n "$n" --no-pager || true
+}
+
+daemon_reload_if_needed() {
+  # Always safe to run; we attempt to avoid the common warning spam.
+  if systemctl --user status "$WEB_SVC" 2>&1 | grep -q "changed on disk"; then
+    say "systemd: daemon-reload (unit changed on disk)"
+    systemctl --user daemon-reload >/dev/null 2>&1 || true
+  else
+    systemctl --user daemon-reload >/dev/null 2>&1 || true
+  fi
+}
+
+# Return PIDs listening on TCP port (best effort)
+pids_on_port() {
+  local port="$1"
+  ss -ltnp 2>/dev/null \
+    | awk -v p=":${port}" '$0 ~ p {print $0}' \
+    | sed -n 's/.*pid=\([0-9]\+\).*/\1/p' \
+    | sort -u
+}
+
+port_owner_lines() {
+  local port="$1"
+  # ss output varies; this catches ":3001" reliably enough for our use
+  ss -ltnp 2>/dev/null | grep -E "[:]]${port}(\s|,|$)" || true
+}
+
+cmdline_of_pid() {
+  local pid="$1"
+  tr '\0' ' ' < "/proc/${pid}/cmdline" 2>/dev/null || true
+}
+
+# Kill port owner(s) safely:
+# - If FORCE=1, kill whatever is on the port.
+# - Otherwise, kill only if cmdline looks like Squidley/Next/Node and references repo.
+free_port() {
+  local port="$1"
+  local force="${2:-0}"
+  local pids
+  pids="$(pids_on_port "$port" || true)"
+  [[ -n "$pids" ]] || return 0
+
+  say "Port :$port is in use by PID(s): $(echo "$pids" | tr '\n' ' ')"
+  local killed_any=0
+
+  while IFS= read -r pid; do
+    [[ -n "$pid" ]] || continue
+    local cmd
+    cmd="$(cmdline_of_pid "$pid")"
+
+    if [[ "$force" == "1" ]]; then
+      warn "FORCE=1: killing PID $pid (:$port)"
+      kill "$pid" 2>/dev/null || true
+      killed_any=1
+      continue
+    fi
+
+    # "Safe-ish" heuristics: is Next/Node-ish AND includes our repo path
+    if echo "$cmd" | grep -qiE "(next(-server)?|node)" && echo "$cmd" | grep -q "$REPO"; then
+      say "Killing Squidley-ish PID $pid (cmd: ${cmd:0:140}...)"
+      kill "$pid" 2>/dev/null || true
+      killed_any=1
+    else
+      warn "Not killing PID $pid (doesn't look like Squidley): ${cmd:0:180}..."
+      warn "If you’re sure, run: FORCE=1 squid fix   (or: FORCE=1 squid down)"
+    fi
+  done <<< "$pids"
+
+  # Give it a moment, then hard kill anything we killed that remains
+  if [[ "$killed_any" == "1" ]]; then
+    sleep 0.5
+    local still
+    still="$(pids_on_port "$port" || true)"
+    if [[ -n "$still" ]]; then
+      warn "Some PIDs still hold :$port, sending SIGKILL: $(echo "$still" | tr '\n' ' ')"
+      echo "$still" | xargs -r kill -9 2>/dev/null || true
+    fi
+  fi
+}
+
+# Web build sanity: if runtime/modules get weird, nuke .next
+nuke_web_next() {
+  local dir="$REPO/apps/web/.next"
+  if [[ -d "$dir" ]]; then
+    say "Removing $dir (fresh build)"
+    rm -rf "$dir"
+  fi
+}
+
+build_api() {
+  say "Building API…"
+  (cd "$REPO" && pnpm -C apps/api build) >/dev/null
+  ok "API build ok"
+}
+
+build_web() {
+  say "Building Web…"
+  (cd "$REPO" && pnpm -C apps/web build) >/dev/null
+  ok "Web build ok"
+}
+
+health_api() {
+  curl -fsS --connect-timeout "$CURL_CONN_TIME" --max-time "$CURL_MAX_TIME" \
+    "$API_URL/health" >/dev/null
+}
+
+health_web() {
+  curl -fsS --connect-timeout "$CURL_CONN_TIME" --max-time "$CURL_MAX_TIME" \
+    "$WEB_URL/" >/dev/null
+}
+
+print_mode() {
+  echo "=== Squidley Mode ==="
+  if svc_active "$WEB_SVC"; then
+    echo "Web service: ${_G}✅ ACTIVE${_N} ($WEB_SVC)"
+  else
+    echo "Web service: ${_Y}⛔ inactive${_N} ($WEB_SVC)"
+  fi
+  if svc_active "$API_SVC"; then
+    echo "API service: ${_G}✅ ACTIVE${_N} ($API_SVC)"
+  else
+    echo "API service: ${_Y}⛔ inactive${_N} ($API_SVC)"
+  fi
+
+  echo
+  echo "Port owners:"
+  local webp apip
+  webp="$(pids_on_port "$WEB_PORT" | tr '\n' ' ' | sed 's/ *$//')"
+  apip="$(pids_on_port "$API_PORT" | tr '\n' ' ' | sed 's/ *$//')"
+  echo "  :$WEB_PORT  PID(s): ${webp:-none}"
+  port_owner_lines "$WEB_PORT" | sed 's/^/    /' || true
+  echo "  :$API_PORT  PID(s): ${apip:-none}"
+  port_owner_lines "$API_PORT" | sed 's/^/    /' || true
+
+  echo
+  echo "Rule of thumb:"
+  echo "  - If $WEB_SVC is ACTIVE => SERVICE mode"
+  echo "  - If $WEB_SVC is inactive but :$WEB_PORT has a PID => DEV mode"
+}
+
+usage() {
+  cat <<EOF
+${_B}Squidley helper${_N} (repo: $REPO)
+
+Commands:
+  squid up                 Start services (api + web)
+  squid down               Stop services (api + web) + free ports (safe)
+  squid restart            Restart services
+  squid status             Show mode + who owns ports + short service status
+  squid mode               Same as status (alias)
+  squid logs [web|api]     Tail service logs (default: web)
+  squid fix                Repair button: stop, reset-failed, free ports, nuke .next, build, start, verify
+  squid dev                Run 'pnpm -C apps/web dev' (refuses if service mode active)
+
+Advanced:
+  FORCE=1 squid down       Kill any process holding ports (dangerous)
+  FORCE=1 squid fix        Same, but aggressive port freeing
+
+Examples:
+  squid status
+  squid fix
+  squid dev
+
+EOF
+}
+
+# ----------------------------
+# Actions
+# ----------------------------
+cmd_up() {
+  require_repo
+  daemon_reload_if_needed
+
+  # Guard: if dev server is holding the port and service inactive, refuse (unless FORCE)
+  if ! svc_active "$WEB_SVC"; then
+    if [[ -n "$(pids_on_port "$WEB_PORT")" ]]; then
+      warn "Port :$WEB_PORT is already in use. That looks like DEV mode."
+      warn "Stop dev first: squid down  (or: FORCE=1 squid down)"
+      return 1
+    fi
+  fi
+
+  say "Starting services: $API_SVC + $WEB_SVC"
+  systemctl --user start "$API_SVC"
+  systemctl --user start "$WEB_SVC"
+  ok "Start requested. Checking health…"
+
+  if health_api; then ok "API healthy: $API_URL/health"; else warn "API not healthy yet: squid logs api"; fi
+  if health_web; then ok "Web responds: $WEB_URL"; else warn "Web not responding yet: squid logs web"; fi
+
+  echo
+  echo "Open:"
+  echo "  Web: $WEB_URL"
+  echo "  API: $API_URL/status"
+}
+
+cmd_down() {
+  require_repo
+  local force="${FORCE:-0}"
+
+  daemon_reload_if_needed
+
+  say "Stopping services: $WEB_SVC + $API_SVC"
+  systemctl --user stop "$WEB_SVC" || true
+  systemctl --user stop "$API_SVC" || true
+
+  say "Resetting failed state (prevents restart spirals)…"
+  systemctl --user reset-failed "$WEB_SVC" || true
+  systemctl --user reset-failed "$API_SVC" || true
+
+  say "Freeing ports (web:$WEB_PORT api:$API_PORT)…"
+  free_port "$WEB_PORT" "$force"
+  free_port "$API_PORT" "$force"
+
+  ok "Stopped."
+}
+
+cmd_restart() {
+  require_repo
+  daemon_reload_if_needed
+
+  say "Restarting services…"
+  systemctl --user restart "$API_SVC"
+  systemctl --user restart "$WEB_SVC"
+  ok "Restart requested."
+  cmd_status
+}
+
+cmd_status() {
+  require_repo
+  print_mode
+  echo
+  echo "---- $API_SVC ----"
+  svc_status_short "$API_SVC"
+  echo
+  echo "---- $WEB_SVC ----"
+  svc_status_short "$WEB_SVC"
+}
+
+cmd_logs() {
+  require_repo
+  local which="${1:-web}"
+  case "$which" in
+    api) svc_logs "$API_SVC" 200 ;;
+    web|"") svc_logs "$WEB_SVC" 200 ;;
+    *) die "Unknown logs target: $which (use: web|api)" ;;
+  esac
+}
+
+cmd_dev() {
+  require_repo
+
+  if svc_active "$WEB_SVC"; then
+    die "Web service is ACTIVE. Stop service mode first: squid down"
+  fi
+
+  if [[ -n "$(pids_on_port "$WEB_PORT")" ]]; then
+    warn "Port :$WEB_PORT is in use. Trying to free it safely…"
+    free_port "$WEB_PORT" "${FORCE:-0}"
+  fi
+
+  say "Starting Next dev server on :$WEB_PORT (CTRL+C to stop)"
+  (cd "$REPO" && pnpm -C apps/web dev)
+}
+
+cmd_fix() {
+  require_repo
+  local force="${FORCE:-0}"
+
+  say "FIX MODE: making Squidley sane again."
+
+  # 1) Stop + reset-failed
+  say "Step 1/6: stop services + reset-failed"
+  daemon_reload_if_needed
+  systemctl --user stop "$WEB_SVC" || true
+  systemctl --user stop "$API_SVC" || true
+  systemctl --user reset-failed "$WEB_SVC" || true
+  systemctl --user reset-failed "$API_SVC" || true
+
+  # 2) Free ports
+  say "Step 2/6: free ports"
+  free_port "$WEB_PORT" "$force"
+  free_port "$API_PORT" "$force"
+
+  # 3) Nuke web build output (prevents missing chunk errors)
+  say "Step 3/6: clean web build output (.next)"
+  nuke_web_next
+
+  # 4) Build (web + api)
+  say "Step 4/6: rebuild"
+  build_api
+  build_web
+
+  # 5) Start services
+  say "Step 5/6: start services"
+  daemon_reload_if_needed
+  systemctl --user start "$API_SVC"
+  systemctl --user start "$WEB_SVC"
+
+  # 6) Verify
+  say "Step 6/6: verify endpoints"
+  sleep 0.5
+  if health_api; then ok "API healthy: $API_URL/health"; else warn "API not healthy. Check: squid logs api"; fi
+  if health_web; then ok "Web responds: $WEB_URL"; else warn "Web not responding. Check: squid logs web"; fi
+
+  echo
+  ok "Fix attempt complete."
+  echo "Open:"
+  echo "  Web: $WEB_URL"
+  echo "  API: $API_URL/status"
+}
+
+# ----------------------------
+# Main
+# ----------------------------
+main() {
+  local cmd="${1:-}"
+  shift || true
+
+  case "$cmd" in
+    ""|-h|--help|help) usage ;;
+    up|start)          cmd_up "$@" ;;
+    down|stop)         cmd_down "$@" ;;
+    restart|reboot)    cmd_restart "$@" ;;
+    status|mode|which) cmd_status "$@" ;;
+    logs|log)          cmd_logs "$@" ;;
+    fix|repair)        cmd_fix "$@" ;;
+    dev)               cmd_dev "$@" ;;
+    *)
+      usage
+      die "Unknown command: $cmd"
+      ;;
+  esac
+}
+
+main "$@"

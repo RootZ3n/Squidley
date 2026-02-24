@@ -4,9 +4,11 @@ import { mkdir } from "node:fs/promises";
 
 import { loadConfig } from "@zensquid/core";
 
+type StrictSource = "runtime" | "config" | "runtime_onboarding_relaxed";
+
 type Deps = {
   receiptsDir: () => string;
-  effectiveStrictLocal: (cfg: any) => { effective: boolean; source: "runtime" | "config" };
+  effectiveStrictLocal: (cfg: any) => Promise<{ effective: boolean; source: StrictSource }>;
   effectiveSafetyZone: (cfg: any) => { effective: any; source: "runtime" | "config" };
 };
 
@@ -16,7 +18,9 @@ export async function registerDoctorRoutes(app: FastifyInstance, deps: Deps): Pr
    */
   app.get("/doctor", async (_req, reply) => {
     const cfg = await loadConfig(process.env.ZENSQUID_CONFIG);
-    const effStrict = deps.effectiveStrictLocal(cfg);
+
+    // ✅ must await (async)
+    const effStrict = await deps.effectiveStrictLocal(cfg);
     const effZone = deps.effectiveSafetyZone(cfg);
 
     const checks: Array<{ id: string; status: "pass" | "warn" | "fail"; detail: string }> = [];

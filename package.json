@@ -10,7 +10,9 @@
     "build": "pnpm -r build",
     "smoke": "./scripts/smoke.sh",
     "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "heartbeat:tick": "node scripts/heartbeat_tick.mjs",
+    "codex": "codex"
   },
   "devDependencies": {
     "@types/node": "^25.3.0",

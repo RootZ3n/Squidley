@@ -1,3 +1,5 @@
+// apps/api/src/capabilities/types.ts
+
 export type SafetyZone = "workspace" | "diagnostics" | "forge" | "godmode";
 
 export type Capability =
@@ -8,52 +10,59 @@ export type Capability =
   | "proc.exec.dangerous"
   | "systemctl.user"
   | "systemctl.system"
-  | "net.egress"
-  | "pkg.install";
+  | "pkg.install"
+  | "net.egress";
 
 export type CapabilityAction =
   | {
       kind: "fs.read";
-      capability: "fs.read";
+      capability: Capability; // broad on purpose (cap may be rewritten)
       path: string;
     }
   | {
       kind: "fs.write";
-      capability: "fs.write" | "fs.write.outside_root";
+      capability: Capability; // broad on purpose (cap may be rewritten)
       path: string;
-      bytes: number;
+      bytes?: number;
     }
   | {
       kind: "proc.exec";
-      capability: "proc.exec" | "proc.exec.dangerous";
+      capability: Capability; // broad on purpose (cap may be rewritten to net.egress)
       cmd: string[];
-      cwd?: string | null;
+      cwd?: string;
     }
   | {
       kind: "systemctl.user";
-      capability: "systemctl.user";
-      cmd: string[]; // full argv, e.g. ["systemctl","--user","restart","zensquid"]
+      capability: Capability; // broad for consistency
+      cmd: string[];
     };
 
 export type CapabilityDecision = {
   allowed: boolean;
-  reason: string;
   zone: SafetyZone;
-  capability: CapabilityAction["capability"];
-  matched_rule: string;
+  capability: Capability;
+  reason: string;
+  matched_rule?: string | null;
 };
 
 export type CapabilityPolicyV1 = {
   version: 1;
+
+  // Your loader uses fallback.project_root unconditionally.
   project_root: string;
+
   global_denies?: Capability[];
-  zones: Record<
-    string,
-    {
-      allow?: Capability[];
-      deny?: Capability[];
-      exec_allowlist?: string[];
-      exec_denylist?: string[];
-    }
+
+  // Fallback/config can omit zones; zonePolicy() already handles fallback-to-workspace.
+  zones: Partial<
+    Record<
+      SafetyZone,
+      {
+        allow?: Capability[];
+        deny?: Capability[];
+        exec_allowlist?: string[];
+        exec_denylist?: string[];
+      }
+    >
   >;
 };

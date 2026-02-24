@@ -2,6 +2,9 @@
 import type { FastifyInstance } from "fastify";
 import { loadConfig } from "@zensquid/core";
 import { isSafetyZone, type RuntimeState, type SafetyZone } from "../../runtime/state.js";
+import { classifyModel } from "../../runtime/modelClass.js";
+
+type StrictSource = "runtime" | "config" | "runtime_onboarding_relaxed";
 
 type Deps = {
   adminTokenOk: (req: any) => boolean;
@@ -10,12 +13,11 @@ type Deps = {
   getState: () => RuntimeState;
   setState: (s: RuntimeState) => void;
 
-  effectiveStrictLocal: (cfg: any) => { effective: boolean; source: "runtime" | "config" };
+  effectiveStrictLocal: (cfg: any) => Promise<{ effective: boolean; source: StrictSource }>;
   effectiveSafetyZone: (cfg: any) => { effective: SafetyZone; source: "runtime" | "config" };
   getEffectivePolicy: (cfg: any) => Promise<any>;
 
-  // ✅ onboarding gate (per-PC)
-  // expected to read /data/onboarding.json (or equivalent) on THIS machine
+  // onboarding gate (per-PC)
   getOnboarding: () => Promise<{ completed: boolean }>;
 };
 
@@ -25,12 +27,10 @@ type Preset = {
   name: PresetName;
   label: string;
   description: string;
-  // what to apply into runtime.json (null means clear override)
   apply: {
     safety_zone: SafetyZone | null;
     strict_local_only: boolean | null;
   };
-  // extra requirements for dangerous presets
   requires?: {
     godmode_password?: boolean;
     confirm_phrase?: string;
@@ -39,15 +39,23 @@ type Preset = {
 
 function godmodePasswordOk(req: any, body: any): boolean {
   const expected = String(process.env.ZENSQUID_GODMODE_PASSWORD ?? "").trim();
-  if (!expected) return false; // if not set, godmode is effectively disabled
+  if (!expected) return false;
   const header = String(req.headers?.["x-zensquid-godmode-password"] ?? "").trim();
   const b = String(body?.godmode_password ?? "").trim();
   return header === expected || b === expected;
 }
 
+function getBuildInfo(): { sha: string | null; at: string | null } {
+  const sha = String(process.env.ZENSQUID_BUILD_SHA ?? "").trim();
+  const at = String(process.env.ZENSQUID_BUILD_AT ?? "").trim();
+  return {
+    sha: sha.length > 0 ? sha : null,
+    at: at.length > 0 ? at : null
+  };
+}
+
 export async function registerRuntimeRoutes(app: FastifyInstance, deps: Deps): Promise<void> {
-  // Load once at boot time (caller will call this before listen),
-  // but this makes it safe if called without it too.
+  // Load once at boot time
   try {
     const s = await deps.loadState();
     deps.setState(s);
@@ -103,7 +111,6 @@ export async function registerRuntimeRoutes(app: FastifyInstance, deps: Deps): P
     }
   ];
 
-  // ✅ helper: onboarding status (default = not completed)
   async function onboardingCompleted(): Promise<boolean> {
     try {
       const o = await deps.getOnboarding();
@@ -113,30 +120,109 @@ export async function registerRuntimeRoutes(app: FastifyInstance, deps: Deps): P
     }
   }
 
-  // ✅ helper: enforce onboarding gate for presets
   function presetAllowedBeforeOnboarding(name: PresetName): boolean {
-    // Before onboarding is complete, user can:
-    // - stay in beginner (safe default)
-    // - local_lockdown (even safer)
-    // - reset (clear overrides back to config; server should still enforce beginner until onboard completes)
     return name === "beginner" || name === "local_lockdown" || name === "reset";
   }
 
-  // ✅ helper: block bypass routes (manual toggles)
   function zoneAllowedBeforeOnboarding(zone: SafetyZone | null): boolean {
-    // allow workspace/diagnostics/null before onboarding
-    // block forge/godmode before onboarding
     if (zone === null) return true;
     return zone === "workspace" || zone === "diagnostics";
   }
 
+  /**
+   * ✅ Status endpoint (UI + CLI friendly)
+   * Exposes effective runtime + tier catalog + model_class per tier.
+   */
+  app.get("/status", async () => {
+    const cfg = await loadConfig(process.env.ZENSQUID_CONFIG);
+
+    const build = getBuildInfo();
+
+    const effStrict = await deps.effectiveStrictLocal(cfg);
+    const effZone = deps.effectiveSafetyZone(cfg);
+
+    const tiers = (cfg as any)?.tiers ?? [];
+    const mappedTiers = tiers.map((t: any) => {
+      const provider = String(t?.provider ?? "");
+      const model = String(t?.model ?? "");
+      const c = classifyModel(provider, model);
+
+      return {
+        name: String(t?.name ?? ""),
+        provider,
+        model,
+        model_class: c.model_class,
+        param_b: c.param_b,
+        class_source: c.source
+      };
+    });
+
+    // Heartbeat model (hard-local) — use env override if set
+    const hbModel =
+      String(process.env.ZENSQUID_HEARTBEAT_MODEL ?? "").trim() ||
+      String((cfg as any)?.heartbeat?.model ?? "").trim() ||
+      "qwen2.5:7b-instruct";
+
+    const heartbeat = classifyModel("ollama", hbModel);
+
+    // Conservative “recommended default tier” for initial UI display:
+    // prefer tier named "local", else first ollama tier, else first tier.
+    const recommended =
+      mappedTiers.find((t: any) => t.name === "local") ??
+      mappedTiers.find((t: any) => String(t.provider).toLowerCase() === "ollama") ??
+      mappedTiers[0] ??
+      null;
+
+    return {
+      ok: true,
+
+      // Handy for CLI: jq '.build'
+      build,
+
+      meta: {
+        name: (cfg as any)?.meta?.name ?? "Squidley",
+        node: (cfg as any)?.meta?.node ?? null,
+        local_first: Boolean((cfg as any)?.meta?.local_first),
+
+        // Handy for your UI + jq '.meta.build'
+        build
+      },
+      onboarding: {
+        completed: await onboardingCompleted()
+      },
+      runtime: deps.getState(),
+      effective: {
+        strict_local_only: effStrict.effective,
+        strict_local_only_source: effStrict.source,
+        safety_zone: effZone.effective,
+        safety_zone_source: effZone.source
+      },
+      providers: {
+        ollama_base: (cfg as any)?.providers?.ollama?.base_url ?? null,
+        modelstudio_base: (cfg as any)?.providers?.modelstudio?.base_url ?? null
+      },
+      heartbeat: {
+        provider: "ollama",
+        model: hbModel,
+        model_class: heartbeat.model_class,
+        param_b: heartbeat.param_b,
+        class_source: heartbeat.source
+      },
+      tiers: mappedTiers,
+      recommended_default_tier: recommended
+    };
+  });
+
   app.get("/runtime", async () => {
     const cfg = await loadConfig(process.env.ZENSQUID_CONFIG);
-    const effStrict = deps.effectiveStrictLocal(cfg);
+    const build = getBuildInfo();
+
+    const effStrict = await deps.effectiveStrictLocal(cfg);
     const effZone = deps.effectiveSafetyZone(cfg);
 
     return {
       ok: true,
+      build,
       runtime: deps.getState(),
       effective: {
         strict_local_only: effStrict.effective,
@@ -147,12 +233,10 @@ export async function registerRuntimeRoutes(app: FastifyInstance, deps: Deps): P
     };
   });
 
-  // Expose preset catalog for UI + CLI
   app.get("/runtime/presets", async () => {
     return { ok: true, presets: PRESETS };
   });
 
-  // Apply a preset by name
   app.post("/runtime/preset", async (req, reply) => {
     if (!deps.adminTokenOk(req)) return reply.code(401).send({ ok: false, error: "Unauthorized" });
 
@@ -168,7 +252,6 @@ export async function registerRuntimeRoutes(app: FastifyInstance, deps: Deps): P
       });
     }
 
-    // ✅ Onboarding gate: don't let users jump into advanced modes
     const onboarded = await onboardingCompleted();
     if (!onboarded && !presetAllowedBeforeOnboarding(preset.name)) {
       return reply.code(403).send({
@@ -178,7 +261,6 @@ export async function registerRuntimeRoutes(app: FastifyInstance, deps: Deps): P
       });
     }
 
-    // Guard godmode (still enforced even after onboarding)
     if (preset.name === "godmode") {
       const confirm = String(body?.confirm ?? "").trim();
       const requiredPhrase = preset.requires?.confirm_phrase ?? "I UNDERSTAND GODMODE";
@@ -201,8 +283,6 @@ export async function registerRuntimeRoutes(app: FastifyInstance, deps: Deps): P
     }
 
     const state = { ...deps.getState() };
-
-    // Apply values (null means clear override)
     state.safety_zone = preset.apply.safety_zone;
     state.strict_local_only = preset.apply.strict_local_only;
 
@@ -212,7 +292,6 @@ export async function registerRuntimeRoutes(app: FastifyInstance, deps: Deps): P
     return reply.send({ ok: true, preset: preset.name, runtime: state });
   });
 
-  // Manual toggles (dev/testing) — hardened to avoid bypassing onboarding + godmode rules
   app.post("/runtime/safety_zone", async (req, reply) => {
     if (!deps.adminTokenOk(req)) return reply.code(401).send({ ok: false, error: "Unauthorized" });
 
@@ -221,7 +300,6 @@ export async function registerRuntimeRoutes(app: FastifyInstance, deps: Deps): P
 
     const onboarded = await onboardingCompleted();
 
-    // Parse requested zone
     let requestedZone: SafetyZone | null | "__invalid__" = "__invalid__";
     if (value === null) requestedZone = null;
     else if (isSafetyZone(value)) requestedZone = value as SafetyZone;
@@ -233,20 +311,16 @@ export async function registerRuntimeRoutes(app: FastifyInstance, deps: Deps): P
       });
     }
 
-    // 🚧 Onboarding gate: keep it ultra-conservative pre-onboarding.
-    // We only allow workspace or null (null = fall back to config, which should still be beginner-guarded elsewhere).
     if (!onboarded) {
-      const allowed = requestedZone === null || requestedZone === "workspace";
-      if (!allowed) {
+      if (!zoneAllowedBeforeOnboarding(requestedZone)) {
         return reply.code(403).send({
           ok: false,
           error: `Finish onboarding before setting safety_zone to "${requestedZone}".`,
-          allowed_before_onboarding: ["workspace", null]
+          allowed_before_onboarding: ["workspace", "diagnostics", null]
         });
       }
     }
 
-    // 🔒 Godmode must ONLY be reachable through /runtime/preset so password + confirm phrase are always enforced.
     if (requestedZone === "godmode") {
       return reply.code(403).send({
         ok: false,
@@ -261,27 +335,23 @@ export async function registerRuntimeRoutes(app: FastifyInstance, deps: Deps): P
     await deps.saveState(state);
     return reply.send({ ok: true, runtime: state });
   });
-    app.post("/budgets/strict_local_only", async (req, reply) => {
+
+  app.post("/budgets/strict_local_only", async (req, reply) => {
     if (!deps.adminTokenOk(req)) return reply.code(401).send({ ok: false, error: "Unauthorized" });
 
     const body = (req.body ?? {}) as any;
     const value = body?.value;
 
     const onboarded = await onboardingCompleted();
-
     const state = { ...deps.getState() };
 
-    // 🚧 Onboarding gate: cannot disable strict_local_only before onboarding.
-    // Allow only: true or null (null = fallback to config; your onboarding/bootstrap should still enforce beginner)
-    if (!onboarded) {
-      if (value === false) {
-        return reply.code(403).send({
-          ok: false,
-          error: "Finish onboarding before disabling strict_local_only.",
-          allowed_before_onboarding: [true, null],
-          hint: 'Complete onboarding, then apply preset "normal" or set strict_local_only=false.'
-        });
-      }
+    if (!onboarded && value === false) {
+      return reply.code(403).send({
+        ok: false,
+        error: "Finish onboarding before disabling strict_local_only.",
+        allowed_before_onboarding: [true, null],
+        hint: 'Complete onboarding, then apply preset "normal" or set strict_local_only=false.'
+      });
     }
 
     if (value === null) {
@@ -302,7 +372,7 @@ export async function registerRuntimeRoutes(app: FastifyInstance, deps: Deps): P
 
   app.get("/runtime/effective_policy", async () => {
     const cfg = await loadConfig(process.env.ZENSQUID_CONFIG);
-    const effStrict = deps.effectiveStrictLocal(cfg);
+    const effStrict = await deps.effectiveStrictLocal(cfg);
     const eff = await deps.getEffectivePolicy(cfg);
 
     return {

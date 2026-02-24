@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiGet } from "@/app/api/zensquid";
+import { apiGet } from "@/api/zensquid";
 
 export default function ProfilePanel() {
   const [data, setData] = useState<any>(null);

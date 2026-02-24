@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ZENSQUID_API } from "@/app/api/zensquid";
+import { ZENSQUID_API } from "@/api/zensquid";
 
 function safeJsonParse(s: string) {
   try {

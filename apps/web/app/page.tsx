@@ -1,20 +1,25 @@
-// apps/web/app/page.tsx
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ZENSQUID_API,
   apiGet,
-  chat as chatApi,
   getSkills,
   getToolsList,
   runTool as runToolApi,
+  getOnboarding,
+  completeOnboarding,
+  resetOnboarding,
   type SkillsList,
   type ChatResponse,
   type ToolListItem,
   type ToolRunResult,
-  type ToolRunResponse
-} from "@/app/api/zensquid";
+  type ToolRunResponse,
+  type OnboardingResponse,
+  type OnboardingMission
+} from "@/api/zensquid";
+
+import StatusWidget from "./components/StatusWidget";
 
 type Msg = { role: "assistant" | "user"; content: string };
 
@@ -46,6 +51,25 @@ type StepRunState =
 type StepExecOutcome =
   | { kind: "done"; result: ToolRunResult }
   | { kind: "error"; error: string; receipt_id: string | null };
+
+type StatusTier = {
+  name: string;
+  provider: string;
+  model: string;
+};
+
+type StatusResponse = {
+  ok: boolean;
+  meta?: {
+    local_first?: boolean;
+  };
+  recommended_default_tier?: {
+    name?: string;
+    provider: string;
+    model: string;
+  } | null;
+  tiers?: StatusTier[];
+};
 
 function uuidish() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -124,6 +148,37 @@ async function copyText(s: string) {
   }
 }
 
+/** UI-native status/health formatting (never hits the LLM) */
+function formatStatusLine(s: any): string {
+  const rec = s?.recommended_default_tier;
+  const hb = s?.heartbeat;
+  const eff = s?.effective;
+
+  const active = rec?.model ? String(rec.model) : "—";
+  const heartbeat = hb?.model ? String(hb.model) : "—";
+  const zone = eff?.safety_zone ? String(eff.safety_zone) : "—";
+  const strict =
+    typeof eff?.strict_local_only === "boolean" ? (eff.strict_local_only ? "Local-only" : "Cloud-eligible") : "—";
+
+  return `Active: ${active} • Heartbeat: ${heartbeat} • ${zone} • ${strict}`;
+}
+
+function isLocalCommand(input: string): "status" | "health" | null {
+  const s = (input || "").trim().toLowerCase();
+  if (s === "/status" || s === "status") return "status";
+  if (s === "/health" || s === "health") return "health";
+  return null;
+}
+
+function abbrev(s: string, max = 24) {
+  const str = String(s ?? "").trim();
+  if (!str) return "—";
+  if (str.length <= max) return str;
+  const head = Math.max(10, Math.floor(max * 0.62));
+  const tail = Math.max(6, max - head - 1);
+  return `${str.slice(0, head)}…${str.slice(-tail)}`;
+}
+
 export default function Page() {
   const [skills, setSkills] = useState<SkillsList | null>(null);
 
@@ -140,7 +195,7 @@ export default function Page() {
     {
       role: "assistant",
       content:
-        "Hi — I’m Squidley. 🐙\nEverything stays local-first. If you want me to remember something, say: “Remember this: …”"
+        "Hi — I’m Squidley. 🐙\nEverything stays local-first.\n\nTry:\n• “Remember this: Jeff hates drifting”\n• “Make a tool plan to run smoke tests”\n\nUI shortcuts:\n• /status\n• /health"
     }
   ]);
 
@@ -149,7 +204,7 @@ export default function Page() {
   const listRef = useRef<HTMLDivElement | null>(null);
 
   // --- Tool Loop state ---
-  const [tab, setTab] = useState<"chat" | "tools">("chat");
+  const [tab, setTab] = useState<"chat" | "tools" | "learn">("chat");
   const [goal, setGoal] = useState<string>("Build web + run Playwright tests");
   const [plan, setPlan] = useState<ToolPlanV1>(() => makePlanFromGoal("Build web + run Playwright tests"));
 
@@ -159,6 +214,15 @@ export default function Page() {
   const [runAllBusy, setRunAllBusy] = useState(false);
 
   const toolLogRef = useRef<HTMLDivElement | null>(null);
+
+  // --- Learn state ---
+  const [onboarding, setOnboarding] = useState<OnboardingResponse | null>(null);
+  const [learnBusy, setLearnBusy] = useState(false);
+  const [selectedMissionId, setSelectedMissionId] = useState<string | null>(null);
+
+  // ✅ Brain selection (user choice between local/cloud tiers)
+  const [status, setStatus] = useState<StatusResponse | null>(null);
+  const [brain, setBrain] = useState<string>("auto"); // "auto" | tier.name
 
   function ensureStepStateInitialized(p: ToolPlanV1) {
     setStepState((prev) => {
@@ -189,11 +253,69 @@ export default function Page() {
       const h = await apiGet("/health");
       const r = await apiGet<{ count: number }>("/receipts?limit=1");
       setFooterStatus(
-        `API: ${ZENSQUID_API} • Health: ${h?.ok ? "OK" : "?"} • Receipts: ${typeof r?.count === "number" ? r.count : "?"}`
+        `API: ${ZENSQUID_API} • Health: ${h?.ok ? "OK" : "?"} • Receipts: ${
+          typeof r?.count === "number" ? r.count : "?"
+        }`
       );
     } catch {
       setFooterStatus(`API: ${ZENSQUID_API}`);
     }
+  }
+
+  async function refreshOnboarding() {
+    setLearnBusy(true);
+    try {
+      const o = await getOnboarding();
+      setOnboarding(o);
+      if (o && (o as any).ok && !(o as any).onboarding?.completed) {
+        const first = (o as any).content?.starter_missions?.[0]?.id;
+        if (!selectedMissionId && first) setSelectedMissionId(first);
+      }
+    } finally {
+      setLearnBusy(false);
+    }
+  }
+
+  async function refreshStatus() {
+    try {
+      const s = await apiGet<StatusResponse>("/status");
+      setStatus(s);
+    } catch {
+      // ignore; status widget will show error if needed
+    }
+  }
+
+  const tiers: StatusTier[] = useMemo(() => {
+    const t = status?.tiers;
+    return Array.isArray(t) ? t : [];
+  }, [status?.tiers]);
+
+  const recommended = status?.recommended_default_tier ?? null;
+
+  const brainOptions = useMemo(() => {
+    const opts: { value: string; label: string; title?: string }[] = [];
+    const recLabel = recommended?.model ? `${abbrev(recommended.model, 26)} (${recommended.provider})` : "—";
+    opts.push({
+      value: "auto",
+      label: `Auto (recommended: ${recLabel})`,
+      title: "Use router recommended tier (config-driven)."
+    });
+
+    for (const t of tiers) {
+      opts.push({
+        value: t.name,
+        label: `${t.name} — ${abbrev(t.model, 28)} (${t.provider})`,
+        title: `Force tier "${t.name}"\nprovider: ${t.provider}\nmodel: ${t.model}`
+      });
+    }
+
+    return opts;
+  }, [tiers, recommended?.model, recommended?.provider]);
+
+  function tierByName(name: string): StatusTier | null {
+    if (!name) return null;
+    const t = tiers.find((x) => x.name === name);
+    return t ?? null;
   }
 
   async function sendChat() {
@@ -205,15 +327,63 @@ export default function Page() {
     setMessages((m) => [...m, { role: "user", content: input }]);
 
     try {
-      const res: ChatResponse = await chatApi(input, selectedSkillForApi);
+      const cmd = isLocalCommand(input);
+      if (cmd === "health") {
+        const h = await apiGet("/health");
+        const out = `Health: ${h?.ok ? "OK ✅" : "??"} • API: ${ZENSQUID_API}`;
+        setMessages((m) => [...m, { role: "assistant", content: out }]);
+        await refreshFooter();
+        return;
+      }
+
+      if (cmd === "status") {
+        const s = await apiGet("/status");
+        const line = formatStatusLine(s);
+        const buildSha = s?.build?.sha ?? s?.meta?.build?.sha ?? "—";
+        const buildAt = s?.build?.at ?? s?.meta?.build?.at ?? "—";
+        const out = `Squidley Status\n${line}\nBuild: ${buildSha} • ${buildAt}`;
+        setMessages((m) => [...m, { role: "assistant", content: out }]);
+        await refreshFooter();
+        await refreshStatus();
+        return;
+      }
+
+      // ✅ Brain selection logic:
+      // - auto => mode:auto
+      // - tier name => mode:force_tier + force_tier:tierName
+      const forced = brain !== "auto" ? brain : null;
+      const forcedTier = forced ? tierByName(forced) : null;
+
+      const mode = forced ? "force_tier" : "auto";
+      const force_tier = forced ? forced : undefined;
+
+      // If forcing non-local provider, include a reason so escalation gating won't block.
+      const isNonLocal = forcedTier ? forcedTier.provider !== "ollama" : false;
+      const reason = isNonLocal ? "User selected tier in UI" : undefined;
+
+      const payload: any = {
+        input,
+        selected_skill: selectedSkillForApi,
+        mode,
+        force_tier,
+        reason
+      };
+
+      const res = await fetch(`${ZENSQUID_API}/chat`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const json = (await res.json().catch(() => ({}))) as ChatResponse & any;
+
       const out =
-        (res as any)?.output ??
-        (res as any)?.content ??
-        (res as any)?.error ??
-        JSON.stringify(res, null, 2);
+        json?.output ?? json?.content ?? json?.error ?? (res.ok ? JSON.stringify(json, null, 2) : `HTTP ${res.status}`);
 
       setMessages((m) => [...m, { role: "assistant", content: String(out ?? "") }]);
+
       await refreshFooter();
+      await refreshStatus();
     } catch (e: any) {
       setMessages((m) => [...m, { role: "assistant", content: `⚠️ ${String(e?.message ?? e)}` }]);
     } finally {
@@ -279,11 +449,22 @@ export default function Page() {
     }
   }
 
+  const missionList: OnboardingMission[] =
+    onboarding && (onboarding as any).ok ? ((onboarding as any).content?.starter_missions ?? []) : [];
+
+  const selectedMission: OnboardingMission | null =
+    selectedMissionId ? missionList.find((m) => m.id === selectedMissionId) ?? null : null;
+
   useEffect(() => {
     refreshSkills().catch(console.error);
     refreshTools().catch(console.error);
     refreshFooter().catch(console.error);
+    refreshOnboarding().catch(console.error);
+    refreshStatus().catch(console.error);
     ensureStepStateInitialized(plan);
+
+    const t = setInterval(() => refreshStatus().catch(() => {}), 4000);
+    return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -299,9 +480,15 @@ export default function Page() {
       <div style={grain()} />
 
       <div style={contentWrap()}>
+        {/* Squidley FIRST (center hero) */}
         <div style={squidBlock()}>
           <div style={squidAura()} aria-hidden />
           <img src={SQUIDLEY_SRC} alt="Squidley" style={squidImg()} draggable={false} />
+        </div>
+
+        {/* Status Widget — under Squidley, above chat */}
+        <div style={glassMini()}>
+          <StatusWidget />
         </div>
 
         <div style={glass()}>
@@ -310,14 +497,45 @@ export default function Page() {
               <div style={statusDot()} />
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                  <div style={title()}>Squidley</div>
-                  <div style={pill()}>Local-first</div>
+                  <div style={title()} data-testid="app-title">
+                    Squidley
+                  </div>
+
+                  {/* ✅ Brain selector (user choice) */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <div style={pill()} title="Select which tier to use for chat (cloud or local).">
+                      Brain
+                    </div>
+                    <select
+                      value={brain}
+                      onChange={(e) => setBrain(e.target.value)}
+                      style={select()}
+                      title="Auto uses router recommendation. Selecting a tier forces that tier for chat."
+                    >
+                      {brainOptions.map((o) => (
+                        <option key={o.value} value={o.value} title={o.title}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div style={tabsWrap()}>
-                    <button style={tabBtn(tab === "chat")} onClick={() => setTab("chat")}>
+                    <button data-testid="tab-chat" style={tabBtn(tab === "chat")} onClick={() => setTab("chat")}>
                       Chat
                     </button>
-                    <button style={tabBtn(tab === "tools")} onClick={() => setTab("tools")}>
+                    <button data-testid="tab-tools" style={tabBtn(tab === "tools")} onClick={() => setTab("tools")}>
                       Tool Loop
+                    </button>
+                    <button
+                      data-testid="tab-learn"
+                      style={tabBtn(tab === "learn")}
+                      onClick={() => {
+                        setTab("learn");
+                        refreshOnboarding().catch(console.error);
+                      }}
+                    >
+                      Learn
                     </button>
                   </div>
                 </div>
@@ -345,7 +563,7 @@ export default function Page() {
           <div style={{ height: 10 }} />
 
           {tab === "chat" && (
-            <div style={chatShell()}>
+            <div style={chatShell()} data-testid="chat-panel">
               <div style={{ fontWeight: 800, opacity: 0.9, marginBottom: 8 }}>Squidley</div>
 
               <div ref={listRef} style={messagesBox()}>
@@ -362,7 +580,7 @@ export default function Page() {
                 <input
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  placeholder={`Talk to Squidley… (try: "Remember this: Jeff hates drifting")`}
+                  placeholder={`Talk to Squidley… (try /status)`}
                   style={composerInput()}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
@@ -380,7 +598,7 @@ export default function Page() {
                       {
                         role: "assistant",
                         content:
-                          "Hi — I’m Squidley. 🐙\nEverything stays local-first. If you want me to remember something, say: “Remember this: …”"
+                          "Hi — I’m Squidley. 🐙\nEverything stays local-first.\n\nTry:\n• “Remember this: Jeff hates drifting”\n• “Make a tool plan to run smoke tests”\n\nUI shortcuts:\n• /status\n• /health"
                       }
                     ])
                   }
@@ -396,13 +614,13 @@ export default function Page() {
           )}
 
           {tab === "tools" && (
-            <div style={toolShell()}>
+            <div style={toolShell()} data-testid="tools-panel">
+              {/* (unchanged) */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                 <div>
                   <div style={{ fontWeight: 900, opacity: 0.92 }}>Tool Plan</div>
                   <div style={{ fontSize: 12, opacity: 0.75 }}>
-                    Allowlisted tools only • No shell • Receipts in{" "}
-                    <code style={codeChip()}>~/.squidley/receipts</code>
+                    Allowlisted tools only • No shell • Receipts in <code style={codeChip()}>~/.squidley/receipts</code>
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -469,12 +687,12 @@ export default function Page() {
                     running
                       ? badgeInfo()
                       : done && st.result.ok
-                        ? badgeOk()
-                        : done && !st.result.ok
-                          ? badgeWarn()
-                          : err
-                            ? badgeBad()
-                            : badgeIdle();
+                      ? badgeOk()
+                      : done && !st.result.ok
+                      ? badgeWarn()
+                      : err
+                      ? badgeBad()
+                      : badgeIdle();
 
                   return (
                     <div key={s.step_id} style={stepCard()}>
@@ -574,6 +792,222 @@ export default function Page() {
               <div style={footer()}>{footerStatus || `API: ${ZENSQUID_API}`}</div>
             </div>
           )}
+
+          {tab === "learn" && (
+            <div style={toolShell()} data-testid="learn-panel">
+              {/* (unchanged) */}
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                <div>
+                  <div style={{ fontWeight: 900, opacity: 0.92 }}>Learn</div>
+                  <div style={{ fontSize: 12, opacity: 0.75 }}>
+                    Your “how to use Squidley” page — backed by the API (so it can’t drift quietly).
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button style={btnTiny()} onClick={refreshOnboarding} disabled={learnBusy}>
+                    {learnBusy ? "Refreshing…" : "Refresh"}
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ height: 10 }} />
+
+              {onboarding && (onboarding as any).ok ? (
+                <>
+                  <div style={resultBox()}>
+                    <div style={kvRow()}>
+                      <div style={kvKey()}>completed</div>
+                      <div style={kvVal()} data-testid="onboarding-completed">
+                        {String((onboarding as any).onboarding?.completed)}
+                      </div>
+                      <div style={kvKey()}>completed_at</div>
+                      <div style={kvVal()}>
+                        <code style={codeChip()}>{(onboarding as any).onboarding?.completed_at ?? "null"}</code>
+                      </div>
+                      <div style={kvKey()}>version</div>
+                      <div style={kvVal()}>
+                        <code style={codeChip()}>{String((onboarding as any).onboarding?.version ?? "?")}</code>
+                      </div>
+                    </div>
+
+                    <div style={{ height: 10 }} />
+
+                    <div style={goalRow()}>
+                      <div style={label()}>Admin token</div>
+                      <input
+                        value={adminToken}
+                        onChange={(e) => setAdminToken(e.target.value)}
+                        placeholder="x-zensquid-admin-token (memory only)"
+                        style={goalInput()}
+                        type="password"
+                        autoComplete="off"
+                      />
+                      <button
+                        style={btnGhost()}
+                        disabled={!adminToken.trim()}
+                        onClick={async () => {
+                          if (!adminToken.trim()) return;
+                          await completeOnboarding(adminToken.trim());
+                          await refreshOnboarding();
+                          await refreshFooter();
+                        }}
+                      >
+                        Mark Complete
+                      </button>
+                      <button
+                        style={btnGhost()}
+                        disabled={!adminToken.trim()}
+                        onClick={async () => {
+                          if (!adminToken.trim()) return;
+                          await resetOnboarding(adminToken.trim());
+                          await refreshOnboarding();
+                          await refreshFooter();
+                        }}
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ height: 10 }} />
+
+                  <div style={resultBox()}>
+                    <div style={{ fontWeight: 900, marginBottom: 8, opacity: 0.9 }}>Principles</div>
+                    <div style={{ display: "grid", gap: 10 }}>
+                      {((onboarding as any).content?.principles ?? []).map((p: any) => (
+                        <div key={p.title} style={stepCard()}>
+                          <div style={{ fontWeight: 900, opacity: 0.92 }}>{p.title}</div>
+                          <div style={{ fontSize: 12, opacity: 0.8, marginTop: 4 }}>{p.body}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ height: 10 }} />
+
+                  <div style={resultBox()}>
+                    <div style={{ fontWeight: 900, marginBottom: 8, opacity: 0.9 }}>Quick commands</div>
+                    <div style={{ display: "grid", gap: 10 }}>
+                      {((onboarding as any).content?.quick_commands ?? []).map((q: any) => (
+                        <div key={q.title} style={stepCard()}>
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                            <div style={{ fontWeight: 900, opacity: 0.92 }}>{q.title}</div>
+                            <button
+                              style={btnTiny()}
+                              onClick={async () => {
+                                const ok = await copyText(q.cmd);
+                                alert(ok ? "Copied command" : "Copy failed");
+                              }}
+                            >
+                              Copy
+                            </button>
+                          </div>
+                          <pre style={ioBox()}>{q.cmd}</pre>
+                          {q.note ? <div style={{ fontSize: 12, opacity: 0.75 }}>{q.note}</div> : null}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ height: 10 }} />
+
+                  <div style={resultBox()} data-testid="missions">
+                    <div style={{ fontWeight: 900, marginBottom: 8, opacity: 0.9 }}>Starter missions</div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 12 }}>
+                      <div style={{ display: "grid", gap: 8 }}>
+                        {missionList.map((m) => (
+                          <button
+                            key={m.id}
+                            data-testid={`mission-${m.id}`}
+                            style={{
+                              ...btnGhost(),
+                              textAlign: "left",
+                              background:
+                                selectedMissionId === m.id ? "rgba(120, 180, 255, 0.18)" : "rgba(255,255,255,0.06)"
+                            }}
+                            onClick={() => setSelectedMissionId(m.id)}
+                          >
+                            <div style={{ fontWeight: 900 }}>{m.title}</div>
+                            <div style={{ fontSize: 12, opacity: 0.75 }}>
+                              {m.difficulty} • ~{m.eta_minutes} min
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+
+                      <div style={stepCard()}>
+                        {selectedMission ? (
+                          <>
+                            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                              <div>
+                                <div style={{ fontWeight: 900, opacity: 0.92 }} data-testid="mission-title">
+                                  {selectedMission.title}
+                                </div>
+                                <div style={{ fontSize: 12, opacity: 0.75 }}>
+                                  id: <code style={codeChip()}>{selectedMission.id}</code> •{" "}
+                                  {selectedMission.difficulty} • ~{selectedMission.eta_minutes} min
+                                </div>
+                              </div>
+                              <button
+                                style={btnTiny()}
+                                onClick={() => {
+                                  const next = makePlanFromGoal(selectedMission.title);
+                                  setTab("tools");
+                                  setGoal(selectedMission.title);
+                                  setPlan(next);
+                                  ensureStepStateInitialized(next);
+                                }}
+                              >
+                                Send to Tool Plan
+                              </button>
+                            </div>
+
+                            <div style={{ height: 10 }} />
+
+                            <div style={{ fontWeight: 900, opacity: 0.85, marginBottom: 6 }}>Teaches</div>
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                              {selectedMission.teaches.map((t) => (
+                                <span key={t} style={miniPill()}>
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
+
+                            <div style={{ height: 10 }} />
+
+                            <div style={{ fontWeight: 900, opacity: 0.85, marginBottom: 6 }}>Definition of done</div>
+                            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, opacity: 0.85 }}>
+                              {selectedMission.definition_of_done.map((d) => (
+                                <li key={d} style={{ marginBottom: 6 }}>
+                                  {d}
+                                </li>
+                              ))}
+                            </ul>
+                          </>
+                        ) : (
+                          <div style={{ fontSize: 12, opacity: 0.8 }}>Select a mission on the left.</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div style={resultBox()}>
+                  <div style={{ fontSize: 12, opacity: 0.8 }}>
+                    {learnBusy ? "Loading onboarding…" : "No onboarding data (API unavailable?)"}
+                  </div>
+                  <div style={{ height: 10 }} />
+                  <button style={btnGhost()} onClick={refreshOnboarding}>
+                    Try again
+                  </button>
+                </div>
+              )}
+
+              <div style={{ height: 10 }} />
+              <div style={footer()}>{footerStatus || `API: ${ZENSQUID_API}`}</div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -587,7 +1021,14 @@ export default function Page() {
 /** ---------------- styles ---------------- */
 
 function root() {
-  return { minHeight: "100vh", width: "100%", position: "relative", overflow: "hidden", display: "grid", placeItems: "center" } as const;
+  return {
+    minHeight: "100vh",
+    width: "100%",
+    position: "relative",
+    overflow: "hidden",
+    display: "grid",
+    placeItems: "center"
+  } as const;
 }
 
 function bgLayer() {
@@ -655,6 +1096,20 @@ function grain() {
         rgba(0,0,0,0) 2px,
         rgba(0,0,0,0) 6px)
     `
+  } as const;
+}
+
+function glassMini() {
+  return {
+    width: "min(860px, 92vw)",
+    borderRadius: 18,
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(18, 20, 34, 0.46)",
+    backdropFilter: "blur(10px)",
+    WebkitBackdropFilter: "blur(10px)",
+    boxShadow: "0 18px 55px rgba(0,0,0,0.35)",
+    padding: 10,
+    marginTop: -6
   } as const;
 }
 
@@ -777,24 +1232,51 @@ function select() {
     border: "1px solid rgba(255,255,255,0.14)",
     background: "rgba(0,0,0,0.20)",
     color: "rgba(255,255,255,0.92)",
-    outline: "none"
+    outline: "none",
+    maxWidth: "min(520px, 72vw)"
   } as const;
 }
 
 function chatShell() {
-  return { borderRadius: 16, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(10, 12, 22, 0.42)", padding: 14 } as const;
+  return {
+    borderRadius: 16,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(10, 12, 22, 0.42)",
+    padding: 14
+  } as const;
 }
 
 function toolShell() {
-  return { borderRadius: 16, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(10, 12, 22, 0.42)", padding: 14 } as const;
+  return {
+    borderRadius: 16,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(10, 12, 22, 0.42)",
+    padding: 14
+  } as const;
 }
 
 function messagesBox() {
-  return { minHeight: 160, maxHeight: "42vh", overflow: "auto", display: "flex", flexDirection: "column", gap: 10, paddingRight: 4 } as const;
+  return {
+    minHeight: 160,
+    maxHeight: "42vh",
+    overflow: "auto",
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+    paddingRight: 4
+  } as const;
 }
 
 function toolLog() {
-  return { minHeight: 220, maxHeight: "46vh", overflow: "auto", display: "flex", flexDirection: "column", gap: 10, paddingRight: 4 } as const;
+  return {
+    minHeight: 220,
+    maxHeight: "46vh",
+    overflow: "auto",
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+    paddingRight: 4
+  } as const;
 }
 
 function rowLeft() {
@@ -805,11 +1287,23 @@ function rowRight() {
 }
 
 function bubbleAssistant() {
-  return { maxWidth: "86%", padding: "10px 12px", borderRadius: 14, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.92)", whiteSpace: "pre-wrap" } as const;
+  return {
+    maxWidth: "86%",
+    padding: "10px 12px",
+    borderRadius: 14,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.06)",
+    color: "rgba(255,255,255,0.92)",
+    whiteSpace: "pre-wrap"
+  } as const;
 }
 
 function bubbleUser() {
-  return { ...bubbleAssistant(), background: "rgba(120, 180, 255, 0.12)", border: "1px solid rgba(120, 180, 255, 0.18)" } as const;
+  return {
+    ...bubbleAssistant(),
+    background: "rgba(120, 180, 255, 0.12)",
+    border: "1px solid rgba(120, 180, 255, 0.18)"
+  } as const;
 }
 
 function composerRow() {
@@ -817,7 +1311,15 @@ function composerRow() {
 }
 
 function composerInput() {
-  return { flex: 1, borderRadius: 14, padding: "12px 12px", border: "1px solid rgba(255,255,255,0.14)", background: "rgba(0,0,0,0.25)", color: "rgba(255,255,255,0.92)", outline: "none" } as const;
+  return {
+    flex: 1,
+    borderRadius: 14,
+    padding: "12px 12px",
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(0,0,0,0.25)",
+    color: "rgba(255,255,255,0.92)",
+    outline: "none"
+  } as const;
 }
 
 function goalRow() {
@@ -825,19 +1327,52 @@ function goalRow() {
 }
 
 function goalInput() {
-  return { flex: 1, borderRadius: 14, padding: "10px 12px", border: "1px solid rgba(255,255,255,0.14)", background: "rgba(0,0,0,0.25)", color: "rgba(255,255,255,0.92)", outline: "none" } as const;
+  return {
+    flex: 1,
+    borderRadius: 14,
+    padding: "10px 12px",
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(0,0,0,0.25)",
+    color: "rgba(255,255,255,0.92)",
+    outline: "none"
+  } as const;
 }
 
 function btnPrimary() {
-  return { borderRadius: 14, padding: "10px 14px", border: "1px solid rgba(120, 180, 255, 0.30)", background: "rgba(120, 180, 255, 0.18)", color: "rgba(255,255,255,0.92)", cursor: "pointer", fontWeight: 800 } as const;
+  return {
+    borderRadius: 14,
+    padding: "10px 14px",
+    border: "1px solid rgba(120, 180, 255, 0.30)",
+    background: "rgba(120, 180, 255, 0.18)",
+    color: "rgba(255,255,255,0.92)",
+    cursor: "pointer",
+    fontWeight: 800
+  } as const;
 }
 
 function btnGhost() {
-  return { borderRadius: 14, padding: "10px 14px", border: "1px solid rgba(255,255,255,0.14)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.9)", cursor: "pointer", fontWeight: 800 } as const;
+  return {
+    borderRadius: 14,
+    padding: "10px 14px",
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(255,255,255,0.06)",
+    color: "rgba(255,255,255,0.9)",
+    cursor: "pointer",
+    fontWeight: 800
+  } as const;
 }
 
 function btnTiny() {
-  return { borderRadius: 10, padding: "5px 10px", border: "1px solid rgba(255,255,255,0.14)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.9)", cursor: "pointer", fontWeight: 800, fontSize: 12 } as const;
+  return {
+    borderRadius: 10,
+    padding: "5px 10px",
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(255,255,255,0.06)",
+    color: "rgba(255,255,255,0.9)",
+    cursor: "pointer",
+    fontWeight: 800,
+    fontSize: 12
+  } as const;
 }
 
 function footer() {
@@ -845,7 +1380,16 @@ function footer() {
 }
 
 function cornerMark() {
-  return { position: "fixed", left: 14, bottom: 10, zIndex: 2, fontWeight: 900, opacity: 0.25, letterSpacing: 1, color: "rgba(255,255,255,0.7)" } as const;
+  return {
+    position: "fixed",
+    left: 14,
+    bottom: 10,
+    zIndex: 2,
+    fontWeight: 900,
+    opacity: 0.25,
+    letterSpacing: 1,
+    color: "rgba(255,255,255,0.7)"
+  } as const;
 }
 
 function planMeta() {
@@ -853,11 +1397,24 @@ function planMeta() {
 }
 
 function codeChip() {
-  return { fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: 12, background: "rgba(0,0,0,0.22)", border: "1px solid rgba(255,255,255,0.10)", padding: "2px 6px", borderRadius: 10, color: "rgba(255,255,255,0.92)" } as const;
+  return {
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+    fontSize: 12,
+    background: "rgba(0,0,0,0.22)",
+    border: "1px solid rgba(255,255,255,0.10)",
+    padding: "2px 6px",
+    borderRadius: 10,
+    color: "rgba(255,255,255,0.92)"
+  } as const;
 }
 
 function stepCard() {
-  return { borderRadius: 16, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.05)", padding: 12 } as const;
+  return {
+    borderRadius: 16,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.05)",
+    padding: 12
+  } as const;
 }
 
 function stepHeader() {
@@ -865,7 +1422,14 @@ function stepHeader() {
 }
 
 function miniPill() {
-  return { fontSize: 12, padding: "4px 8px", borderRadius: 999, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(0,0,0,0.18)", color: "rgba(255,255,255,0.9)" } as const;
+  return {
+    fontSize: 12,
+    padding: "4px 8px",
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(0,0,0,0.18)",
+    color: "rgba(255,255,255,0.9)"
+  } as const;
 }
 
 function badgeIdle() {
@@ -873,27 +1437,62 @@ function badgeIdle() {
 }
 
 function badgeInfo() {
-  return { width: 10, height: 10, borderRadius: 999, background: "rgba(120, 220, 255, 0.95)", boxShadow: "0 0 16px rgba(120, 220, 255, 0.35)" } as const;
+  return {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+    background: "rgba(120, 220, 255, 0.95)",
+    boxShadow: "0 0 16px rgba(120, 220, 255, 0.35)"
+  } as const;
 }
 
 function badgeOk() {
-  return { width: 10, height: 10, borderRadius: 999, background: "rgba(120, 255, 190, 0.95)", boxShadow: "0 0 16px rgba(120, 255, 190, 0.35)" } as const;
+  return {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+    background: "rgba(120, 255, 190, 0.95)",
+    boxShadow: "0 0 16px rgba(120, 255, 190, 0.35)"
+  } as const;
 }
 
 function badgeWarn() {
-  return { width: 10, height: 10, borderRadius: 999, background: "rgba(255, 210, 120, 0.95)", boxShadow: "0 0 16px rgba(255, 210, 120, 0.35)" } as const;
+  return {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+    background: "rgba(255, 210, 120, 0.95)",
+    boxShadow: "0 0 16px rgba(255, 210, 120, 0.35)"
+  } as const;
 }
 
 function badgeBad() {
-  return { width: 10, height: 10, borderRadius: 999, background: "rgba(255, 120, 140, 0.95)", boxShadow: "0 0 16px rgba(255, 120, 140, 0.35)" } as const;
+  return {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+    background: "rgba(255, 120, 140, 0.95)",
+    boxShadow: "0 0 16px rgba(255, 120, 140, 0.35)"
+  } as const;
 }
 
 function resultBox() {
-  return { borderRadius: 14, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(0,0,0,0.18)", padding: 10 } as const;
+  return {
+    borderRadius: 14,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(0,0,0,0.18)",
+    padding: 10
+  } as const;
 }
 
 function kvRow() {
-  return { display: "grid", gridTemplateColumns: "auto 1fr auto 1fr auto 1fr", gap: 8, alignItems: "center", fontSize: 12 } as const;
+  return {
+    display: "grid",
+    gridTemplateColumns: "auto 1fr auto 1fr auto 1fr",
+    gap: 8,
+    alignItems: "center",
+    fontSize: 12
+  } as const;
 }
 
 function kvKey() {

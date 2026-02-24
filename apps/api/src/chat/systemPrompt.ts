@@ -3,7 +3,7 @@ import path from "node:path";
 import { mkdir, readdir, readFile, stat } from "node:fs/promises";
 
 /**
- * Types are defined in server.ts today — we’ll extract them tomorrow.
+ * Types are defined in server.ts today — we’ll extract them later.
  * For now, re-declare the minimal shapes needed to compile.
  */
 export type ChatContextUsed = {
@@ -29,12 +29,55 @@ export type SuggestedAction =
       raw_trigger: string;
     };
 
+/**
+ * Squid Notes (Memory v2) — compact injection metadata for receipts/UI.
+ * This is NOT intended for chat display, only for system prompt + receipt meta.
+ */
+export type SquidNotesInjectedItem = {
+  type: "identity" | "thread" | "summary";
+  path: string; // repo-relative path
+  tokens: number;
+  reason: string;
+};
+
+export type SquidNotesMeta = {
+  injected: SquidNotesInjectedItem[];
+  total_tokens: number;
+  budget_tokens: number;
+  max_items: number;
+  dropped: Array<{ path: string; reason: string }>;
+};
+
 export type ChatContextMeta = {
   used: ChatContextUsed;
   memory_hits: ChatContextMemoryHit[];
   actions: SuggestedAction[];
+  squid_notes?: SquidNotesMeta;
 };
 
+export type SquidNotesContext = {
+  text: string;
+
+  // keep path/bytes for backwards compatibility, add richer fields for UI/receipts
+  injected: Array<{
+    path: string;
+    bytes?: number;
+    tokens?: number;
+    type?: "identity" | "thread" | "summary";
+    reason?: string;
+  }>;
+
+  total_tokens: number;
+  budget_tokens: number;
+
+  // optional extras (nice for UI/doctor)
+  max_items?: number;
+  dropped?: Array<{ path: string; reason: string }>;
+};
+
+/**
+ * Base system prompt
+ */
 export const BASE_SYSTEM_PROMPT = `
 You are Squidley — Jeff’s local-first assistant inside the ZenSquid platform.
 ZenSquid is a TypeScript monorepo:
@@ -53,22 +96,46 @@ Be concise and practical. Prefer local tooling and commands. If cloud is availab
 `.trim();
 
 /**
- * These helpers used to live in server.ts.
- * Keeping them here makes this module compile on its own.
+ * Root helpers (match server.ts behavior)
  */
 function zensquidRoot(): string {
-  // Server uses this exact env var, so we match it.
   return process.env.ZENSQUID_ROOT ?? process.cwd();
-}
-
-function memoryRoot(): string {
-  return path.resolve(zensquidRoot(), "memory");
 }
 
 function skillsRoot(): string {
   return path.resolve(zensquidRoot(), "skills");
 }
 
+// NOTE: server.ts also has its own memoryRoot() function, but we keep this here for this module’s needs.
+function memoryRootLocal(): string {
+  return path.resolve(zensquidRoot(), "memory");
+}
+
+/**
+ * Exported helpers used by memory routes (server.ts imports these)
+ */
+export function normalizeRelPath(rel: string): string {
+  const s = String(rel ?? "").replace(/\\/g, "/").trim();
+  if (!s) return "";
+  if (s.startsWith("/")) return "";
+  if (s.includes("..")) return "";
+  return s;
+}
+
+export async function ensureMemoryRoot(): Promise<void> {
+  const root = memoryRootLocal();
+  await mkdir(root, { recursive: true });
+}
+
+export function memoryAbs(rel: string): string {
+  const clean = normalizeRelPath(rel);
+  if (!clean) return "";
+  return path.resolve(memoryRootLocal(), clean);
+}
+
+/**
+ * Safe file read
+ */
 async function safeReadText(p: string, maxBytes = 200_000): Promise<string> {
   try {
     const st = await stat(p);
@@ -82,7 +149,6 @@ async function safeReadText(p: string, maxBytes = 200_000): Promise<string> {
 }
 
 async function loadAgentTexts(): Promise<{ soul: string; identity: string }> {
-  // server.ts used SOUL.md and IDENTITY.md at repo root
   const soul = await safeReadText(path.resolve(zensquidRoot(), "SOUL.md"));
   const identity = await safeReadText(path.resolve(zensquidRoot(), "IDENTITY.md"));
   return { soul, identity };
@@ -94,6 +160,228 @@ function preview(s: unknown, n = 100): string {
   return oneLine.length > n ? oneLine.slice(0, n - 1) + "…" : oneLine;
 }
 
+/**
+ * Token estimator + clipping (budget enforcement)
+ */
+function estimateTokens(s: string): number {
+  const t = String(s ?? "");
+  return Math.max(0, Math.ceil(t.length / 4));
+}
+
+function clipToChars(s: string, maxChars: number): string {
+  const t = String(s ?? "");
+  if (t.length <= maxChars) return t;
+  return t.slice(0, maxChars) + "\n…(truncated)\n";
+}
+
+/**
+ * ============================
+ * Squid Notes (Memory v2) — summarize-before-inject
+ * ============================
+ */
+const SQUID_NOTES_BUDGET_TOKENS = 900;
+const SQUID_NOTES_MAX_ITEMS = 5;
+
+async function loadSquidIdentity(): Promise<{ text: string; relPath: string }> {
+  const abs = path.resolve(memoryRootLocal(), "identity.md");
+  const text = await safeReadText(abs, 80_000);
+  const relPath = path.relative(zensquidRoot(), abs).replace(/\\/g, "/");
+  return { text: text.trim(), relPath };
+}
+
+async function loadActiveThreadId(): Promise<{ id: string; relPath: string }> {
+  const abs = path.resolve(memoryRootLocal(), "threads", "_active.txt");
+  const raw = await safeReadText(abs, 10_000);
+  const relPath = path.relative(zensquidRoot(), abs).replace(/\\/g, "/");
+  const id = raw
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter(Boolean)[0] ?? "";
+
+  // prevent traversal / weirdness
+  if (!id || id.includes("..") || id.includes("/") || id.includes("\\") || id.length > 120) {
+    return { id: "", relPath };
+  }
+  return { id, relPath };
+}
+
+async function loadThreadJson(threadId: string): Promise<{
+  ok: boolean;
+  relPath: string;
+  summary: string;
+  open_loops: string[];
+  title: string;
+}> {
+  const abs = path.resolve(memoryRootLocal(), "threads", `${threadId}.json`);
+  const relPath = path.relative(zensquidRoot(), abs).replace(/\\/g, "/");
+  const raw = await safeReadText(abs, 120_000);
+  if (!raw.trim()) return { ok: false, relPath, summary: "", open_loops: [], title: "" };
+
+  try {
+    const obj: any = JSON.parse(raw);
+    const summary = String(obj?.summary ?? "").trim();
+    const open_loops = Array.isArray(obj?.open_loops)
+      ? obj.open_loops.map((x: any) => String(x ?? "").trim()).filter(Boolean).slice(0, 12)
+      : [];
+    const title = String(obj?.title ?? obj?.thread_id ?? threadId).trim();
+    return { ok: true, relPath, summary, open_loops, title };
+  } catch {
+    return { ok: false, relPath, summary: "", open_loops: [], title: "" };
+  }
+}
+
+async function loadSummary(name: string): Promise<{ text: string; relPath: string }> {
+  const safe = String(name ?? "").trim();
+  if (!safe || safe.includes("..") || safe.includes("/") || safe.includes("\\") || !safe.endsWith(".md")) {
+    return { text: "", relPath: "" };
+  }
+  const abs = path.resolve(memoryRootLocal(), "summaries", safe);
+  const text = await safeReadText(abs, 120_000);
+  const relPath = path.relative(zensquidRoot(), abs).replace(/\\/g, "/");
+  return { text: text.trim(), relPath };
+}
+
+function formatThreadForInjection(args: { title: string; summary: string; open_loops: string[] }): string {
+  const parts: string[] = [];
+  parts.push(`## Active thread: ${args.title || "Untitled"}`);
+  if (args.summary) parts.push(args.summary.trim());
+  if (args.open_loops?.length) {
+    parts.push("");
+    parts.push("### Open loops");
+    for (const x of args.open_loops) parts.push(`- ${x}`);
+  }
+  return parts.join("\n").trim();
+}
+
+async function buildSquidNotes(args: { input: string }): Promise<{ text: string; meta: SquidNotesMeta }> {
+  const injected: SquidNotesInjectedItem[] = [];
+  const dropped: Array<{ path: string; reason: string }> = [];
+
+  let total = 0;
+  const budget = SQUID_NOTES_BUDGET_TOKENS;
+
+  const addItem = (item: Omit<SquidNotesInjectedItem, "tokens">, content: string) => {
+    if (injected.length >= SQUID_NOTES_MAX_ITEMS) {
+      dropped.push({ path: item.path, reason: "max_items reached" });
+      return false;
+    }
+    const tok = estimateTokens(content);
+    if (total + tok > budget) {
+      dropped.push({ path: item.path, reason: `budget exceeded (${total + tok} > ${budget})` });
+      return false;
+    }
+    injected.push({ ...item, tokens: tok });
+    total += tok;
+    return true;
+  };
+
+  const blocks: string[] = [];
+  blocks.push("[Squid Notes — non-authoritative context]");
+  blocks.push("");
+
+  // 1) Identity
+  const ident = await loadSquidIdentity();
+  if (ident.text) {
+    const content = clipToChars(ident.text, 2200);
+    const ok = addItem({ type: "identity", path: ident.relPath, reason: "always" }, content);
+    if (ok) {
+      blocks.push("# Identity (user prefs)");
+      blocks.push(content);
+      blocks.push("");
+    }
+  }
+
+  // 2) Active thread
+  const active = await loadActiveThreadId();
+  if (active.id) {
+    const th = await loadThreadJson(active.id);
+    if (th.ok && (th.summary || th.open_loops.length)) {
+      const rendered = clipToChars(
+        formatThreadForInjection({ title: th.title, summary: th.summary, open_loops: th.open_loops }),
+        2600
+      );
+      const ok = addItem({ type: "thread", path: th.relPath, reason: "active thread" }, rendered);
+      if (ok) {
+        blocks.push("# Thread (active)");
+        blocks.push(rendered);
+        blocks.push("");
+      }
+    } else {
+      dropped.push({ path: active.relPath, reason: "active thread file missing/invalid" });
+    }
+  } else {
+    dropped.push({ path: active.relPath, reason: "no active thread id" });
+  }
+
+  // 3) Optional summaries (MVP: builds.md)
+  const sumBuilds = await loadSummary("builds.md");
+  if (sumBuilds.text) {
+    const content = clipToChars(sumBuilds.text, 2600);
+    const ok = addItem(
+      { type: "summary", path: sumBuilds.relPath, reason: "default summary: builds.md" },
+      content
+    );
+    if (ok) {
+      blocks.push("# Summary (builds)");
+      blocks.push(content);
+      blocks.push("");
+    }
+  }
+
+  blocks.push("[/Squid Notes]");
+
+  const text = injected.length > 0 ? blocks.join("\n").trim() : "";
+
+  return {
+    text,
+    meta: {
+      injected,
+      total_tokens: total,
+      budget_tokens: budget,
+      max_items: SQUID_NOTES_MAX_ITEMS,
+      dropped
+    }
+  };
+}
+
+/**
+ * ✅ Export for server.ts (Squid Notes context builder)
+ * This returns the *system prompt injection text* + lightweight metadata.
+ */
+export async function buildSquidNotesContext(args: {
+  input: string;
+  selected_skill?: string | null;
+  now: Date;
+  mode?: string;
+  force_tier?: string | null;
+  reason?: string | null;
+}): Promise<SquidNotesContext | null> {
+  // deterministic; we only use input today for future conditioning/ranking
+  void args;
+
+  const squid = await buildSquidNotes({ input: String(args?.input ?? "") });
+
+  if (!squid.text.trim()) return null;
+
+  // ✅ richer metadata (reasons/tokens/type) for receipts + UI
+  return {
+    text: squid.text,
+    injected: squid.meta.injected.map((x) => ({
+      path: x.path,
+      tokens: x.tokens,
+      type: x.type,
+      reason: x.reason
+    })),
+    total_tokens: squid.meta.total_tokens,
+    budget_tokens: squid.meta.budget_tokens,
+    max_items: squid.meta.max_items,
+    dropped: squid.meta.dropped
+  };
+}
+
+/**
+ * Existing keyword-based “memory snippets” search (v1-style)
+ */
 function extractKeywords(input: string): string[] {
   const raw = input
     .toLowerCase()
@@ -103,9 +391,52 @@ function extractKeywords(input: string): string[] {
     .filter(Boolean);
 
   const stop = new Set([
-    "the","and","or","to","of","a","an","is","are","am","be","been","being","i","you","we","they","it",
-    "this","that","these","those","for","with","on","in","at","from","as","by","do","does","did","done",
-    "not","no","yes","ok","please","can","could","would","should","will","just","like"
+    "the",
+    "and",
+    "or",
+    "to",
+    "of",
+    "a",
+    "an",
+    "is",
+    "are",
+    "am",
+    "be",
+    "been",
+    "being",
+    "i",
+    "you",
+    "we",
+    "they",
+    "it",
+    "this",
+    "that",
+    "these",
+    "those",
+    "for",
+    "with",
+    "on",
+    "in",
+    "at",
+    "from",
+    "as",
+    "by",
+    "do",
+    "does",
+    "did",
+    "done",
+    "not",
+    "no",
+    "yes",
+    "ok",
+    "please",
+    "can",
+    "could",
+    "would",
+    "should",
+    "will",
+    "just",
+    "like"
   ]);
 
   const filtered = raw.filter((w) => w.length >= 4 && !stop.has(w));
@@ -141,7 +472,7 @@ async function searchMemoryForChat(
   input: string,
   maxHits = 5
 ): Promise<Array<{ rel: string; score: number; snippet: string }>> {
-  const root = memoryRoot();
+  const root = memoryRootLocal();
   const keywords = extractKeywords(input);
   if (keywords.length === 0) return [];
 
@@ -343,7 +674,13 @@ export async function buildChatSystemPrompt(args: {
   const now = args.now;
 
   const { soul, identity } = await loadAgentTexts();
+
+  // ✅ Squid Notes (v2) — summarize-before-inject, budgeted
+  const squid = await buildSquidNotes({ input });
+
+  // v1 keyword memory hits (kept for now)
   const memHits = await searchMemoryForChat(input, 5);
+
   const skill = selected_skill ? await loadSkillDoc(selected_skill) : "";
 
   const parts: string[] = [];
@@ -382,10 +719,14 @@ export async function buildChatSystemPrompt(args: {
     parts.push("\n---\n# SELECTED SKILL: " + String(selected_skill ?? "") + "\n" + skill.trim());
   }
 
+  // ✅ Inject Squid Notes as compact context
+  if (squid.text.trim()) {
+    parts.push("\n---\n# SQUID NOTES (memory v2)\n" + squid.text.trim());
+  }
+
+  // v1 snippets — can be reduced later if Squid Notes is sufficient
   if (memHits.length > 0) {
-    const formatted = memHits
-      .map((h, idx) => "(" + (idx + 1) + ") " + h.rel + "\n" + h.snippet)
-      .join("\n\n");
+    const formatted = memHits.map((h, idx) => `(${idx + 1}) ${h.rel}\n${h.snippet}`).join("\n\n");
     parts.push("\n---\n# RELEVANT MEMORY (snippets)\n" + formatted);
   }
 
@@ -434,31 +775,12 @@ export async function buildChatSystemPrompt(args: {
   const meta: ChatContextMeta = {
     used,
     memory_hits: memHits.map((h) => ({ path: h.rel, score: h.score, snippet: h.snippet })),
-    actions: []
+    actions: [],
+    squid_notes: squid.meta
   };
 
   const suggested = parseMemorySuggestion(input, now);
   if (suggested) meta.actions.push(suggested);
 
   return { system: parts.join("\n"), meta };
-}
-
-/**
- * These are used by memory endpoints in server.ts today.
- * Export them so server.ts can use them without duplicating.
- */
-export function normalizeRelPath(rel: string): string {
-  const s = String(rel ?? "").replace(/\\/g, "/").trim();
-  if (!s) return "";
-  if (s.startsWith("/")) return "";
-  if (s.includes("..")) return "";
-  return s;
-}
-
-export function memoryAbs(rel: string): string {
-  return path.resolve(memoryRoot(), rel);
-}
-
-export async function ensureMemoryRoot(): Promise<void> {
-  await mkdir(memoryRoot(), { recursive: true }).catch(() => {});
 }

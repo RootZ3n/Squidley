@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ZENSQUID_API } from "@/app/api/zensquid";
+import { ZENSQUID_API } from "@/api/zensquid";
 
 type Mode = "fs.write" | "fs.read" | "exec" | "systemctl.user";
 

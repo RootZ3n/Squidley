@@ -1,6 +1,6 @@
 const BASE =
   process.env.NEXT_PUBLIC_ZENSQUID_API_BASE?.replace(/\/+$/, "") ??
-  "http://127.0.0.1:18790";
+  "/api/zsq";
 
 async function j<T>(url: string, init?: RequestInit): Promise<T> {
   const r = await fetch(`${BASE}${url}`, {

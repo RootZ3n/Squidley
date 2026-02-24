@@ -3,8 +3,16 @@ import Fastify from "fastify";
 import corsPkg from "@fastify/cors";
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
+import crypto from "node:crypto";
 
-import { buildChatSystemPrompt, normalizeRelPath, memoryAbs, ensureMemoryRoot } from "./chat/systemPrompt.js";
+import {
+  buildChatSystemPrompt,
+  // ✅ Squid Notes builder (Memory v2 injection + receipt metadata)
+  buildSquidNotesContext,
+  normalizeRelPath,
+  memoryAbs,
+  ensureMemoryRoot
+} from "./chat/systemPrompt.js";
 
 import {
   loadConfig,
@@ -25,6 +33,9 @@ import type { CapabilityAction } from "./capabilities/types.js";
 
 import { makeRuntimePaths, type RuntimeState, type SafetyZone } from "./runtime/state.js";
 
+// ✅ Model class / active model info
+import { classifyModel } from "./runtime/modelClass.js";
+
 import { registerSkillsRoutes } from "./http/routes/skills.js";
 import { registerToolsRoutes } from "./http/routes/tools.js";
 import { registerReceiptsRoutes } from "./http/routes/receipts.js";
@@ -35,6 +46,7 @@ import { registerTokenMonitorRoutes } from "./http/routes/token_monitor.js";
 import { registerOnboardingRoutes } from "./http/routes/onboarding.js";
 import { registerCapabilitiesRoutes } from "./http/routes/capabilities.js";
 import { registerGuardRoutes, evaluateGuard } from "./http/routes/guard.js";
+import { registerAutonomyRoutes } from "./http/routes/autonomy.js";
 
 // ✅ Tool Runner (local-only allowlisted execution)
 import { toolsRoutes } from "./routes/tools.js";
@@ -48,6 +60,13 @@ await app.register(corsPkg, { origin: true });
 await app.register(toolsRoutes);
 
 app.get("/health", async () => ({ ok: true, name: "Squidley API" }));
+
+await registerAutonomyRoutes(app, {
+  zensquidRoot,
+  adminTokenOk,
+  allowlist: ["web.build", "web.pw", "git.status", "git.diff", "git.log", "rg.search", "diag.sleep"]
+  // optional: workspace: () => zensquidRoot()
+});
 
 function zensquidRoot(): string {
   return process.env.ZENSQUID_ROOT ?? process.cwd();
@@ -63,10 +82,6 @@ function receiptsDir(): string {
 
 function memoryRoot(): string {
   return path.resolve(zensquidRoot(), "memory");
-}
-
-function skillsRoot(): string {
-  return path.resolve(zensquidRoot(), "skills");
 }
 
 function soulFile(): string {
@@ -95,17 +110,74 @@ const setRuntimeState = (s: RuntimeState) => {
 };
 
 function adminTokenOk(req: any): boolean {
-  const expected = process.env.ZENSQUID_ADMIN_TOKEN;
-  if (!expected || expected.trim().length < 12) return false;
-  const got = (req.headers?.["x-zensquid-admin-token"] ?? "") as string;
-  return typeof got === "string" && got === expected;
+  const expected = (process.env.ZENSQUID_ADMIN_TOKEN ?? "").trim();
+  if (expected.length < 12) return false;
+
+  const got = String(req.headers?.["x-zensquid-admin-token"] ?? "");
+  if (got.length !== expected.length) return false;
+
+  // timingSafeEqual requires same-length buffers
+  try {
+    return crypto.timingSafeEqual(Buffer.from(got), Buffer.from(expected));
+  } catch {
+    return false;
+  }
 }
 
-function effectiveStrictLocal(cfg: any): { effective: boolean; source: "runtime" | "config" } {
+/**
+ * Onboarding completion cache (cheap + reliable)
+ * This supports: strict-local-only is ONLY for onboarding by default.
+ */
+let _onboardingCache: { ts: number; completed: boolean } = { ts: 0, completed: false };
+async function onboardingCompleted(): Promise<boolean> {
+  const now = Date.now();
+  if (now - _onboardingCache.ts < 2500) return _onboardingCache.completed;
+
+  try {
+    const p = path.resolve(runtimePaths.dataDir(), "onboarding.json");
+    const raw = await readFile(p, "utf-8");
+    const j = JSON.parse(raw) as any;
+    const completed = Boolean(j?.completed);
+    _onboardingCache = { ts: now, completed };
+    return completed;
+  } catch {
+    _onboardingCache = { ts: now, completed: false };
+    return false;
+  }
+}
+
+type StrictSource = "runtime" | "config" | "runtime_onboarding_relaxed";
+
+/**
+ * ✅ Strict-local-only behavior:
+ * - During onboarding: strict_local_only can be enforced by preset/runtime/config
+ * - After onboarding complete: strict_local_only should default OFF unless user explicitly forces it later
+ *
+ * Escape hatch:
+ * - Set ZENSQUID_AUTO_DISABLE_STRICT_AFTER_ONBOARDING=false to preserve old behavior.
+ */
+async function effectiveStrictLocal(cfg: any): Promise<{ effective: boolean; source: StrictSource }> {
+  const autoRelax =
+    String(process.env.ZENSQUID_AUTO_DISABLE_STRICT_AFTER_ONBOARDING ?? "true").trim().toLowerCase() === "true";
+
+  const completed = await onboardingCompleted();
+
   if (typeof runtimeState.strict_local_only === "boolean") {
+    // If onboarding is complete and strict was enabled via preset/runtime, relax by default.
+    // Users can still explicitly turn it back on via runtime routes.
+    if (autoRelax && completed && runtimeState.strict_local_only === true) {
+      return { effective: false, source: "runtime_onboarding_relaxed" };
+    }
     return { effective: runtimeState.strict_local_only, source: "runtime" };
   }
-  return { effective: Boolean((cfg as any)?.budgets?.strict_local_only), source: "config" };
+
+  // Config fallback (treat as onboarding default only, unless user intentionally sets it)
+  const cfgStrict = Boolean((cfg as any)?.budgets?.strict_local_only);
+  if (autoRelax && completed && cfgStrict) {
+    return { effective: false, source: "runtime_onboarding_relaxed" };
+  }
+
+  return { effective: cfgStrict, source: "config" };
 }
 
 function effectiveSafetyZone(cfg: any): { effective: SafetyZone; source: "runtime" | "config" } {
@@ -234,12 +306,6 @@ async function safeReadText(p: string, maxBytes = 200_000): Promise<string> {
   }
 }
 
-async function loadAgentTexts() {
-  const soul = await safeReadText(soulFile());
-  const identity = await safeReadText(identityFile());
-  return { soul, identity };
-}
-
 /**
  * Agent profile (used by UI)
  */
@@ -267,7 +333,7 @@ app.get("/agent/profile", async () => {
  */
 app.get("/snapshot", async () => {
   const cfg = await loadConfig(process.env.ZENSQUID_CONFIG);
-  const effStrict = effectiveStrictLocal(cfg);
+  const effStrict = await effectiveStrictLocal(cfg);
   const effZone = effectiveSafetyZone(cfg);
 
   return {
@@ -283,6 +349,9 @@ app.get("/snapshot", async () => {
     runtime: {
       safety_zone: effZone.effective,
       safety_zone_source: effZone.source
+    },
+    onboarding: {
+      completed: await onboardingCompleted()
     }
   };
 });
@@ -301,6 +370,8 @@ app.post("/heartbeat", async (req, reply) => {
     typeof body?.prompt === "string" && body.prompt.trim().length > 0 ? body.prompt.trim() : "Return exactly: OK";
 
   const hbModel = process.env.ZENSQUID_HEARTBEAT_MODEL ?? (cfg as any)?.heartbeat?.model ?? "qwen2.5:7b-instruct";
+
+  const hbActiveModel = classifyModel("ollama", hbModel);
 
   const messages = [
     { role: "system", content: "You are a heartbeat check. Follow user instruction precisely." },
@@ -327,7 +398,8 @@ app.post("/heartbeat", async (req, reply) => {
         provider: "ollama",
         model: hbModel,
         escalated: false,
-        escalation_reason: null
+        escalation_reason: null,
+        active_model: hbActiveModel
       },
       meta: { ms }
     });
@@ -339,6 +411,7 @@ app.post("/heartbeat", async (req, reply) => {
       output: (out as any).output,
       provider: "ollama",
       model: hbModel,
+      active_model: hbActiveModel,
       receipt_id,
       ms
     });
@@ -356,7 +429,8 @@ app.post("/heartbeat", async (req, reply) => {
         provider: "ollama",
         model: hbModel,
         escalated: false,
-        escalation_reason: null
+        escalation_reason: null,
+        active_model: hbActiveModel
       },
       error: { message: String(e?.message ?? e) },
       meta: { ms }
@@ -369,6 +443,7 @@ app.post("/heartbeat", async (req, reply) => {
       error: "Heartbeat failed (ollama)",
       provider: "ollama",
       model: hbModel,
+      active_model: hbActiveModel,
       receipt_id,
       ms
     });
@@ -435,6 +510,10 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
   if (g.blocked) {
     const receipt_id = newReceiptId();
 
+    // NOTE: keep provider typed to known provider(s). This is just UI metadata.
+    const guardModel = g.score === 999 ? "guard:prompt-injection" : "guard:intent-score";
+    const active_model = classifyModel("ollama", guardModel);
+
     const receipt: any = withKind("chat", {
       schema: "zensquid.receipt.v1" as any,
       receipt_id,
@@ -449,10 +528,11 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       },
       decision: {
         tier: "guard",
-        provider: "local",
-        model: g.score === 999 ? "prompt-injection-guard" : "intent-score-guard",
+        provider: "ollama",
+        model: guardModel,
         escalated: false,
-        escalation_reason: null
+        escalation_reason: null,
+        active_model
       },
       guard_event: {
         blocked: true,
@@ -468,7 +548,8 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
     return reply.code(400).send({
       error: "Potential prompt injection detected",
       reason: g.reason ?? "guard:blocked",
-      receipt_id
+      receipt_id,
+      active_model
     });
   }
 
@@ -477,8 +558,25 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
   const { system, meta } = await buildChatSystemPrompt({
     input,
     selected_skill: selectedSkill,
-    now
+    now,
+    mode: body.mode ?? "auto",
+    force_tier: body.force_tier ?? null,
+    reason: body.reason ?? null
   });
+
+  // ✅ Squid Notes (Memory v2) injection block + receipt metadata
+  const squidNotes = await buildSquidNotesContext({
+    input,
+    selected_skill: selectedSkill,
+    now,
+    mode: body.mode ?? "auto",
+    force_tier: body.force_tier ?? null,
+    reason: body.reason ?? null
+  });
+
+  const systemWithSquidNotes = squidNotes?.text?.trim?.()
+    ? `${system}\n\n${squidNotes.text.trim()}`
+    : system;
 
   const normalized: ChatRequest = {
     input,
@@ -498,7 +596,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
   }
 
   // IMPORTANT: apply runtime override into cfg BEFORE tier selection
-  const effStrict = effectiveStrictLocal(cfg);
+  const effStrict = await effectiveStrictLocal(cfg);
   (cfg as any).budgets = (cfg as any).budgets ?? {};
   (cfg as any).budgets.strict_local_only = effStrict.effective;
 
@@ -506,6 +604,24 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
   const receipt_id = newReceiptId();
 
   const strictLocalOnly = effStrict.effective;
+
+  const decisionActiveModel = classifyModel(decision.tier.provider, decision.tier.model);
+
+  // Helper: store richer squid_notes metadata if available
+  const squid_notes_for_receipt =
+    squidNotes
+      ? {
+          // keep backwards compatible: array of {path, bytes?}
+          injected: squidNotes.injected ?? [],
+          total_tokens: squidNotes.total_tokens ?? 0,
+          budget_tokens: squidNotes.budget_tokens ?? 0,
+          // future-proof: if buildSquidNotesContext starts returning richer fields, we keep them too
+          // (harmless if undefined today)
+          max_items: (squidNotes as any).max_items ?? undefined,
+          dropped: (squidNotes as any).dropped ?? undefined,
+          injected_items: (squidNotes as any).injected_items ?? undefined
+        }
+      : null;
 
   if (strictLocalOnly && decision.tier.provider !== "ollama") {
     const receipt: any = withKind("chat", {
@@ -525,9 +641,11 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
         provider: decision.tier.provider,
         model: decision.tier.model,
         escalated: true,
-        escalation_reason: `blocked: strict_local_only enabled (source=${effStrict.source})`
+        escalation_reason: `blocked: strict_local_only enabled (source=${effStrict.source})`,
+        active_model: decisionActiveModel
       },
-      context: meta
+      context: meta,
+      squid_notes: squid_notes_for_receipt
     });
 
     await writeReceipt(zensquidRoot(), receipt as ReceiptV1);
@@ -537,6 +655,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       tier: decision.tier.name,
       provider: decision.tier.provider,
       model: decision.tier.model,
+      active_model: decisionActiveModel,
       receipt_id,
       context: meta
     });
@@ -563,9 +682,11 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
         provider: decision.tier.provider,
         model: decision.tier.model,
         escalated: true,
-        escalation_reason: "blocked: missing required reason for non-local escalation"
+        escalation_reason: "blocked: missing required reason for non-local escalation",
+        active_model: decisionActiveModel
       },
-      context: meta
+      context: meta,
+      squid_notes: squid_notes_for_receipt
     });
 
     await writeReceipt(zensquidRoot(), receipt as ReceiptV1);
@@ -575,13 +696,14 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       tier: decision.tier.name,
       provider: decision.tier.provider,
       model: decision.tier.model,
+      active_model: decisionActiveModel,
       receipt_id,
       context: meta
     });
   }
 
   const messages = [
-    { role: "system", content: system },
+    { role: "system", content: systemWithSquidNotes },
     { role: "user", content: normalized.input }
   ] as const;
 
@@ -628,9 +750,11 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
         provider: decision.tier.provider,
         model: decision.tier.model,
         escalated: decision.escalated,
-        escalation_reason: decision.escalation_reason
+        escalation_reason: decision.escalation_reason,
+        active_model: decisionActiveModel
       },
       context: meta,
+      squid_notes: squid_notes_for_receipt,
       usage,
       provider_response: out.raw
     });
@@ -642,6 +766,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       tier: decision.tier.name,
       provider: decision.tier.provider,
       model: decision.tier.model,
+      active_model: decisionActiveModel,
       receipt_id,
       escalated: decision.escalated,
       escalation_reason: decision.escalation_reason,
@@ -683,9 +808,11 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
           provider: decision.tier.provider,
           model: decision.tier.model,
           escalated: true,
-          escalation_reason: "blocked: missing DASHSCOPE_API_KEY"
+          escalation_reason: "blocked: missing DASHSCOPE_API_KEY",
+          active_model: decisionActiveModel
         },
-        context: meta
+        context: meta,
+        squid_notes: squid_notes_for_receipt
       });
 
       await writeReceipt(zensquidRoot(), receipt);
@@ -695,6 +822,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
         tier: decision.tier.name,
         provider: decision.tier.provider,
         model: decision.tier.model,
+        active_model: decisionActiveModel,
         receipt_id,
         context: meta
       });
@@ -724,9 +852,11 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
         provider: decision.tier.provider,
         model: decision.tier.model,
         escalated: decision.escalated,
-        escalation_reason: decision.escalation_reason
+        escalation_reason: decision.escalation_reason,
+        active_model: decisionActiveModel
       },
       context: meta,
+      squid_notes: squid_notes_for_receipt,
       provider_response: out.raw
     });
 
@@ -737,6 +867,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       tier: decision.tier.name,
       provider: decision.tier.provider,
       model: decision.tier.model,
+      active_model: decisionActiveModel,
       receipt_id,
       escalated: decision.escalated,
       escalation_reason: decision.escalation_reason,
@@ -777,9 +908,11 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
         provider: decision.tier.provider,
         model: decision.tier.model,
         escalated: decision.escalated,
-        escalation_reason: decision.escalation_reason
+        escalation_reason: decision.escalation_reason,
+        active_model: decisionActiveModel
       },
       context: meta,
+      squid_notes: squid_notes_for_receipt,
       provider_response: (out as any).raw
     });
 
@@ -790,6 +923,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       tier: decision.tier.name,
       provider: decision.tier.provider,
       model: decision.tier.model,
+      active_model: decisionActiveModel,
       receipt_id,
       escalated: decision.escalated,
       escalation_reason: decision.escalation_reason,
@@ -814,9 +948,11 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       provider: decision.tier.provider,
       model: decision.tier.model,
       escalated: decision.escalated,
-      escalation_reason: "provider not implemented yet"
+      escalation_reason: "provider not implemented yet",
+      active_model: decisionActiveModel
     },
-    context: meta
+    context: meta,
+    squid_notes: squid_notes_for_receipt
   });
 
   await writeReceipt(zensquidRoot(), receipt as ReceiptV1);
@@ -826,6 +962,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
     tier: decision.tier.name,
     provider: decision.tier.provider,
     model: decision.tier.model,
+    active_model: decisionActiveModel,
     receipt_id,
     context: meta
   });
@@ -847,12 +984,13 @@ await registerToolsRoutes(app, {
 await registerReceiptsRoutes(app, {
   zensquidRoot,
   receiptsDir,
-  preview
+  preview,
+  adminTokenOk
 });
 
 await registerDoctorRoutes(app, {
   receiptsDir,
-  effectiveStrictLocal,
+  effectiveStrictLocal: async (cfg: any) => effectiveStrictLocal(cfg),
   effectiveSafetyZone
 });
 
@@ -862,14 +1000,11 @@ await registerRuntimeRoutes(app, {
   saveState: runtimePaths.saveRuntimeState,
   getState: getRuntimeState,
   setState: setRuntimeState,
-  effectiveStrictLocal,
+  effectiveStrictLocal: async (cfg: any) => effectiveStrictLocal(cfg),
   effectiveSafetyZone,
   getEffectivePolicy,
   getOnboarding: async () => {
     try {
-      const { readFile } = await import("node:fs/promises");
-      const { default: path } = await import("node:path");
-
       const p = path.resolve(runtimePaths.dataDir(), "onboarding.json");
       const raw = await readFile(p, "utf-8");
       const j = JSON.parse(raw) as any;
@@ -975,19 +1110,45 @@ await registerOnboardingRoutes(app, {
 });
 
 // --- Bind / exposure guardrails -------------------------------------------
-const bindHostRaw = String(process.env.ZENSQUID_BIND_HOST ?? process.env.ZENSQUID_HOST ?? "127.0.0.1").trim();
+// Philosophy:
+// - Remote-accessible is REQUIRED (local-first models, not local-only service).
+// - BUT: do not accidentally expose to the public internet.
+// - Default to LAN/Tailscale-friendly binds, while keeping an explicit escape hatch.
 
-const allowRemoteBind =
-  String(process.env.ZENSQUID_ALLOW_REMOTE_BIND ?? "false").trim().toLowerCase() === "true";
+const bindHostRaw = String(process.env.ZENSQUID_BIND_HOST ?? process.env.ZENSQUID_HOST ?? "0.0.0.0").trim();
 
+const allowPublicBind = String(process.env.ZENSQUID_ALLOW_PUBLIC_BIND ?? "false").trim().toLowerCase() === "true";
+
+// "0.0.0.0" and "::" can be public depending on firewall/router. We allow them,
+// but require UFW (or equivalent) to restrict exposure. If the user *wants* to
+// intentionally expose to the public internet, they must set ALLOW_PUBLIC_BIND=true.
+const isWildcard = bindHostRaw === "0.0.0.0" || bindHostRaw === "::";
 const isLocalhost = bindHostRaw === "127.0.0.1" || bindHostRaw === "localhost" || bindHostRaw === "::1";
 
-if (!isLocalhost && !allowRemoteBind) {
-  throw new Error(
-    `Refusing to bind host="${bindHostRaw}". Set ZENSQUID_ALLOW_REMOTE_BIND=true if you REALLY intend to expose the API.`
+// If someone explicitly tries to bind to a non-private address, require explicit opt-in.
+function isPrivateishHost(h: string) {
+  // quick/cheap checks (good enough for guardrails)
+  return (
+    h.startsWith("192.168.") ||
+    h.startsWith("10.") ||
+    h.startsWith("172.16.") ||
+    h.startsWith("172.17.") ||
+    h.startsWith("172.18.") ||
+    h.startsWith("172.19.") ||
+    h.startsWith("172.2") || // covers 172.20-172.29
+    h.startsWith("172.30.") ||
+    h.startsWith("172.31.") ||
+    h.startsWith("100.") // tailscale CGNAT range begins 100.64.0.0/10; this is a loose check
   );
 }
 
-const host = isLocalhost ? "127.0.0.1" : bindHostRaw;
+// If they bind to a specific host that doesn't look private, require explicit public opt-in.
+if (!isLocalhost && !isWildcard && !isPrivateishHost(bindHostRaw) && !allowPublicBind) {
+  throw new Error(
+    `Refusing to bind host="${bindHostRaw}" (looks public). ` +
+      `Set ZENSQUID_ALLOW_PUBLIC_BIND=true if you REALLY intend internet exposure.`
+  );
+}
 
+const host = bindHostRaw;
 await app.listen({ port, host });

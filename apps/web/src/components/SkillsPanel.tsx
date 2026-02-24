@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { apiGet } from "@/app/api/zensquid";
+import { apiGet } from "@/api/zensquid";
 
 type SkillRow = { name: string };
 
