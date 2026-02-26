@@ -58,6 +58,8 @@ export default function ZsqHeader() {
   const [runtime, setRuntime] = useState<RuntimeView | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [pendingTool, setPendingTool] = useState<string | null>(null);
 
   const [chatInput, setChatInput] = useState("");
   const [chatMode, setChatMode] = useState<"auto" | "force_local" | "force_tier">("auto");
@@ -137,13 +139,15 @@ export default function ZsqHeader() {
     setChatMeta({});
 
     try {
-      const payload: any = { input, mode: chatMode };
+      const payload: any = { input, mode: chatMode, session_id: sessionId ?? undefined };
 
       if (chatMode === "force_tier") payload.force_tier = (forceTier || "").trim() || undefined;
       if ((reason || "").trim()) payload.reason = reason.trim();
 
       const r = await zpost<any>("/chat", payload);
       setChatOut(String(r?.output ?? ""));
+      setSessionId(r?.session_id ?? null);
+      setPendingTool(r?.pending_tool ?? null);
       setChatMeta({
         tier: r?.tier,
         provider: r?.provider,
@@ -291,6 +295,12 @@ export default function ZsqHeader() {
                 {chatMeta?.model && <span><b>model</b>={<span style={{ fontFamily: "monospace" }}>{chatMeta.model}</span>}</span>}
                 {chatMeta?.escalation_reason && <span><b>why</b>={chatMeta.escalation_reason}</span>}
               </div>
+
+              {pendingTool && (
+                <div style={{ marginTop: 6, fontSize: 12, color: "rgba(0,0,0,0.5)" }}>
+                  ⏳ Pending: <b>{pendingTool}</b> — type "yes" to run or "no" to cancel
+                </div>
+              )}
 
               <div style={{ marginTop: 10, whiteSpace: "pre-wrap" }}>{chatOut}</div>
             </div>

@@ -78,3 +78,4 @@ apps/web/tsconfig.tsbuildinfo
 # Playwright artifacts
 apps/web/test-results/
 apps/web/playwright-report/
+state/heartbeat/history.jsonl

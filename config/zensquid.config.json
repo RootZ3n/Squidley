@@ -13,10 +13,15 @@
     },
     {
       "name": "chat",
-      "provider": "modelstudio",
-      "model": "qwen-flash-us",
-      "role": "Tier 1: Chat Mode (fast + cheap)"
+      "provider": "openai",
+      "model": "gpt-5-mini",
+      "role": "Tier 1: Chat Mode (default cloud)"
     },
+    { "name": "chat_flash",
+      "provider": "modelstudio",
+      "model": "qwen-flash-us", 
+      "role": "Tier 1: Chat Mode (Flash compare)"
+    },   
     {
       "name": "plan",
       "provider": "modelstudio",
@@ -47,6 +52,10 @@
     "modelstudio": {
       "env_key": "DASHSCOPE_API_KEY",
       "base_url": "https://dashscope-us.aliyuncs.com/compatible-mode"
+    },
+    "openai": {
+      "env_key": "OPENAI_API_KEY",
+      "base_url": "https://api.openai.com/v1"
     }
   }
 }

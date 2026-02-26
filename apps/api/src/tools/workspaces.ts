@@ -4,10 +4,13 @@ import path from "node:path";
 export type WorkspaceName = "squidley";
 
 export function getWorkspaceRoot(workspace: WorkspaceName): string {
-  // You can expand this later (hearthui, gridlands, etc.)
-  // For now, keep it explicit and local-first.
+  // ✅ FIXED: No longer hardcoded to /media/zen/AI/squidley.
+  // Resolves from ZENSQUID_ROOT env var so any machine works.
+  // You can expand workspace names here later (hearthui, gridlands, etc.)
+  const root = process.env.ZENSQUID_ROOT ?? process.cwd();
+
   const map: Record<WorkspaceName, string> = {
-    squidley: "/media/zen/AI/squidley",
+    squidley: root,
   };
 
   return path.resolve(map[workspace]);

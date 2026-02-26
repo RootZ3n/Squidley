@@ -25,6 +25,23 @@ load_secrets() {
   fi
 }
 
+wait_http () {
+  local url="$1"
+  local name="${2:-service}"
+  local tries="${3:-80}"   # 80 * 0.25s = 20s max
+
+  for _i in $(seq 1 "$tries"); do
+    if curl -fsS --connect-timeout 1 --max-time 2 "$url" >/dev/null 2>&1; then
+      echo "✅ $name ready: $url"
+      return 0
+    fi
+    sleep 0.25
+  done
+
+  echo "❌ $name not ready after $tries tries: $url"
+  return 1
+}
+
 main() {
   log "== smoke start =="
   log "REPO_ROOT=$REPO_ROOT"
@@ -75,6 +92,27 @@ main() {
   "
 
   step "restart services" bash -lc "set -euo pipefail; cd \"$REPO_ROOT\" && \"$REPO_ROOT/scripts/squid\" restart"
+
+  step "wait for services" bash -lc "
+    set -euo pipefail
+    wait_http() {
+      local url=\"\$1\"
+      local name=\"\${2:-service}\"
+      local tries=\"\${3:-80}\"
+      for _i in \$(seq 1 \"\$tries\"); do
+        if curl -fsS --connect-timeout 1 --max-time 2 \"\$url\" >/dev/null 2>&1; then
+          echo \"✅ \$name ready: \$url\"
+          return 0
+        fi
+        sleep 0.25
+      done
+      echo \"❌ \$name not ready after \$tries tries: \$url\"
+      return 1
+    }
+
+    wait_http \"$API_URL/health\" \"API\"
+    wait_http \"$WEB_URL\" \"Web\"
+  "
 
   step "api health" bash -lc "set -euo pipefail; curl -fsS --connect-timeout 3 --max-time 10 \"$API_URL/health\""
   log ""

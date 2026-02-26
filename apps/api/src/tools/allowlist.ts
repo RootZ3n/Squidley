@@ -1,23 +1,29 @@
 // apps/api/src/tools/allowlist.ts
 //
-// Allowlisted tools only (spawned with NO shell).
-// runner.ts expects: argsPrefix, timeoutMs, maxOutputBytes.
+// Single source of truth for all allowlisted tools.
+// Every tool here is spawned with shell: false by runner.ts.
+// To add a new tool: add an entry here, handle it in runner.ts.
 
 export type AllowlistedTool = {
   id: string;
   title: string;
 
-  // Executable name/path (spawned without a shell)
+  // "__js__" = internal JS handler (no subprocess)
+  // "__admin__" = requires admin token (checked by runner before exec)
+  // anything else = executable name spawned directly
   cmd: string;
 
   // Static args that come BEFORE user args
   argsPrefix: string[];
 
-  // Optional working directory
+  // Optional working directory override
   cwd?: string;
 
-  // Optional environment variables (merged onto process.env in runner)
+  // Optional environment variables merged onto process.env
   env?: Record<string, string>;
+
+  // Whether admin token is required to run this tool
+  requiresAdmin?: boolean;
 
   // Safety limits
   timeoutMs: number;
@@ -26,96 +32,179 @@ export type AllowlistedTool = {
 
 export type ToolAllowlist = Record<string, AllowlistedTool>;
 
-const REPO_ROOT = "/media/zen/AI/squidley";
+// ✅ Resolved at runtime — works on any machine
+function getRepoRoot(): string {
+  return process.env.ZENSQUID_ROOT ?? process.cwd();
+}
 
-// Where we want Playwright to store downloaded browsers.
-// Uses systemd/env override if present; otherwise falls back to your proven repo path.
-const PLAYWRIGHT_BROWSERS_PATH =
-  process.env.PLAYWRIGHT_BROWSERS_PATH || `${REPO_ROOT}/.playwright-browsers`;
+function getPlaywrightBrowsersPath(): string {
+  return (
+    process.env.PLAYWRIGHT_BROWSERS_PATH ||
+    `${getRepoRoot()}/.playwright-browsers`
+  );
+}
 
-// Sensible defaults (tight by default, loosen per-tool as needed)
+function getSearxngUrl(): string {
+  const raw = process.env.ZENSQUID_SEARXNG_URL ?? process.env.SEARXNG_URL ?? "http://127.0.0.1:8080";
+  return String(raw).trim().replace(/\/+$/, "");
+}
+
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_OUTPUT_BYTES = 256 * 1024; // 256 KB
 
 export const TOOL_ALLOWLIST: ToolAllowlist = {
+
+  // ── Diagnostics ────────────────────────────────────────────────────────────
+
   "diag.sleep": {
     id: "diag.sleep",
-    title: "diagnostics: sleep (no shell)",
-    // Pure spawn-safe sleep via node (no bash, no sh)
-    cmd: "node",
-    argsPrefix: ["-e", "setTimeout(()=>process.exit(0), 1000)"],
-    cwd: REPO_ROOT,
+    title: "Diagnostics: sleep (no shell)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
     timeoutMs: 5_000,
-    maxOutputBytes: 16 * 1024
+    maxOutputBytes: 16 * 1024,
   },
+
+  // ── Git ────────────────────────────────────────────────────────────────────
 
   "git.status": {
     id: "git.status",
-    title: "git status",
+    title: "Git: repo status",
     cmd: "git",
     argsPrefix: ["status", "--porcelain=v1"],
-    cwd: REPO_ROOT,
+    get cwd() { return getRepoRoot(); },
     timeoutMs: DEFAULT_TIMEOUT_MS,
-    maxOutputBytes: DEFAULT_MAX_OUTPUT_BYTES
+    maxOutputBytes: DEFAULT_MAX_OUTPUT_BYTES,
   },
 
   "git.diff": {
     id: "git.diff",
-    title: "git diff",
+    title: "Git: diff",
     cmd: "git",
     argsPrefix: ["diff"],
-    cwd: REPO_ROOT,
+    get cwd() { return getRepoRoot(); },
     timeoutMs: DEFAULT_TIMEOUT_MS,
-    maxOutputBytes: DEFAULT_MAX_OUTPUT_BYTES
+    maxOutputBytes: DEFAULT_MAX_OUTPUT_BYTES,
   },
 
   "git.log": {
     id: "git.log",
-    title: "git log (last 20)",
+    title: "Git: log (last 20)",
     cmd: "git",
     argsPrefix: ["log", "-n", "20", "--oneline", "--decorate"],
-    cwd: REPO_ROOT,
+    get cwd() { return getRepoRoot(); },
     timeoutMs: DEFAULT_TIMEOUT_MS,
-    maxOutputBytes: DEFAULT_MAX_OUTPUT_BYTES
+    maxOutputBytes: DEFAULT_MAX_OUTPUT_BYTES,
   },
+
+  // ── Search ─────────────────────────────────────────────────────────────────
 
   "rg.search": {
     id: "rg.search",
-    title: "ripgrep search",
+    title: "Ripgrep: search codebase",
     cmd: "rg",
-    // runner will append user args like: [query, path]
-    argsPrefix: ["-n"],
-    cwd: REPO_ROOT,
+    argsPrefix: ["-n", "--no-heading", "--color", "never"],
+    get cwd() { return getRepoRoot(); },
     timeoutMs: DEFAULT_TIMEOUT_MS,
-    maxOutputBytes: DEFAULT_MAX_OUTPUT_BYTES
+    maxOutputBytes: DEFAULT_MAX_OUTPUT_BYTES,
   },
+
+  "web.search": {
+    id: "web.search",
+    title: "Web: search via SearXNG (local)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    timeoutMs: 20_000,
+    maxOutputBytes: 512 * 1024,
+  },
+
+  // ── Build + Test ───────────────────────────────────────────────────────────
 
   "web.build": {
     id: "web.build",
-    title: "pnpm web build",
+    title: "Build: web UI (Next.js)",
     cmd: "pnpm",
     argsPrefix: ["-C", "apps/web", "build"],
-    cwd: REPO_ROOT,
-    timeoutMs: 5 * 60_000, // builds can take longer
-    maxOutputBytes: 512 * 1024
+    get cwd() { return getRepoRoot(); },
+    timeoutMs: 5 * 60_000,
+    maxOutputBytes: 512 * 1024,
   },
 
   "web.pw": {
     id: "web.pw",
-    title: "Playwright tests (apps/web)",
+    title: "Test: Playwright (apps/web)",
     cmd: "pnpm",
     argsPrefix: ["-C", "apps/web", "exec", "playwright", "test"],
-    cwd: REPO_ROOT,
-    env: {
-      PLAYWRIGHT_BROWSERS_PATH
+    get cwd() { return getRepoRoot(); },
+    get env() {
+      return { PLAYWRIGHT_BROWSERS_PATH: getPlaywrightBrowsersPath() };
     },
     timeoutMs: 5 * 60_000,
-    maxOutputBytes: 512 * 1024
-  }
+    maxOutputBytes: 512 * 1024,
+  },
+
+  // ── Filesystem (admin-gated) ───────────────────────────────────────────────
+
+  "fs.read": {
+    id: "fs.read",
+    title: "File: read (admin)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: 10_000,
+    maxOutputBytes: 512 * 1024,
+  },
+
+  "fs.write": {
+    id: "fs.write",
+    title: "File: write (admin)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: 10_000,
+    maxOutputBytes: 64 * 1024,
+  },
+
+  // ── Process execution (admin-gated) ───────────────────────────────────────
+
+  "proc.exec": {
+    id: "proc.exec",
+    title: "Exec: run command (admin, no shell)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: 5 * 60_000,
+    maxOutputBytes: 512 * 1024,
+  },
+
+  // ── Systemd (admin-gated) ─────────────────────────────────────────────────
+
+  "systemctl.user": {
+    id: "systemctl.user",
+    title: "Systemd: user service control (admin)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: 30_000,
+    maxOutputBytes: DEFAULT_MAX_OUTPUT_BYTES,
+  },
 };
 
-export function listTools(): { id: string; title: string }[] {
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+export function listTools(includeAdmin = false): { id: string; title: string }[] {
   return Object.values(TOOL_ALLOWLIST)
+    .filter((t) => includeAdmin || !t.requiresAdmin)
     .map((t) => ({ id: t.id, title: t.title }))
     .sort((a, b) => a.id.localeCompare(b.id));
+}
+
+export function getSearxngBaseUrl(): string {
+  return getSearxngUrl();
 }

@@ -1,18 +1,26 @@
 // apps/api/src/tools/runner.ts
+//
+// Single hardened tool runner for all allowlisted tools.
+// All subprocess spawns use shell: false.
+// All tool executions write a receipt.
+// Admin-gated tools check the token before running.
+
 import { spawn } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { TOOL_ALLOWLIST } from "./allowlist.js";
+import { TOOL_ALLOWLIST, getSearxngBaseUrl } from "./allowlist.js";
 import { getWorkspaceRoot, type WorkspaceName } from "./workspaces.js";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 export type RunToolRequest = {
   workspace: WorkspaceName;
   tool_id: string;
-  // user args appended AFTER the allowlisted prefix
-  // (ex: rg.search args: ["TODO", "apps/web"])
-  args?: string[];
+  args?: Record<string, unknown> | string[];
+  // Admin token — required for requiresAdmin tools
+  admin_token?: string;
 };
 
 export type RunToolResult = {
@@ -36,7 +44,6 @@ type ToolRunnerErrorCode = "BAD_REQUEST" | "FORBIDDEN" | "INTERNAL";
 
 class ToolRunnerError extends Error {
   code: ToolRunnerErrorCode;
-  // optional: surfaced to HTTP layer so UI can link to receipt
   receipt_id?: string;
 
   constructor(code: ToolRunnerErrorCode, message: string, receipt_id?: string) {
@@ -46,8 +53,9 @@ class ToolRunnerError extends Error {
   }
 }
 
+// ── State dir + receipts ──────────────────────────────────────────────────────
+
 function stateDir(): string {
-  // keep this stable across machines
   return process.env.SQUIDLEY_STATE_DIR || path.join(os.homedir(), ".squidley");
 }
 
@@ -58,97 +66,226 @@ async function writeReceipt(payload: RunToolResult) {
   await fs.writeFile(fp, JSON.stringify(payload, null, 2), "utf8");
 }
 
+// ── Output clamping ───────────────────────────────────────────────────────────
+
 function clampOutput(buf: Buffer, maxBytes: number) {
   if (buf.byteLength <= maxBytes) return { text: buf.toString("utf8"), truncated: false };
   const sliced = buf.subarray(0, maxBytes);
   return { text: sliced.toString("utf8") + "\n…(truncated)…\n", truncated: true };
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+// ── Admin token check ─────────────────────────────────────────────────────────
+
+function checkAdminToken(provided: string | undefined): boolean {
+  const expected = (process.env.ZENSQUID_ADMIN_TOKEN ?? "").trim();
+  if (expected.length < 12) return false;
+  const got = String(provided ?? "").trim();
+  if (got.length !== expected.length) return false;
+  try {
+    return crypto.timingSafeEqual(Buffer.from(got), Buffer.from(expected));
+  } catch {
+    return false;
+  }
 }
 
-function parseSleepMs(args: string[], defaultMs = 250, maxMs = 60_000): number {
-  const raw = args?.[0];
-  const n = Number.parseInt(String(raw ?? ""), 10);
-  const ms = Number.isFinite(n) ? n : defaultMs;
-  if (ms < 0) return 0;
-  return Math.min(ms, maxMs);
+// ── Arg normalization ─────────────────────────────────────────────────────────
+
+function normalizeUserArgs(raw: unknown): string[] {
+  if (Array.isArray(raw)) return raw.filter(Boolean).map(String);
+  if (raw && typeof raw === "object") return [];
+  return [];
 }
 
-/**
- * Internal tools (no shell, no subprocess).
- * Contract: spec.cmd === "__js__"
- */
-async function runInternalTool(opts: {
-  tool_id: string;
-  specTimeoutMs: number;
-  maxOutputBytes: number;
-  userArgs: string[];
-}): Promise<{
-  ok: boolean;
-  exit_code: number | null;
-  signal: NodeJS.Signals | null;
-  stdout: string;
-  stderr: string;
-  truncated: { stdout: boolean; stderr: boolean };
-}> {
-  // Timeout wrapper
-  const timerPromise = new Promise<never>((_, reject) => {
-    setTimeout(() => {
-      reject(new ToolRunnerError("BAD_REQUEST", `Tool timed out after ${opts.specTimeoutMs}ms`));
-    }, opts.specTimeoutMs);
-  });
+function getArg(args: RunToolRequest["args"], key: string, fallback = ""): string {
+  if (!args || Array.isArray(args)) return fallback;
+  return String((args as Record<string, unknown>)[key] ?? fallback).trim();
+}
 
-  const workPromise = (async () => {
-    if (opts.tool_id === "diag.sleep") {
-      const ms = parseSleepMs(opts.userArgs, 250, 60_000);
-      await sleep(ms);
-      return {
-        ok: true,
-        exit_code: 0,
-        signal: null as NodeJS.Signals | null,
-        stdout: `slept ${ms}ms\n`,
-        stderr: "",
-        truncated: { stdout: false, stderr: false }
-      };
+function getArgNumber(args: RunToolRequest["args"], key: string, fallback: number): number {
+  if (!args || Array.isArray(args)) return fallback;
+  const v = Number((args as Record<string, unknown>)[key] ?? fallback);
+  return Number.isFinite(v) ? v : fallback;
+}
+
+// ── Path safety ───────────────────────────────────────────────────────────────
+
+function normalizeRelPath(rel: string): string {
+  const s = String(rel ?? "").replace(/\\/g, "/").trim();
+  if (!s) return "";
+  if (s.startsWith("/")) return "";
+  if (s.includes("..")) return "";
+  return s;
+}
+
+// ── Internal JS tool handlers ─────────────────────────────────────────────────
+
+async function handleJsTool(
+  tool_id: string,
+  args: RunToolRequest["args"],
+  repoRoot: string,
+  maxOutputBytes: number,
+  timeoutMs: number
+): Promise<{ ok: boolean; stdout: string; stderr: string }> {
+
+  // ── diag.sleep ──────────────────────────────────────────────────────────────
+  if (tool_id === "diag.sleep") {
+    const ms = Math.min(60_000, Math.max(0, getArgNumber(args, "ms", 250)));
+    await new Promise((r) => setTimeout(r, ms));
+    return { ok: true, stdout: `slept ${ms}ms\n`, stderr: "" };
+  }
+
+  // ── web.search ──────────────────────────────────────────────────────────────
+  if (tool_id === "web.search") {
+    const query = getArg(args, "query") || getArg(args, "q");
+    if (!query) return { ok: false, stdout: "", stderr: "missing_query" };
+
+    const base = getSearxngBaseUrl();
+    const u = new URL(base);
+    u.pathname = "/search";
+    u.searchParams.set("q", query);
+    u.searchParams.set("format", "json");
+
+    const categories = getArg(args, "categories");
+    const language = getArg(args, "language");
+    if (categories) u.searchParams.set("categories", categories);
+    if (language) u.searchParams.set("language", language);
+
+    try {
+      const res = await fetch(u.toString(), {
+        headers: { accept: "application/json", "user-agent": "zensquid/runner (web.search)" },
+        signal: AbortSignal.timeout(timeoutMs - 1000),
+      });
+      const text = await res.text();
+      if (!res.ok) return { ok: false, stdout: "", stderr: `HTTP ${res.status}: ${text.slice(0, 400)}` };
+
+      const json = JSON.parse(text);
+      const results = Array.isArray(json?.results) ? json.results : [];
+      // Return human-readable summary, not raw JSON
+      const lines = results.slice(0, 10).map((r: any, i: number) =>
+        `${i + 1}. ${r.title ?? "?"}\n   ${r.url ?? ""}\n   ${String(r.content ?? "").slice(0, 120)}`
+      );
+      const out = lines.length > 0
+        ? `Found ${results.length} results for "${query}":\n\n${lines.join("\n\n")}\n`
+        : `No results found for "${query}"\n`;
+      return { ok: true, stdout: out, stderr: "" };
+    } catch (e: any) {
+      return { ok: false, stdout: "", stderr: String(e?.message ?? "fetch failed") };
     }
+  }
 
-    throw new ToolRunnerError("FORBIDDEN", `Tool not allowed: ${opts.tool_id}`);
-  })();
+  // ── fs.read ─────────────────────────────────────────────────────────────────
+  if (tool_id === "fs.read") {
+    const rel = normalizeRelPath(getArg(args, "path") || getArg(args, "rel"));
+    if (!rel) return { ok: false, stdout: "", stderr: "invalid_path" };
+    const abs = path.resolve(repoRoot, rel);
+    try {
+      const st = await fs.stat(abs);
+      if (!st.isFile()) return { ok: false, stdout: "", stderr: "not_a_file" };
+      const raw = await fs.readFile(abs, "utf-8");
+      const clamped = clampOutput(Buffer.from(raw, "utf-8"), maxOutputBytes);
+      return { ok: true, stdout: clamped.text, stderr: "" };
+    } catch (e: any) {
+      return { ok: false, stdout: "", stderr: String(e?.message ?? "read failed") };
+    }
+  }
 
-  const r = await Promise.race([workPromise, timerPromise]);
+  // ── fs.write ────────────────────────────────────────────────────────────────
+  if (tool_id === "fs.write") {
+    const rel = normalizeRelPath(getArg(args, "path") || getArg(args, "rel"));
+    const text = getArg(args, "text") || getArg(args, "content");
+    if (!rel) return { ok: false, stdout: "", stderr: "invalid_path" };
+    const abs = path.resolve(repoRoot, rel);
+    // Safety: must be inside repo root
+    if (!abs.startsWith(repoRoot + path.sep) && abs !== repoRoot) {
+      return { ok: false, stdout: "", stderr: "path_outside_root" };
+    }
+    try {
+      await fs.mkdir(path.dirname(abs), { recursive: true });
+      await fs.writeFile(abs, text, "utf-8");
+      return { ok: true, stdout: `wrote ${Buffer.byteLength(text, "utf-8")} bytes to ${rel}\n`, stderr: "" };
+    } catch (e: any) {
+      return { ok: false, stdout: "", stderr: String(e?.message ?? "write failed") };
+    }
+  }
 
-  // Clamp output (mostly cosmetic for internal tools)
-  const out = clampOutput(Buffer.from(r.stdout ?? "", "utf8"), opts.maxOutputBytes);
-  const err = clampOutput(Buffer.from(r.stderr ?? "", "utf8"), opts.maxOutputBytes);
+  // ── proc.exec ───────────────────────────────────────────────────────────────
+  if (tool_id === "proc.exec") {
+    const cmd = getArg(args, "cmd");
+    const rawArgv = (args && !Array.isArray(args)) ? (args as any).argv : [];
+    const argv = Array.isArray(rawArgv) ? rawArgv.map(String) : [];
+    if (!cmd) return { ok: false, stdout: "", stderr: "missing_cmd" };
 
-  return {
-    ok: r.ok,
-    exit_code: r.exit_code,
-    signal: r.signal,
-    stdout: out.text,
-    stderr: err.text,
-    truncated: { stdout: out.truncated, stderr: err.truncated }
-  };
+    return new Promise((resolve) => {
+      const child = spawn(cmd, argv, {
+        cwd: repoRoot,
+        shell: false,
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+
+      let stdout = "";
+      let stderr = "";
+      child.stdout.on("data", (d) => (stdout += d.toString("utf-8")));
+      child.stderr.on("data", (d) => (stderr += d.toString("utf-8")));
+
+      const timer = setTimeout(() => child.kill("SIGKILL"), timeoutMs);
+      child.on("close", (code) => {
+        clearTimeout(timer);
+        resolve({ ok: code === 0, stdout, stderr });
+      });
+    });
+  }
+
+  // ── systemctl.user ──────────────────────────────────────────────────────────
+  if (tool_id === "systemctl.user") {
+    const action = getArg(args, "action");
+    const unit = getArg(args, "unit");
+    const allowed = new Set(["status", "restart", "stop", "start"]);
+    if (!allowed.has(action)) return { ok: false, stdout: "", stderr: `invalid_action: ${action}` };
+    if (!unit) return { ok: false, stdout: "", stderr: "missing_unit" };
+
+    return new Promise((resolve) => {
+      const child = spawn("systemctl", ["--user", action, unit], {
+        cwd: repoRoot,
+        shell: false,
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+
+      let stdout = "";
+      let stderr = "";
+      child.stdout.on("data", (d) => (stdout += d.toString("utf-8")));
+      child.stderr.on("data", (d) => (stderr += d.toString("utf-8")));
+
+      const timer = setTimeout(() => child.kill("SIGKILL"), timeoutMs);
+      child.on("close", (code) => {
+        clearTimeout(timer);
+        resolve({ ok: code === 0, stdout, stderr });
+      });
+    });
+  }
+
+  return { ok: false, stdout: "", stderr: `js_handler_not_implemented: ${tool_id}` };
 }
+
+// ── Main runner ───────────────────────────────────────────────────────────────
 
 export async function runTool(req: RunToolRequest): Promise<RunToolResult> {
   const spec = TOOL_ALLOWLIST[req.tool_id];
   if (!spec) {
-    // no receipt_id exists yet
-    throw new ToolRunnerError("FORBIDDEN", `Tool not allowed: ${req.tool_id}`);
+    throw new ToolRunnerError("FORBIDDEN", `Tool not in allowlist: ${req.tool_id}`);
+  }
+
+  // Admin gate
+  if (spec.requiresAdmin && !checkAdminToken(req.admin_token)) {
+    throw new ToolRunnerError("FORBIDDEN", `Tool requires admin token: ${req.tool_id}`);
   }
 
   const workspaceRoot = getWorkspaceRoot(req.workspace);
-  const cwd = workspaceRoot;
+  const repoRoot = spec.cwd ?? workspaceRoot;
 
-  // harden: never allow args that try to smuggle shell operators; we don't use a shell,
-  // but this also prevents weird accidental garbage.
-  const userArgs = (req.args ?? []).filter(Boolean).map(String);
+  // Shell operator filter for array-style args
+  const userArgs = normalizeUserArgs(req.args);
   for (const a of userArgs) {
     if (/[;&|`$<>]/.test(a)) {
-      // no receipt_id exists yet
       throw new ToolRunnerError("BAD_REQUEST", `Disallowed characters in args: "${a}"`);
     }
   }
@@ -159,92 +296,84 @@ export async function runTool(req: RunToolRequest): Promise<RunToolResult> {
 
   const failWithReceipt = async (code: ToolRunnerErrorCode, message: string) => {
     const finished = Date.now();
-    const finished_at = new Date(finished).toISOString();
-
     const result: RunToolResult = {
       receipt_id,
       ok: false,
       tool_id: req.tool_id,
       workspace: req.workspace,
-      cwd,
+      cwd: repoRoot,
       command: { cmd: spec.cmd, args: [...spec.argsPrefix, ...userArgs] },
       started_at,
-      finished_at,
+      finished_at: new Date(finished).toISOString(),
       duration_ms: finished - started,
       exit_code: null,
       signal: null,
       stdout: "",
       stderr: message,
-      truncated: { stdout: false, stderr: false }
+      truncated: { stdout: false, stderr: false },
     };
-
     await writeReceipt(result);
-
-    // throw error WITH receipt_id attached
     throw new ToolRunnerError(code, message, receipt_id);
   };
 
-  // Internal tool path (no subprocess)
+  // ── JS internal tool path ────────────────────────────────────────────────────
   if (spec.cmd === "__js__") {
     try {
-      const r = await runInternalTool({
-        tool_id: req.tool_id,
-        specTimeoutMs: spec.timeoutMs,
-        maxOutputBytes: spec.maxOutputBytes,
-        userArgs
-      });
+      const r = await Promise.race([
+        handleJsTool(req.tool_id, req.args, repoRoot, spec.maxOutputBytes, spec.timeoutMs),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new ToolRunnerError("BAD_REQUEST", `Tool timed out after ${spec.timeoutMs}ms`)), spec.timeoutMs)
+        ),
+      ]);
 
       const finished = Date.now();
-      const finished_at = new Date(finished).toISOString();
+      const outClamped = clampOutput(Buffer.from(r.stdout ?? "", "utf-8"), spec.maxOutputBytes);
+      const errClamped = clampOutput(Buffer.from(r.stderr ?? "", "utf-8"), spec.maxOutputBytes);
 
       const result: RunToolResult = {
         receipt_id,
         ok: r.ok,
         tool_id: req.tool_id,
         workspace: req.workspace,
-        cwd,
-        command: { cmd: spec.cmd, args: [...spec.argsPrefix, ...userArgs] },
+        cwd: repoRoot,
+        command: { cmd: spec.cmd, args: [] },
         started_at,
-        finished_at,
+        finished_at: new Date(finished).toISOString(),
         duration_ms: finished - started,
-        exit_code: r.exit_code,
-        signal: r.signal,
-        stdout: r.stdout,
-        stderr: r.stderr,
-        truncated: r.truncated
+        exit_code: r.ok ? 0 : 1,
+        signal: null,
+        stdout: outClamped.text,
+        stderr: errClamped.text,
+        truncated: { stdout: outClamped.truncated, stderr: errClamped.truncated },
       };
 
       await writeReceipt(result);
 
       if (!r.ok) {
-        return await failWithReceipt("INTERNAL", r.stderr || "Internal tool failed");
+        throw new ToolRunnerError("INTERNAL", r.stderr || "Internal tool failed", receipt_id);
       }
 
       return result;
     } catch (e: any) {
-      const msg = String(e?.message ?? e ?? "Internal tool failed");
-      const code: ToolRunnerErrorCode = (e?.code as ToolRunnerErrorCode) || "INTERNAL";
-      return await failWithReceipt(code, msg);
+      if (e instanceof ToolRunnerError) throw e;
+      return await failWithReceipt("INTERNAL", String(e?.message ?? e ?? "JS tool failed"));
     }
   }
 
-  // Subprocess tool path (spawn)
+  // ── Subprocess tool path ──────────────────────────────────────────────────────
   const fullArgs = [...spec.argsPrefix, ...userArgs];
+  const env = { ...process.env, ...(spec.env ?? {}) };
 
   let stdoutChunks: Buffer[] = [];
   let stderrChunks: Buffer[] = [];
 
   const child = spawn(spec.cmd, fullArgs, {
-    cwd,
+    cwd: repoRoot,
     shell: false,
-    env: {
-      ...process.env,
-      NODE_OPTIONS: (process.env.NODE_OPTIONS || "") + " --dns-result-order=ipv4first"
-    }
+    env,
   });
 
   let killedByTimeout = false;
-
   const timer = setTimeout(() => {
     killedByTimeout = true;
     child.kill("SIGKILL");
@@ -260,14 +389,8 @@ export async function runTool(req: RunToolRequest): Promise<RunToolResult> {
   clearTimeout(timer);
 
   const finished = Date.now();
-  const finished_at = new Date(finished).toISOString();
-
-  const stdoutBuf = Buffer.concat(stdoutChunks);
-  const stderrBuf = Buffer.concat(stderrChunks);
-
-  const out = clampOutput(stdoutBuf, spec.maxOutputBytes);
-  const err = clampOutput(stderrBuf, spec.maxOutputBytes);
-
+  const out = clampOutput(Buffer.concat(stdoutChunks), spec.maxOutputBytes);
+  const err = clampOutput(Buffer.concat(stderrChunks), spec.maxOutputBytes);
   const ok = !killedByTimeout && exit.code === 0;
 
   const result: RunToolResult = {
@@ -275,16 +398,16 @@ export async function runTool(req: RunToolRequest): Promise<RunToolResult> {
     ok,
     tool_id: req.tool_id,
     workspace: req.workspace,
-    cwd,
+    cwd: repoRoot,
     command: { cmd: spec.cmd, args: fullArgs },
     started_at,
-    finished_at,
+    finished_at: new Date(finished).toISOString(),
     duration_ms: finished - started,
     exit_code: exit.code,
     signal: exit.signal,
     stdout: out.text,
     stderr: err.text,
-    truncated: { stdout: out.truncated, stderr: err.truncated }
+    truncated: { stdout: out.truncated, stderr: err.truncated },
   };
 
   await writeReceipt(result);

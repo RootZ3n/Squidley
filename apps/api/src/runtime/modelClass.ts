@@ -29,6 +29,7 @@ const MODEL_REGISTRY: Record<string, { param_b?: number; model_class?: ModelClas
   "llama3.2:3b": { param_b: 3 },
 
   // Cloud-ish naming (force XL)
+  "gpt-5-mini": { model_class: "XL" },
   "qwen-plus-us": { model_class: "XL" },
   "qwen-flash-us": { model_class: "XL" },
   "qwen-plus-2025-12-01-us": { model_class: "XL" }

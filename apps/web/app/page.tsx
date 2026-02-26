@@ -190,6 +190,7 @@ export default function Page() {
 
   const [chatInput, setChatInput] = useState("");
   const [chatBusy, setChatBusy] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   const [messages, setMessages] = useState<Msg[]>([
     {
@@ -366,7 +367,8 @@ export default function Page() {
         selected_skill: selectedSkillForApi,
         mode,
         force_tier,
-        reason
+        reason,
+        session_id: sessionId ?? undefined
       };
 
       const res = await fetch(`${ZENSQUID_API}/chat`, {
@@ -381,6 +383,7 @@ export default function Page() {
         json?.output ?? json?.content ?? json?.error ?? (res.ok ? JSON.stringify(json, null, 2) : `HTTP ${res.status}`);
 
       setMessages((m) => [...m, { role: "assistant", content: String(out ?? "") }]);
+      if (json?.session_id) setSessionId(json.session_id);
 
       await refreshFooter();
       await refreshStatus();
