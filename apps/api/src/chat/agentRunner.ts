@@ -207,6 +207,26 @@ export async function runAgent(args: {
     }
 
     try {
+      // fs.read and fs.write use rawArgs format
+      const usesRawArgs = step.tool === "fs.read" || step.tool === "fs.write";
+      const payload = usesRawArgs
+        ? {
+            workspace: "squidley",
+            tool_id: step.tool,
+            rawArgs: step.args ?? {},
+          }
+        : {
+            workspace: "squidley",
+            tool_id: step.tool,
+            args: (() => {
+              if (!step.args) return [];
+              if (step.tool === "rg.search") {
+                return [String(step.args.query ?? "TODO"), String(step.args.path ?? ".")];
+              }
+              return Object.values(step.args).map(String);
+            })(),
+          };
+
       const res = await app.inject({
         method: "POST",
         url: "/tools/run",
@@ -214,18 +234,7 @@ export async function runAgent(args: {
           "content-type": "application/json",
           "x-zensquid-admin-token": adminToken,
         },
-        payload: {
-          workspace: "squidley",
-          tool_id: step.tool,
-          args: (() => {
-            if (!step.args) return [];
-            // rg.search needs [query, path]
-            if (step.tool === "rg.search") {
-              return [String(step.args.query ?? "TODO"), String(step.args.path ?? ".")];
-            }
-            return Object.values(step.args).map(String);
-          })(),
-        },
+        payload,
       });
 
       const json =
@@ -234,7 +243,7 @@ export async function runAgent(args: {
           : JSON.parse(res.payload);
 
       const ok = Boolean(json?.ok);
-      const stdout = String(json?.stdout ?? json?.output ?? "");
+      const stdout = String(json?.stdout ?? json?.output ?? json?.content ?? "");
       results.push({ tool: step.tool, ok, stdout: stdout.slice(0, 2000) });
 
       if (!ok) break; // stop on fail
