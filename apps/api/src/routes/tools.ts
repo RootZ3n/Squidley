@@ -1,26 +1,32 @@
 // apps/api/src/routes/tools.ts
 //
 // Fastify plugin for all tool execution routes.
-// This replaces the old parallel tool system.
 // All execution goes through the consolidated runner.ts.
 
 import type { FastifyInstance, FastifyPluginAsync } from "fastify";
+import crypto from "node:crypto";
 import { runTool } from "../tools/runner.js";
 import { listTools } from "../tools/allowlist.js";
 
+function adminOk(req: any): boolean {
+  const expected = (process.env.ZENSQUID_ADMIN_TOKEN ?? "").trim();
+  if (expected.length < 12) return false;
+
+  const got = String((req.headers as any)?.["x-zensquid-admin-token"] ?? "").trim();
+  if (got.length !== expected.length) return false;
+
+  try {
+    return crypto.timingSafeEqual(Buffer.from(got), Buffer.from(expected));
+  } catch {
+    return false;
+  }
+}
+
 export const toolsRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
-
-  // ── Tool catalog ─────────────────────────────────────────────────────────────
-
   app.get("/tools/list", async (req) => {
-    // Admin token = show all tools including admin-gated ones
-    const expected = (process.env.ZENSQUID_ADMIN_TOKEN ?? "").trim();
-    const got = String((req.headers as any)["x-zensquid-admin-token"] ?? "").trim();
-    const isAdmin = expected.length >= 12 && got === expected;
+    const isAdmin = adminOk(req);
     return { ok: true, tools: listTools(isAdmin) };
   });
-
-  // ── Tool execution ────────────────────────────────────────────────────────────
 
   app.post("/tools/run", async (req, reply) => {
     const body = (req.body ?? {}) as any;
@@ -28,7 +34,6 @@ export const toolsRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     const workspace = String(body?.workspace ?? "squidley").trim() as any;
     const args = body?.args ?? {};
 
-    // Forward admin token from request headers into runner
     const admin_token = String((req.headers as any)["x-zensquid-admin-token"] ?? "").trim() || undefined;
 
     if (!tool_id) {
@@ -47,8 +52,6 @@ export const toolsRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
       });
     }
   });
-
-  // ── Filesystem routes (admin-gated via runner) ────────────────────────────────
 
   app.post("/tools/fs/read", async (req, reply) => {
     const body = (req.body ?? {}) as any;
@@ -86,8 +89,6 @@ export const toolsRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     }
   });
 
-  // ── Exec route (admin-gated via runner) ───────────────────────────────────────
-
   app.post("/tools/exec", async (req, reply) => {
     const body = (req.body ?? {}) as any;
     const admin_token = String((req.headers as any)["x-zensquid-admin-token"] ?? "").trim() || undefined;
@@ -105,8 +106,6 @@ export const toolsRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
       return reply.code(code).send({ ok: false, error: String(e?.message ?? "exec failed") });
     }
   });
-
-  // ── Systemd route (admin-gated via runner) ────────────────────────────────────
 
   app.post("/tools/systemctl/user", async (req, reply) => {
     const body = (req.body ?? {}) as any;

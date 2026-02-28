@@ -17,6 +17,7 @@ import {
 import { extractToolProposal, isApproval, isDenial } from "./chat/toolDetector.js";
 import { storePending, getPending, clearPending, hasPending } from "./chat/pendingTools.js";
 import { runTool } from "./tools/runner.js";
+import { writeAnalysisThread } from "./chat/memoryWriter.js";
 
 import {
   loadConfig,
@@ -508,6 +509,14 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
             finalArgs = parts; // empty = unstaged diff, which is useful default
           } else if (toolId === "git.log") {
             finalArgs = rawArgs.count ? ["-n", rawArgs.count] : [];
+          } else if (toolId === "fs.write") {
+            // args: { path: "skills/foo/skill.md", content: "..." }
+            const p = rawArgs.path ?? "";
+            const content = rawArgs.content ?? "";
+            finalArgs = [p, content];
+          } else if (toolId === "fs.read") {
+            // args: { path: "skills/foo/skill.md" }
+            finalArgs = [rawArgs.path ?? ""];
           } else {
             finalArgs = Object.values(rawArgs).filter(Boolean) as string[];
           }
@@ -553,12 +562,45 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
           model: (chooseTier(cfg2, { input: toolContext, mode: "auto" })).tier.model,
           messages: analysisMessages,
         });
+
+        // ✅ Auto-write thread summary from analysis — best effort, never blocks response
+        void writeAnalysisThread({
+          toolId: pending.proposal.tool_id,
+          analysisText: analysisOut.output,
+          rawToolOutput: toolOutput,
+        });
+
+        // ✅ Check if analysis response contains a new proposal (e.g. skill write offer)
+        const analysisProposal = extractToolProposal(analysisOut.output);
+        let analysisPendingTool: string | null = null;
+        if (analysisProposal) {
+          // For fs.write proposals, inject the real analysis content as the skill body
+          if (analysisProposal.tool_id === "fs.write" && analysisProposal.args.path) {
+            analysisProposal.args.content = [
+              `# Skill: ${String(analysisProposal.args.path).split("/").slice(-2, -1)[0] ?? "git-skill"}`,
+              "",
+              "## Purpose",
+              `Captured from ${pending.proposal.tool_id} analysis on ${new Date().toISOString().slice(0, 10)}.`,
+              "",
+              "## Analysis",
+              analysisOut.output.replace(/#{1,3}\s*/g, "").replace(/\*{1,2}/g, "").trim(),
+              "",
+              "## Source",
+              `- tool: ${pending.proposal.tool_id}`,
+              `- generated: ${new Date().toISOString()}`,
+            ].join("\n");
+          }
+          await storePending(session_id, analysisProposal, analysisOut.output);
+          analysisPendingTool = analysisProposal.tool_id;
+        }
+
         return reply.send({
           output: analysisOut.output,
           session_id,
           tool_executed: pending.proposal.tool_id,
           tool_ok: toolOk,
           raw_tool_output: toolOutput,
+          pending_tool: analysisPendingTool,
         });
       }
 

@@ -707,6 +707,17 @@ function buildToolCatalogBlock(args: { available_tools: string[]; tools?: ToolLi
   lines.push("");
   lines.push("Always end git analysis with 1-3 concrete next steps, ranked by priority.");
   lines.push("Be direct. Skip the preamble. Jeff knows what git is.");
+  lines.push("");
+  lines.push("# SKILL BUILDER");
+  lines.push("After any git.log or git.diff analysis, you MUST end your response with a skill offer.");
+  lines.push("Use this exact format: \"I can write a skill called <name> that captures <what>. Want me to save it?\"");
+  lines.push("Pick a short kebab-case name (e.g. git-workflow, commit-patterns, tool-execution-loop).");
+  lines.push("REQUIRED: Every git analysis ends with exactly one skill offer sentence. No exceptions.");
+  lines.push("A skill is saved to skills/<name>/skill.md and loadable in future sessions.");
+  lines.push("BAD: Ending a git analysis without offering to write a skill.");
+  lines.push("BAD: Writing a skill without asking first.");
+  lines.push("RULE: One sentence. One yes/no. Stop and wait for answer.");
+  lines.push("RULE: When approved, use fs.write to write the skill to skills/<name>/skill.md.");
   return lines.join("\n").trim();
 }
 

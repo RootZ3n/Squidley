@@ -65,9 +65,18 @@ const PROPOSAL_INDICATORS = [
   /want me to (execute|use|try)/i,
   /do you want me to/i,
   /i['']d like to run/i,
+  /want me to (write|save|create)/i,
+  /i can (write|save|create) a skill/i,
+  /want me to save (this|it)/i,
 ];
 
 function extractToolId(text: string): string | null {
+  // Implicit mapping: skill write proposals map to fs.write
+  if (/i can (write|save|create) a skill/i.test(text) ||
+      /want me to (write|save) (a |this )?skill/i.test(text)) {
+    return "fs.write";
+  }
+
   // Look for exact tool IDs in the text
   for (const id of ALL_TOOL_IDS) {
     // Match the tool id as a standalone word/token
@@ -126,6 +135,17 @@ function extractArgs(text: string, tool_id: string): Record<string, string> {
     const fileMatch = text.match(/(?:diff|changes?|in)\s+(?:to\s+|of\s+)?([a-zA-Z0-9_\-./]+\.[a-zA-Z]{1,6})\b/i);
     if (fileMatch?.[1] && !fileMatch[1].includes("git")) {
       args.file = fileMatch[1];
+    }
+  }
+
+  // fs.write — extract path and content for skill writes
+  if (tool_id === "fs.write") {
+    const nameMatch = text.match(/skill\s+(?:for|called|named)\s+["""']?([a-zA-Z0-9\s\-_]{2,40})["""']?/i);
+    if (nameMatch?.[1]) {
+      const skillId = nameMatch[1].trim().toLowerCase().replace(/\s+/g, "-");
+      args.path = `skills/${skillId}/skill.md`;
+      // Content will be generated after approval — placeholder for now
+      args.content = `# Skill: ${nameMatch[1].trim()}\n\n## Purpose\nAuto-generated skill.\n`;
     }
   }
 
