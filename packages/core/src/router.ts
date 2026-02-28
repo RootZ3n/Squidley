@@ -38,11 +38,16 @@ function localBaselineTier(tiers: TierConfig[]): TierConfig {
 
 /**
  * Primary tier:
- * - Prefer tier named "mini"
- * - Otherwise first tier
+ * - Prefer tier named "chat", then "mini"
+ * - Otherwise first non-local tier, then tiers[0]
  */
 function primaryTier(tiers: TierConfig[]): TierConfig {
-  return pickByName(tiers, "mini") ?? tiers[0];
+  return (
+    pickByName(tiers, "chat") ??
+    pickByName(tiers, "mini") ??
+    tiers.find((t) => !providerIsLocal(t.provider)) ??
+    tiers[0]
+  );
 }
 
 export function chooseTier(cfg: ZenSquidConfig, req: ChatRequest): TierDecision {

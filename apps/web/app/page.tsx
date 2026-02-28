@@ -192,6 +192,7 @@ export default function Page() {
   const [chatBusy, setChatBusy] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [pendingPlanId, setPendingPlanId] = useState<string | null>(null);
+  const [pendingAgentName, setPendingAgentName] = useState<string | null>(null);
 
   const [messages, setMessages] = useState<Msg[]>([
     {
@@ -370,7 +371,8 @@ export default function Page() {
         force_tier,
         reason,
         session_id: sessionId ?? undefined,
-        pending_plan: pendingPlanId ?? undefined
+        pending_plan: pendingPlanId ?? undefined,
+        pending_agent: pendingAgentName ?? undefined
       };
 
       const res = await fetch(`${ZENSQUID_API}/chat`, {
@@ -387,6 +389,7 @@ export default function Page() {
       setMessages((m) => [...m, { role: "assistant", content: String(out ?? "") }]);
       if (json?.session_id) setSessionId(json.session_id);
       if (json?.pending_plan !== undefined) setPendingPlanId(json.pending_plan);
+      if (json?.pending_agent !== undefined) setPendingAgentName(json.pending_agent);
 
       await refreshFooter();
       await refreshStatus();

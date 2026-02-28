@@ -17,6 +17,9 @@ import {
 import { extractToolProposal, isApproval, isDenial, isPlanProposal, extractPlanGoal } from "./chat/toolDetector.js";
 import { storePending, getPending, clearPending, hasPending } from "./chat/pendingTools.js";
 import { storePendingPlan, getPendingPlan, clearPendingPlan, hasPendingPlan } from "./chat/pendingPlans.js";
+import { storePendingAgent, getPendingAgent, clearPendingAgent, hasPendingAgent } from "./chat/pendingAgents.js";
+import { runAgent } from "./chat/agentRunner.js";
+import { extractAgentProposal, isAgentProposal } from "./chat/toolDetector.js";
 import { runTool } from "./tools/runner.js";
 import { writeAnalysisThread } from "./chat/memoryWriter.js";
 
@@ -470,6 +473,63 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
 
   if (!input) return reply.code(400).send({ error: "Missing input" });
 
+  // ── Agent approval loop ──────────────────────────────────────────────────────
+  if (session_id && hasPendingAgent(session_id)) {
+    const pendingAgent = getPendingAgent(session_id)!;
+
+    if (isDenial(input)) {
+      clearPendingAgent(session_id);
+      return reply.send({
+        output: "Got it — agent run cancelled. What would you like to do instead?",
+        session_id,
+      });
+    }
+
+    if (isApproval(input)) {
+      clearPendingAgent(session_id);
+      const adminToken = String((req.headers as any)["x-zensquid-admin-token"] ?? "").trim();
+      try {
+        const result = await runAgent({
+          agentName: pendingAgent.agent_name,
+          focus: pendingAgent.focus,
+          app,
+          adminToken,
+        });
+
+        // Read the thread it wrote and format as readable output
+        const lines: string[] = [];
+        lines.push(`🤖 Agent: ${result.agent}`);
+        lines.push(`${result.pass}/${result.steps_ran} steps passed${result.fail > 0 ? ` (${result.fail} failed)` : ""}`);
+        lines.push("");
+        if (result.summary) {
+          // Show the key findings — skip the header lines
+          const summaryLines = result.summary.split("\n").filter((l: string) =>
+            !l.startsWith("Agent:") && !l.startsWith("Focus:") && !l.startsWith("Ran:")
+          );
+          lines.push(...summaryLines.slice(0, 30));
+        }
+        if (result.thread_id) {
+          lines.push("");
+          lines.push(`Results written to: memory/threads/${result.thread_id}.json`);
+        }
+
+        return reply.send({
+          output: lines.join("\n").trim(),
+          session_id,
+          agent_executed: result.agent,
+          agent_ok: result.ok,
+          thread_id: result.thread_id,
+        });
+      } catch (e: any) {
+        return reply.send({
+          output: `Agent run failed: ${String(e?.message ?? e)}`,
+          session_id,
+          agent_ok: false,
+        });
+      }
+    }
+  }
+
   // ── Plan approval loop ───────────────────────────────────────────────────────
   if (session_id && hasPendingPlan(session_id)) {
     const pendingPlan = getPendingPlan(session_id)!;
@@ -639,8 +699,6 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
         if (analysisProposal) {
           // For fs.write proposals, inject the real analysis content as the skill body
           if (analysisProposal.tool_id === "fs.write" && analysisProposal.args.path) {
-            // Strip characters that trip the injection guard (backticks, semicolons in content)
-            const sanitizeSkillContent = (s: string) => s.replace(/[`]/g, "'").replace(/[;&|$<>]/g, "-");
             analysisProposal.args.content = [
               `# Skill: ${String(analysisProposal.args.path).split("/").slice(-2, -1)[0] ?? "git-skill"}`,
               "",
@@ -835,7 +893,9 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
   }
 
   const needsReason = decision.tier.provider !== "ollama";
-  const hasReason = typeof normalized.reason === "string" && normalized.reason.trim().length > 0;
+  const isBigBrain = decision.tier.name === "big_brain";
+  const hasReason = typeof normalized.reason === "string" && normalized.reason.trim().length > 0
+    || (!isBigBrain && ["chat", "plan", "chat_flash"].includes(decision.tier.name));
 
   if (needsReason && (cfg as any)?.budgets?.escalation_requires_reason && !hasReason) {
     const receipt: any = withKind("chat", {
@@ -943,6 +1003,16 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       }
     }
 
+    // ✅ Agent proposal detection
+    let pendingAgentName: string | null = null;
+    if (!ollamaProposal && !pendingPlanId && isAgentProposal(out.output)) {
+      const agentProposal = extractAgentProposal(out.output);
+      if (agentProposal) {
+        storePendingAgent(ollamaSessionId, agentProposal.agent_name, agentProposal.focus);
+        pendingAgentName = agentProposal.agent_name;
+      }
+    }
+
     return reply.send({
       output: out.output,
       tier: decision.tier.name,
@@ -956,6 +1026,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       session_id: ollamaSessionId,
       pending_tool: ollamaProposal ? ollamaProposal.tool_id : null,
       pending_plan: pendingPlanId,
+      pending_agent: pendingAgentName,
     });
   }
 

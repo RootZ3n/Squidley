@@ -142,9 +142,7 @@ function extractArgs(text: string, tool_id: string): Record<string, string> {
   if (tool_id === "fs.write") {
     const nameMatch = text.match(/skill\s+(?:for|called|named)\s+["""']?([a-zA-Z0-9\s\-_]{2,40})["""']?/i);
     if (nameMatch?.[1]) {
-      // Cap skill name at 4 words to keep folder names readable
-      const skillWords = nameMatch[1].trim().split(/\s+/).slice(0, 4).join("-").toLowerCase();
-      const skillId = skillWords.replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+      const skillId = nameMatch[1].trim().toLowerCase().replace(/\s+/g, "-");
       args.path = `skills/${skillId}/skill.md`;
       // Content will be generated after approval — placeholder for now
       args.content = `# Skill: ${nameMatch[1].trim()}\n\n## Purpose\nAuto-generated skill.\n`;
@@ -205,4 +203,38 @@ export function extractPlanGoal(text: string): string {
 
   // Fallback: first sentence
   return text.split(/[.!?]/)[0]?.trim().slice(0, 120) ?? "repo health check";
+}
+
+// ── Agent proposal detection ──────────────────────────────────────────────────
+
+const AGENT_PROPOSAL_PATTERNS = [
+  /i can run the [`"]?([\w-]+)[`"]? agent/i,
+  /i can start the [`"]?([\w-]+)[`"]? agent/i,
+  /i can spin up the [`"]?([\w-]+)[`"]? agent/i,
+  /want me to run the [`"]?([\w-]+)[`"]? agent/i,
+  /shall i run the [`"]?([\w-]+)[`"]? agent/i,
+  /run the [`"]?([\w-]+)[`"]? agent/i,
+];
+
+export type AgentProposal = {
+  agent_name: string;
+  focus?: string;
+};
+
+export function extractAgentProposal(text: string): AgentProposal | null {
+  for (const pattern of AGENT_PROPOSAL_PATTERNS) {
+    const m = text.match(pattern);
+    if (m?.[1]) {
+      const agent_name = m[1].trim().toLowerCase();
+      // Extract focus if present: "to check X" or "focused on X"
+      const focusMatch = text.match(/(?:to check|focused on|looking for|searching for|about)\s+([^.?!]{5,60})/i);
+      const focus = focusMatch?.[1]?.trim();
+      return { agent_name, focus };
+    }
+  }
+  return null;
+}
+
+export function isAgentProposal(text: string): boolean {
+  return extractAgentProposal(text) !== null;
 }
