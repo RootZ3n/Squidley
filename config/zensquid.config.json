@@ -17,11 +17,12 @@
       "model": "gpt-5-mini",
       "role": "Tier 1: Chat Mode (default cloud)"
     },
-    { "name": "chat_flash",
+    {
+      "name": "chat_flash",
       "provider": "modelstudio",
-      "model": "qwen-flash-us", 
+      "model": "qwen-flash-us",
       "role": "Tier 1: Chat Mode (Flash compare)"
-    },   
+    },
     {
       "name": "plan",
       "provider": "modelstudio",
@@ -39,6 +40,60 @@
       "provider": "modelstudio",
       "model": "qwen-plus-2025-12-01-us",
       "role": "Tier 3: Big Brain (explicit approval required)"
+    },
+    {
+      "name": "local_small",
+      "provider": "ollama",
+      "model": "llama3.2:3b",
+      "role": "Tier 0: Tiny local \u2014 fast responses, simple tasks"
+    },
+    {
+      "name": "local_phi",
+      "provider": "ollama",
+      "model": "phi4-mini-reasoning:3.8b",
+      "role": "Tier 0: Phi4 mini \u2014 reasoning-focused small model"
+    },
+    {
+      "name": "local_mid",
+      "provider": "ollama",
+      "model": "ministral-3:14b",
+      "role": "Tier 1: Mistral 14b \u2014 local mid-size alternative"
+    },
+    {
+      "name": "local_deepseek",
+      "provider": "ollama",
+      "model": "deepseek-coder-v2:16b",
+      "role": "Tier 1: DeepSeek Coder \u2014 local code-focused model"
+    },
+    {
+      "name": "local_gpt_oss",
+      "provider": "ollama",
+      "model": "gpt-oss:20b",
+      "role": "Tier 2: GPT OSS 20b \u2014 local large model"
+    },
+    {
+      "name": "local_qwen27",
+      "provider": "ollama",
+      "model": "qwen3.5:27b",
+      "role": "Tier 2: Qwen 27b \u2014 local large, good context following"
+    },
+    {
+      "name": "local_qwen35",
+      "provider": "ollama",
+      "model": "qwen3.5:35b",
+      "role": "Tier 2: Qwen 35b \u2014 local largest, best local reasoning"
+    },
+    {
+      "name": "local_nemotron",
+      "provider": "ollama",
+      "model": "nemotron-3-nano:latest",
+      "role": "Tier 2: Nemotron \u2014 NVIDIA local model"
+    },
+    {
+      "name": "local_glm",
+      "provider": "ollama",
+      "model": "glm-4.7-flash:latest",
+      "role": "Tier 2: GLM Flash \u2014 fast local large model"
     }
   ],
   "budgets": {
@@ -48,7 +103,9 @@
     "big_brain_requires_approval": true
   },
   "providers": {
-    "ollama": { "base_url": "http://127.0.0.1:11434" },
+    "ollama": {
+      "base_url": "http://127.0.0.1:11434"
+    },
     "modelstudio": {
       "env_key": "DASHSCOPE_API_KEY",
       "base_url": "https://dashscope-us.aliyuncs.com/compatible-mode"
