@@ -4,13 +4,8 @@
 Read a job listing and Jeff's base resume, then write a tailored resume variant for that role.
 
 ## Goal
-Given a job file from memory/jobs/, produce a tailored resume that:
-- Leads with the most relevant experience for that specific role
-- Adjusts the professional summary to match the job's language
-- Highlights Squidley and AI infrastructure work for technical roles
-- Emphasizes electromechanical and hands-on experience for hardware roles
-- Keeps truthful — never invents experience
-- Stays to 1 page if possible, 2 max
+Given a job file from memory/jobs/, produce a tailored resume that leads with the most
+relevant experience, adjusts the summary to match the job language, and stays truthful.
 
 ## Allowed tools
 - fs.read
@@ -18,34 +13,48 @@ Given a job file from memory/jobs/, produce a tailored resume that:
 
 ## Default plan
 1. fs.read(memory/resume/base-resume.md)
-2. fs.read(memory/jobs/<target-job>.md)
-3. fs.write(memory/resumes/tailored-<company>-<date>.md)
 
-## Tailoring rules
-- Remote roles: emphasize independent work, async communication, self-direction
-- Hybrid roles: emphasize local presence + flexibility
-- Onsite Moore/OKC: emphasize local knowledge, commute viability
-- All roles: lead with Squidley as proof of senior technical capability
-- Tier 2 roles: emphasize escalation handling, root cause analysis, documentation
+## Post process
+provider: openai
+model: gpt-4o-mini
+write_to: memory/resumes
 
-## Output format
-Write to memory/resumes/tailored-<company>-<date>.md as clean markdown resume.
-Include at top:
-```
+## Post process prompt
+prompt_start
+You are helping Jeffrey Miller tailor his resume. Today's date is {date}.
+
+CRITICAL RULES — these override everything else:
+- NEVER add any fact, credential, job, degree, certification, or skill that is not explicitly stated in the base resume
+- NEVER invent company names, dates, job titles, or education
+- NEVER add certifications or degrees that are not in the base resume
+- If a section does not exist in the base resume, do NOT create it
+- You may only REORDER, REWORD, and EMPHASIZE content that already exists
+
+Here is the base resume — this is the ONLY source of truth:
+---BASE RESUME START---
+{output}
+---BASE RESUME END---
+
+Your task:
+1. Rewrite the Professional Summary to emphasize: troubleshooting, escalation handling, documentation, customer communication
+2. Reorder the Technical Skills section to lead with support-relevant skills
+3. Reword existing experience bullets to use tier 2 support language (escalation, root cause analysis, documentation, customer communication)
+4. Keep the Squidley project prominent — it proves senior technical capability
+5. Do NOT add any section that is not in the base resume above
+
+Output the complete tailored resume as clean markdown starting with:
 # Resume: Jeffrey Miller
-## Tailored for: <job title> at <company>
-## Date: <date>
+## Tailored for: Tier 2 Technical Support
+## Date: {date}
 ## Base: memory/resume/base-resume.md
-## Job: memory/jobs/<job-file>.md
-```
+prompt_end
 
 ## Constraints
 - Never fabricate experience or credentials
-- Always read base resume first — never generate from memory
-- Always read the job listing — tailor specifically, not generically
+- Always read base resume first - never generate from memory
 - Write only to memory/resumes/
 
 ## Metadata
 - created: 2026-02-28
-- version: 0.1
+- version: 0.2
 - author: Jeff + Claude

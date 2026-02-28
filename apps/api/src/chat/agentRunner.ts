@@ -25,7 +25,8 @@ function threadsDir(): string {
 export type AgentPostProcess = {
   prompt: string;
   model?: string;
-  write_to?: string; // directory to write output files
+  provider?: "ollama" | "openai" | "modelstudio"; // defaults to ollama
+  write_to?: string;
 };
 
 export type AgentDefinition = {
@@ -115,24 +116,24 @@ export async function loadAgentDefinition(agentName: string): Promise<AgentDefin
       .filter(Boolean);
 
     // Parse post_process section if present
-    // Format: ## Post process section has model/write_to keys
-    // Prompt is between prompt_start and prompt_end markers (safe from ## parsing)
+    // Keys: model, provider, write_to in ## Post process section
+    // Prompt between prompt_start / prompt_end markers (avoids ## heading conflicts)
     const ppSection = extractSection(raw, "Post process");
     let post_process: AgentPostProcess | undefined;
     if (ppSection) {
       const modelMatch = ppSection.match(/model:\s*(.+)/);
       const writeToMatch = ppSection.match(/write_to:\s*(.+)/);
-      // Extract prompt between prompt_start and prompt_end markers
+      const providerMatch = ppSection.match(/provider:\s*(.+)/);
       const promptMatch = raw.match(/prompt_start\n([\s\S]+?)\nprompt_end/);
       if (promptMatch?.[1]) {
         post_process = {
           prompt: promptMatch[1].trim(),
           model: modelMatch?.[1]?.trim(),
+          provider: (providerMatch?.[1]?.trim() as "ollama" | "openai" | "modelstudio") ?? "ollama",
           write_to: writeToMatch?.[1]?.trim(),
         };
       }
     }
-
     return {
       name: agentName,
       role,
@@ -236,11 +237,15 @@ export async function runAgent(args: {
     try {
       // fs.read and fs.write use rawArgs format
       const usesRawArgs = step.tool === "fs.read" || step.tool === "fs.write";
+      // fs.read needs { path } not { query } — map from plan parser output
+      const fsReadArgs = step.tool === "fs.read"
+        ? { path: step.args?.path ?? step.args?.query ?? "" }
+        : step.args ?? {};
       const payload = usesRawArgs
         ? {
             workspace: "squidley",
             tool_id: step.tool,
-            rawArgs: step.args ?? {},
+            args: fsReadArgs,
           }
         : {
             workspace: "squidley",
@@ -312,6 +317,7 @@ export async function runAgent(args: {
   let modelOutput = "";
   let writtenFiles: string[] = [];
 
+  console.log("DEBUG agent post_process:", !!agent.post_process, "results with stdout:", results.filter(r => r.ok && r.stdout).length);
   if (agent.post_process && results.some((r) => r.ok && r.stdout)) {
     try {
       const combinedOutput = results
@@ -324,24 +330,77 @@ export async function runAgent(args: {
         .replace("{date}", today)
         .replace("{focus}", focus ?? "default");
 
-      const ollamaUrl = (process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434") + "/api/generate";
-      const ollamaModel = agent.post_process.model ?? "qwen2.5:14b-instruct";
+      const provider = agent.post_process.provider ?? "ollama";
+      let resp: Response;
 
-      const resp = await fetch(ollamaUrl, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          model: ollamaModel,
-          prompt,
-          stream: false,
-          options: { temperature: 0.2, num_predict: 2000 },
-        }),
-        signal: AbortSignal.timeout(120_000),
-      });
+      if (provider === "openai") {
+        // Key may be in a file (systemd credentials pattern)
+        let apiKey = (process.env.OPENAI_API_KEY ?? "").trim();
+        if (!apiKey) {
+          const keyFile = (process.env.OPENAI_API_KEY_FILE ?? "").trim();
+          if (keyFile) {
+            try { apiKey = (await fs.readFile(keyFile, "utf8")).trim(); } catch {}
+          }
+        }
+        const baseUrl = process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1";
+        const model = agent.post_process.model ?? "gpt-4o-mini";
+        resp = await fetch(`${baseUrl}/chat/completions`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "authorization": `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.3,
+            max_tokens: 4000,
+          }),
+          signal: AbortSignal.timeout(120_000),
+        });
+      } else if (provider === "modelstudio") {
+        const apiKey = process.env.DASHSCOPE_API_KEY ?? "";
+        const baseUrl = process.env.MODELSTUDIO_BASE_URL ?? "https://dashscope-us.aliyuncs.com/compatible-mode/v1";
+        const model = agent.post_process.model ?? "qwen-plus-us";
+        resp = await fetch(`${baseUrl}/chat/completions`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "authorization": `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.3,
+            max_tokens: 4000,
+          }),
+          signal: AbortSignal.timeout(120_000),
+        });
+      } else {
+        // ollama
+        const ollamaUrl = (process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434") + "/api/generate";
+        const ollamaModel = agent.post_process.model ?? "qwen2.5:14b-instruct";
+        resp = await fetch(ollamaUrl, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            model: ollamaModel,
+            prompt,
+            stream: false,
+            options: { temperature: 0.2, num_predict: 3000 },
+          }),
+          signal: AbortSignal.timeout(120_000),
+        });
+      }
 
+      console.log("DEBUG resp.ok:", resp.ok, "status:", resp.status);
       if (resp.ok) {
         const data = await resp.json() as any;
-        modelOutput = String(data?.response ?? "").trim();
+        // OpenAI/modelstudio use choices[0].message.content, ollama uses response
+        modelOutput = String(
+          data?.choices?.[0]?.message?.content ?? data?.response ?? ""
+        ).trim();
+        console.log("DEBUG modelOutput length:", modelOutput.length, "write_to:", agent.post_process.write_to);
 
         if (agent.post_process.write_to && modelOutput) {
           const outDir = path.resolve(zensquidRoot(), agent.post_process.write_to);

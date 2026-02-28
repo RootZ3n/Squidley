@@ -26,6 +26,7 @@ Avoid: pure call center, tier 1 only, sales-disguised-as-support.
 model: qwen2.5:14b-instruct
 write_to: memory/jobs
 prompt_start
+Today's date is 2026-02-28. Use this date for all Date fields.
 You are a job listing extractor. Given web search results below, extract individual job listings and write them as structured markdown files.
 
 For each distinct job listing found, output a section using this format (use three dashes then FILE then colon):
