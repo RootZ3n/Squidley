@@ -790,6 +790,12 @@ export async function buildChatSystemPrompt(args: {
   // ✅ Workspace context — repo map, git state, skills, active thread
   if (workspaceCtx) {
     parts.push("\n---\n" + formatWorkspaceContext(workspaceCtx));
+    parts.push("\n---\n# WORKSPACE CONTEXT RULES\n" +
+      "The WORKSPACE CONTEXT block above is injected fresh every request.\n" +
+      "ALWAYS answer questions about git state, branch, files, and skills from this context FIRST.\n" +
+      "Do NOT run git.status, git.log, or rg.search just to answer a question you can already answer from context.\n" +
+      "Only propose a tool when you need NEW information not already in the context."
+    );
   }
 
   if (identity.trim()) parts.push("\n---\n# IDENTITY (agent)\n" + identity.trim());

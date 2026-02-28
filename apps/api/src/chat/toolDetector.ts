@@ -142,7 +142,9 @@ function extractArgs(text: string, tool_id: string): Record<string, string> {
   if (tool_id === "fs.write") {
     const nameMatch = text.match(/skill\s+(?:for|called|named)\s+["""']?([a-zA-Z0-9\s\-_]{2,40})["""']?/i);
     if (nameMatch?.[1]) {
-      const skillId = nameMatch[1].trim().toLowerCase().replace(/\s+/g, "-");
+      // Cap skill name at 4 words to keep folder names readable
+      const skillWords = nameMatch[1].trim().split(/\s+/).slice(0, 4).join("-").toLowerCase();
+      const skillId = skillWords.replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
       args.path = `skills/${skillId}/skill.md`;
       // Content will be generated after approval — placeholder for now
       args.content = `# Skill: ${nameMatch[1].trim()}\n\n## Purpose\nAuto-generated skill.\n`;
