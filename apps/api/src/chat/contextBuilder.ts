@@ -119,13 +119,17 @@ async function getSkillsList(): Promise<string> {
       if (!e.isDirectory()) continue;
       const fp = path.join(dir, e.name, "skill.md");
       try {
-        // Read first line after # Skill: for the title
         const raw = await fs.readFile(fp, "utf8");
-        const titleLine = raw.split("\n").find((l) => l.startsWith("## Purpose"));
-        const purpose = titleLine
-          ? raw.split("\n")[raw.split("\n").indexOf(titleLine) + 1]?.trim().slice(0, 80) ?? ""
+        const lines = raw.split("\n");
+        // Prefer "# Skill: <name>" title over folder name
+        const titleLine = lines.find((l) => l.startsWith("# Skill:"));
+        const title = titleLine ? titleLine.replace("# Skill:", "").trim() : e.name;
+        // Get purpose — first non-empty line after "## Purpose"
+        const purposeIdx = lines.findIndex((l) => l.startsWith("## Purpose"));
+        const purpose = purposeIdx >= 0
+          ? lines.slice(purposeIdx + 1).find((l) => l.trim().length > 0)?.trim().slice(0, 100) ?? ""
           : "";
-        skills.push(`- ${e.name}${purpose ? `: ${purpose}` : ""}`);
+        skills.push(`- ${title}${purpose ? `: ${purpose}` : ""}`);
       } catch {
         skills.push(`- ${e.name}`);
       }
