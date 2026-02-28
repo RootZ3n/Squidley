@@ -149,7 +149,7 @@ export async function registerReceiptsRoutes(
   // GET /receipts?limit=5&kind=chat
   app.get("/receipts", async (req, reply) => {
     const q: any = (req as any).query ?? {};
-    const limit = Math.min(Math.max(safeNum(q.limit, 10), 1), 50);
+    const limit = Math.min(Math.max(safeNum(q.limit, 10), 1), 500);
     const wantKind = typeof q.kind === "string" && q.kind.trim() ? q.kind.trim() : null;
 
     const dir = receiptsDir();
@@ -211,7 +211,7 @@ export async function registerReceiptsRoutes(
     }
 
     const q: any = (req as any).query ?? {};
-    const limit = Math.min(Math.max(safeNum(q.limit, 10), 1), 50);
+    const limit = Math.min(Math.max(safeNum(q.limit, 10), 1), 500);
     const wantKind = typeof q.kind === "string" && q.kind.trim() ? q.kind.trim() : null;
 
     const dir = receiptsDir();
