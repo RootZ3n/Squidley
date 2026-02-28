@@ -1,6 +1,7 @@
 // apps/api/src/chat/systemPrompt.ts
 import path from "node:path";
 import { mkdir, readdir, readFile, stat } from "node:fs/promises";
+import { buildWorkspaceContext, formatWorkspaceContext } from "./contextBuilder.js";
 
 /**
  * Types are defined in server.ts today — we'll extract them later.
@@ -746,6 +747,7 @@ export async function buildChatSystemPrompt(args: {
   const squid = await buildSquidNotes({ input });
   const memHits = await searchMemoryForChat(input, 5);
   const skill = selected_skill ? await loadSkillDoc(selected_skill) : "";
+  const workspaceCtx = await buildWorkspaceContext().catch(() => null);
 
   const parts: string[] = [];
   parts.push(BASE_SYSTEM_PROMPT);
@@ -784,6 +786,11 @@ export async function buildChatSystemPrompt(args: {
     skill: selected_skill && skill?.trim?.() ? selected_skill : null,
     memory_hit_count: memHits.length
   };
+
+  // ✅ Workspace context — repo map, git state, skills, active thread
+  if (workspaceCtx) {
+    parts.push("\n---\n" + formatWorkspaceContext(workspaceCtx));
+  }
 
   if (identity.trim()) parts.push("\n---\n# IDENTITY (agent)\n" + identity.trim());
   if (soul.trim()) parts.push("\n---\n# SOUL (agent)\n" + soul.trim());
