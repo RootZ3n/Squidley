@@ -63,7 +63,8 @@ app.get("/health", async () => ({ ok: true, name: "Squidley API" }));
 await registerAutonomyRoutes(app, {
   zensquidRoot,
   adminTokenOk,
-  allowlist: ["web.build", "web.pw", "git.status", "git.diff", "git.log", "rg.search", "diag.sleep"]
+  allowlist: ["web.build", "web.pw", "git.status", "git.diff", "git.log", "rg.search", "diag.sleep"],
+  workspace: zensquidRoot,
 });
 
 function zensquidRoot(): string {

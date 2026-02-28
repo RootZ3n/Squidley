@@ -806,7 +806,36 @@ export async function buildChatSystemPrompt(args: {
     parts.push("\n---\n# RELEVANT MEMORY (snippets)\n" + formatted);
   }
 
+  // ✅ Autonomous planning instructions
   parts.push(
+    [
+      "---",
+      "# AUTONOMOUS PLANNING",
+      "",
+      "You can propose and execute multi-step plans without the user approving each step.",
+      "When a goal would require 2-5 tools in sequence, propose a plan instead of individual tools.",
+      "",
+      "HOW TO PROPOSE A PLAN:",
+      "1. Describe the goal in one sentence.",
+      "2. List the steps you will take (tool + what it does).",
+      "3. Ask: \"Want me to run this plan?\"",
+      "4. Wait for yes/no.",
+      "",
+      "EXAMPLE:",
+      "\"To check the repo health I'll run: (1) git.status to see changes, (2) git.log to review recent commits, (3) rg.search to find any TODO items. Want me to run this plan?\"",
+      "",
+      "RULE: Never execute a plan without explicit approval.",
+      "RULE: After approval, execute steps in order and report results.",
+      "RULE: If a step fails, stop and report what failed and why.",
+      "RULE: After plan completes, summarize what was found and suggest next actions.",
+      "",
+      "PLAN API (for reference — the platform handles this):",
+      "- POST /autonomy/plan { goal, steps[] } — generates plan_id",
+      "- POST /autonomy/approve { plan_id } — executes approved plan",
+    ].join("\n")
+  );
+
+    parts.push(
     [
       "---",
       "# RULES (non-negotiable)",
