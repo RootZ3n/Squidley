@@ -1,6 +1,7 @@
 // apps/api/src/http/routes/autonomy.ts
 import type { FastifyInstance } from "fastify";
 import crypto from "node:crypto";
+import { runAgent, listAgents } from "../../chat/agentRunner.js";
 
 // ── Plan store (in-memory, 30min TTL) ────────────────────────────────────────
 type StoredPlan = {
@@ -427,4 +428,45 @@ export async function registerAutonomyRoutes(app: FastifyInstance, deps: Deps): 
       results
     });
   });
+  // ── GET /autonomy/agents — list available agents ──────────────────────────
+  app.get("/autonomy/agents", async (_req, reply) => {
+    const agents = await listAgents();
+    return reply.send({ ok: true, agents });
+  });
+
+  // ── POST /autonomy/agent/run — spin up an agent ───────────────────────────
+  app.post<{ Body: { agent?: string; focus?: string; ollama_url?: string; model?: string } }>(
+    "/autonomy/agent/run",
+    async (req, reply) => {
+      if (!deps.adminTokenOk(req)) return reply.code(401).send({ ok: false, error: "unauthorized" });
+
+      const agentName = String(req.body?.agent ?? "").trim();
+      if (!agentName) return reply.code(400).send({ ok: false, error: "agent name required" });
+
+      const focus = String(req.body?.focus ?? "").trim() || undefined;
+      const adminToken = String((req.headers as any)["x-zensquid-admin-token"] ?? "").trim();
+
+      const result = await runAgent({
+        agentName,
+        focus,
+        app,
+        adminToken,
+        ollamaUrl: req.body?.ollama_url,
+        model: req.body?.model,
+      });
+
+      return reply.code(result.ok ? 200 : 500).send({
+        ok: result.ok,
+        agent: result.agent,
+        run_id: result.run_id,
+        thread_id: result.thread_id,
+        steps_ran: result.steps_ran,
+        pass: result.pass,
+        fail: result.fail,
+        summary: result.summary,
+        error: result.error,
+      });
+    }
+  );
+
 }

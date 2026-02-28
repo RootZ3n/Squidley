@@ -790,12 +790,6 @@ export async function buildChatSystemPrompt(args: {
   // ✅ Workspace context — repo map, git state, skills, active thread
   if (workspaceCtx) {
     parts.push("\n---\n" + formatWorkspaceContext(workspaceCtx));
-    parts.push("\n---\n# WORKSPACE CONTEXT RULES\n" +
-      "The WORKSPACE CONTEXT block above is injected fresh every request.\n" +
-      "ALWAYS answer questions about git state, branch, files, and skills from this context FIRST.\n" +
-      "Do NOT run git.status, git.log, or rg.search just to answer a question you can already answer from context.\n" +
-      "Only propose a tool when you need NEW information not already in the context."
-    );
   }
 
   if (identity.trim()) parts.push("\n---\n# IDENTITY (agent)\n" + identity.trim());
@@ -818,6 +812,30 @@ export async function buildChatSystemPrompt(args: {
     const formatted = memHits.map((h, idx) => `(${idx + 1}) ${h.rel}\n${h.snippet}`).join("\n\n");
     parts.push("\n---\n# RELEVANT MEMORY (snippets)\n" + formatted);
   }
+
+  // ✅ Agent awareness
+  parts.push(
+    [
+      "---",
+      "# AGENT SYSTEM",
+      "",
+      "You can spin up sub-agents to do focused work autonomously.",
+      "Agents are defined in agents/<name>/agent.md with their own role, tools, and plan.",
+      "Available agents are listed in your WORKSPACE CONTEXT under 'Available agents'.",
+      "",
+      "HOW TO PROPOSE AN AGENT RUN:",
+      "1. Identify which agent is right for the task.",
+      "2. Say: \"I can run the <agent-name> agent to <what it will do>. Want me to start it?\"",
+      "3. Wait for yes/no.",
+      "4. When approved, the agent runs its plan and writes results to memory/threads/.",
+      "5. After it completes, read its thread and summarize findings for the user.",
+      "",
+      "RULE: Never run an agent without explicit approval.",
+      "RULE: After agent completes, always read and summarize its thread output.",
+      "RULE: Agents communicate through memory/threads/ — always check for new threads after a run.",
+      "RULE: You are the orchestrator. Agents work for you. You report to Jeff.",
+    ].join("\n")
+  );
 
   // ✅ Autonomous planning instructions
   parts.push(

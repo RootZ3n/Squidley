@@ -176,20 +176,47 @@ export type WorkspaceContext = {
   git_status: string;
   repo_map: string;
   skills: string;
+  agents: string;
   active_thread: string;
 };
 
+// ── Agents index ──────────────────────────────────────────────────────────────
+
+async function getAgentsList(): Promise<string> {
+  try {
+    const dir = path.resolve(zensquidRoot(), "agents");
+    const entries = await fs.readdir(dir, { withFileTypes: true }) as import("node:fs").Dirent[];
+    const agents: string[] = [];
+    for (const e of entries) {
+      if (!e.isDirectory()) continue;
+      const fp = path.resolve(dir, e.name, "agent.md");
+      try {
+        const raw = await fs.readFile(fp, "utf8");
+        const roleMatch = raw.match(/^## Role\s*\n([\s\S]*?)(?=\n## |\n# |$)/m);
+        const role = roleMatch?.[1]?.trim().split("\n")[0]?.slice(0, 80) ?? "";
+        agents.push(`- ${e.name}${role ? `: ${role}` : ""}`);
+      } catch {
+        agents.push(`- ${e.name}`);
+      }
+    }
+    return agents.length > 0 ? agents.join("\n") : "none";
+  } catch {
+    return "none";
+  }
+}
+
 export async function buildWorkspaceContext(): Promise<WorkspaceContext> {
-  const [branch, last_commit, git_status, repo_map, skills, active_thread] = await Promise.all([
+  const [branch, last_commit, git_status, repo_map, skills, agents, active_thread] = await Promise.all([
     getGitBranch(),
     getLastCommit(),
     getGitStatus(),
     getRepoMap(),
     getSkillsList(),
+    getAgentsList(),
     getActiveThread(),
   ]);
 
-  return { branch, last_commit, git_status, repo_map, skills, active_thread };
+  return { branch, last_commit, git_status, repo_map, skills, agents, active_thread };
 }
 
 export function formatWorkspaceContext(ctx: WorkspaceContext): string {
@@ -208,6 +235,9 @@ export function formatWorkspaceContext(ctx: WorkspaceContext): string {
   lines.push("");
   lines.push("## Available skills");
   lines.push(ctx.skills);
+  lines.push("");
+  lines.push("## Available agents");
+  lines.push(ctx.agents);
   lines.push("");
   lines.push("## Active thread");
   lines.push(ctx.active_thread);
