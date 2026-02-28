@@ -22,6 +22,12 @@ function threadsDir(): string {
 
 // ── Agent definition ──────────────────────────────────────────────────────────
 
+export type AgentPostProcess = {
+  prompt: string;
+  model?: string;
+  write_to?: string; // directory to write output files
+};
+
 export type AgentDefinition = {
   name: string;
   role: string;
@@ -29,9 +35,10 @@ export type AgentDefinition = {
   allowed_tools: string[];
   default_plan: Array<{ tool: string; args?: Record<string, any> }>;
   output_format: {
-    path_template: string; // e.g. "memory/threads/repo-inspection-{date}.json"
+    path_template: string;
   };
   constraints: string[];
+  post_process?: AgentPostProcess;
 };
 
 export type AgentRunResult = {
@@ -107,6 +114,25 @@ export async function loadAgentDefinition(agentName: string): Promise<AgentDefin
       .map((l) => l.replace(/^-\s*/, "").trim())
       .filter(Boolean);
 
+    // Parse post_process section if present
+    // Format: ## Post process section has model/write_to keys
+    // Prompt is between prompt_start and prompt_end markers (safe from ## parsing)
+    const ppSection = extractSection(raw, "Post process");
+    let post_process: AgentPostProcess | undefined;
+    if (ppSection) {
+      const modelMatch = ppSection.match(/model:\s*(.+)/);
+      const writeToMatch = ppSection.match(/write_to:\s*(.+)/);
+      // Extract prompt between prompt_start and prompt_end markers
+      const promptMatch = raw.match(/prompt_start\n([\s\S]+?)\nprompt_end/);
+      if (promptMatch?.[1]) {
+        post_process = {
+          prompt: promptMatch[1].trim(),
+          model: modelMatch?.[1]?.trim(),
+          write_to: writeToMatch?.[1]?.trim(),
+        };
+      }
+    }
+
     return {
       name: agentName,
       role,
@@ -117,6 +143,7 @@ export async function loadAgentDefinition(agentName: string): Promise<AgentDefin
         path_template: `memory/threads/${agentName}-{date}.json`,
       },
       constraints,
+      post_process,
     };
   } catch {
     return null;
@@ -281,13 +308,80 @@ export async function runAgent(args: {
     }
   }
 
+  // ── Post-process: send results to local model for extraction ─────────────────
+  let modelOutput = "";
+  let writtenFiles: string[] = [];
+
+  if (agent.post_process && results.some((r) => r.ok && r.stdout)) {
+    try {
+      const combinedOutput = results
+        .filter((r) => r.ok && r.stdout)
+        .map((r) => `## ${r.tool}\n${r.stdout.trim()}`)
+        .join("\n\n");
+
+      const prompt = agent.post_process.prompt
+        .replace("{output}", combinedOutput)
+        .replace("{date}", today)
+        .replace("{focus}", focus ?? "default");
+
+      const ollamaUrl = (process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434") + "/api/generate";
+      const ollamaModel = agent.post_process.model ?? "qwen2.5:14b-instruct";
+
+      const resp = await fetch(ollamaUrl, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          model: ollamaModel,
+          prompt,
+          stream: false,
+          options: { temperature: 0.2, num_predict: 2000 },
+        }),
+        signal: AbortSignal.timeout(120_000),
+      });
+
+      if (resp.ok) {
+        const data = await resp.json() as any;
+        modelOutput = String(data?.response ?? "").trim();
+
+        if (agent.post_process.write_to && modelOutput) {
+          const outDir = path.resolve(zensquidRoot(), agent.post_process.write_to);
+          await fs.mkdir(outDir, { recursive: true });
+
+          // Model output may contain multiple --- FILE: path --- sections
+          const fileBlocks = modelOutput.split(/^---\s*FILE:\s*/m).filter(Boolean);
+          if (fileBlocks.length > 1) {
+            for (const block of fileBlocks) {
+              const firstLine = block.split("\n")[0].trim();
+              const fileContent = block.split("\n").slice(1).join("\n").trim();
+              if (firstLine && fileContent) {
+                const filePath = path.resolve(zensquidRoot(), firstLine);
+                if (filePath.startsWith(outDir)) {
+                  await fs.mkdir(path.dirname(filePath), { recursive: true });
+                  await fs.writeFile(filePath, fileContent, "utf8");
+                  writtenFiles.push(firstLine);
+                }
+              }
+            }
+          } else {
+            const fileName = `${agentName}-output-${today}-${run_id}.md`;
+            const filePath = path.resolve(outDir, fileName);
+            await fs.writeFile(filePath, modelOutput, "utf8");
+            writtenFiles.push(`${agent.post_process.write_to}/${fileName}`);
+          }
+        }
+      }
+    } catch (e: any) {
+      modelOutput = `Post-process error: ${String(e?.message ?? e)}`;
+    }
+  }
+
   // Write thread JSON
   const thread = {
     thread_id,
-    title: `${agentName} inspection — ${today}`,
+    title: `${agentName} — ${today}`,
     status: "active",
-    tags: [agentName, "inspection", "autonomous"],
-    summary: summary.slice(0, 400),
+    tags: [agentName, "autonomous"],
+    summary: (modelOutput || summary).slice(0, 800),
     open_loops,
     agent_run: {
       run_id,
@@ -296,6 +390,8 @@ export async function runAgent(args: {
       steps_ran: results.length,
       pass,
       fail,
+      written_files: writtenFiles,
+      model_processed: Boolean(modelOutput && !modelOutput.startsWith("Post-process error")),
     },
     last_touched: new Date().toISOString(),
   };
