@@ -140,6 +140,33 @@ async function runInternalTool(opts: {
       };
     }
 
+    if (opts.tool_id === "web.search") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const query = (rawArgsObj?.query as string ?? opts.userArgs[0] ?? "").trim();
+      if (!query) throw new ToolRunnerError("BAD_REQUEST", "web.search: query required");
+      const searxUrl = process.env.SEARXNG_URL ?? "http://127.0.0.1:8080";
+      const url = `${searxUrl}/search?q=${encodeURIComponent(query)}&format=json&categories=general`;
+      const resp = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+      if (!resp.ok) throw new ToolRunnerError("INTERNAL", `SearXNG returned ${resp.status}`);
+      const data = await resp.json() as any;
+      const results = (data.results ?? []).slice(0, 8);
+      const lines: string[] = [`Search: ${query}`, ""];
+      for (const r of results) {
+        lines.push(`## ${r.title ?? "Untitled"}`);
+        lines.push(`URL: ${r.url ?? ""}`);
+        if (r.content) lines.push(r.content.slice(0, 200));
+        lines.push("");
+      }
+      return {
+        ok: true,
+        exit_code: 0,
+        signal: null as NodeJS.Signals | null,
+        stdout: lines.join("\n"),
+        stderr: "",
+        truncated: { stdout: false, stderr: false }
+      };
+    }
+
     if (opts.tool_id === "fs.write") {
       // userArgs: [relPath, content] or rawArgs: { path: "...", content: "..." }
       const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
