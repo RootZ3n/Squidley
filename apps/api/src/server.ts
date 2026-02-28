@@ -56,6 +56,7 @@ import { registerOnboardingRoutes } from "./http/routes/onboarding.js";
 import { registerCapabilitiesRoutes } from "./http/routes/capabilities.js";
 import { registerGuardRoutes, evaluateGuard } from "./http/routes/guard.js";
 import { registerAutonomyRoutes } from "./http/routes/autonomy.js";
+import { startScheduler, stopScheduler, registerSchedulerRoutes, getPendingBriefings, clearPendingBriefings } from "./scheduler.js";
 
 type RequestKind = "chat" | "heartbeat" | "tool" | "system";
 
@@ -472,6 +473,20 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
   const session_id = typeof (body as any).session_id === "string" ? (body as any).session_id.trim() : null;
 
   if (!input) return reply.code(400).send({ error: "Missing input" });
+
+  // ── Scheduled briefings ───────────────────────────────────────────────────
+  // Collect any agent runs that happened while the user was away
+  // Don't intercept — prepend to normal response instead
+  const briefings = getPendingBriefings();
+  let briefingPrefix = "";
+  if (briefings.length > 0) {
+    clearPendingBriefings();
+    const briefingText = briefings.map((b) => {
+      const status = b.fail > 0 ? "⚠️ partial" : "✅";
+      return `${status} **${b.agent}** — ${b.pass}/${b.steps_ran} steps passed`;
+    }).join("\n");
+    briefingPrefix = `🦑 *Background update: ${briefings.length} scheduled task(s) ran while you were away:*\n${briefingText}\n\n---\n\n`;
+  }
 
   // ── Agent approval loop ──────────────────────────────────────────────────────
   if (session_id && hasPendingAgent(session_id)) {
@@ -892,10 +907,8 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
     });
   }
 
-  const needsReason = decision.tier.provider !== "ollama";
-  const isBigBrain = decision.tier.name === "big_brain";
-  const hasReason = typeof normalized.reason === "string" && normalized.reason.trim().length > 0
-    || (!isBigBrain && ["chat", "plan", "chat_flash"].includes(decision.tier.name));
+  const needsReason = ["big_brain", "plan", "build"].includes(decision.tier.name);
+  const hasReason = typeof normalized.reason === "string" && normalized.reason.trim().length > 0;
 
   if (needsReason && (cfg as any)?.budgets?.escalation_requires_reason && !hasReason) {
     const receipt: any = withKind("chat", {
@@ -1126,7 +1139,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
     }
 
     return reply.send({
-      output: out.content,
+      output: briefingPrefix + out.content,
       tier: decision.tier.name,
       provider: decision.tier.provider,
       model: decision.tier.model,
@@ -1137,6 +1150,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       context: meta,
       session_id: msSessionId,
       pending_tool: msProposal ? msProposal.tool_id : null,
+      briefings: briefings.length > 0 ? briefings : undefined,
     });
   }
 
@@ -1491,4 +1505,17 @@ if (!isLocalhost && !isWildcard && !isPrivateishHost(bindHostRaw) && !allowPubli
 }
 
 const host = bindHostRaw;
+await registerSchedulerRoutes(app);
 await app.listen({ port, host });
+
+// Start heartbeat scheduler
+await startScheduler(app);
+
+// Graceful shutdown
+const shutdown = async () => {
+  stopScheduler();
+  await app.close();
+  process.exit(0);
+};
+process.once("SIGTERM", shutdown);
+process.once("SIGINT", shutdown);

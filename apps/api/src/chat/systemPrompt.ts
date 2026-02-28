@@ -171,6 +171,16 @@ async function loadAgentTexts(): Promise<{ soul: string; identity: string }> {
  * Personality (active) lives in memory/personality/active.md.
  * If missing, fall back to memory/personality/presets/default.md.
  */
+async function loadProjectIndex(): Promise<string> {
+  const abs = path.resolve(memoryRootLocal(), "projects", "index.md");
+  try {
+    const text = await import("node:fs/promises").then(fs => fs.readFile(abs, "utf8"));
+    return text.trim();
+  } catch {
+    return "";
+  }
+}
+
 async function loadPersonalityText(): Promise<{ text: string; relPath: string }> {
   const activeAbs = path.resolve(memoryRootLocal(), "personality", "active.md");
   const presetAbs = path.resolve(memoryRootLocal(), "personality", "presets", "default.md");
@@ -743,6 +753,7 @@ export async function buildChatSystemPrompt(args: {
 
   const { soul, identity } = await loadAgentTexts();
   const personality = await loadPersonalityText();
+  const projectIndex = await loadProjectIndex();
 
   const squid = await buildSquidNotes({ input });
   const memHits = await searchMemoryForChat(input, 5);
@@ -798,6 +809,9 @@ export async function buildChatSystemPrompt(args: {
   if (personality.text.trim()) {
     parts.push("\n---\n# PERSONALITY (active)\n" + personality.text.trim());
     parts.push(`\n# PERSONALITY SOURCE\n- ${personality.relPath}\n`);
+  }
+  if (projectIndex.trim()) {
+    parts.push("\n---\n# PROJECTS & IDEAS (Jeff's active work)\n" + projectIndex.trim());
   }
 
   if (skill.trim()) {

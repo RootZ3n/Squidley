@@ -1,0 +1,39 @@
+{
+  "schedules": [
+    {
+      "id": "job-scanner-daily",
+      "agent": "job-scanner",
+      "cron": "0 8 * * *",
+      "enabled": false,
+      "label": "Daily job search — runs at 8am",
+      "focus": null
+    },
+    {
+      "id": "openclaw-watcher-weekly",
+      "agent": "openclaw-watcher",
+      "cron": "0 9 * * 1",
+      "enabled": false,
+      "label": "Weekly OpenClaw intelligence — runs Monday 9am",
+      "focus": null
+    },
+    {
+      "id": "repo-inspector-daily",
+      "agent": "repo-inspector",
+      "cron": "0 7 * * *",
+      "enabled": false,
+      "label": "Daily repo health check — runs at 7am",
+      "focus": null,
+      "last_run": "2026-02-28T22:35:43.748Z",
+      "last_result": "pass"
+    },
+    {
+      "id": "pipeline-tracker-weekly",
+      "agent": "pipeline-tracker",
+      "cron": "0 8 * * 1",
+      "enabled": false,
+      "label": "Weekly job pipeline summary — runs Monday 8am",
+      "focus": null
+    }
+  ],
+  "_comment": "cron format: minute hour day month weekday. Set enabled:true to activate. Schedules run in the API process timezone."
+}
