@@ -206,10 +206,13 @@ export async function runTool(req: RunToolRequest): Promise<RunToolResult> {
   const userArgs: string[] = Array.isArray(rawReqArgs)
     ? rawReqArgs.filter(Boolean).map(String)
     : Object.values(rawReqArgs).flat().filter(Boolean).map(String);
-  for (const a of userArgs) {
-    if (/[;&|`$<>]/.test(a)) {
-      // no receipt_id exists yet
-      throw new ToolRunnerError("BAD_REQUEST", `Disallowed characters in args: "${a}"`);
+  // Skip injection guard for internal JS tools (fs.read, fs.write, diag.sleep)
+  // They handle their own validation and never spawn a shell
+  if (spec.cmd !== "__js__") {
+    for (const a of userArgs) {
+      if (/[;&|`$<>]/.test(a)) {
+        throw new ToolRunnerError("BAD_REQUEST", `Disallowed characters in args: "${a}"`);
+      }
     }
   }
 

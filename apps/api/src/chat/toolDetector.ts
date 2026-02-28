@@ -175,3 +175,32 @@ export function extractToolProposal(modelResponse: string): ToolProposal | null 
     raw_match: tool_id,
   };
 }
+
+// ── Plan proposal detection ───────────────────────────────────────────────────
+// Detects when Squidley proposes a multi-step plan in her response.
+
+const PLAN_PROPOSAL_PATTERNS = [
+  /want me to run this plan\?/i,
+  /want me to execute this plan\?/i,
+  /shall i run this plan\?/i,
+  /want me to proceed with this plan\?/i,
+  /want me to run these steps\?/i,
+  /approve this plan\?/i,
+  /run the plan\?/i,
+];
+
+export function isPlanProposal(text: string): boolean {
+  return PLAN_PROPOSAL_PATTERNS.some((p) => p.test(text));
+}
+
+// Extract goal from a plan proposal text
+export function extractPlanGoal(text: string): string {
+  // Look for "To <goal> I'll run:" or "I'll run these steps to <goal>"
+  const m =
+    text.match(/to\s+(.{10,120}?)[,.]?\s+i['']?(?:ll|will|can)\s+(?:run|execute|use)/i) ??
+    text.match(/i['']?(?:ll|will|can)\s+(?:run|execute|use)\s+(?:these\s+steps\s+)?to\s+(.{10,120})/i);
+  if (m?.[1]) return m[1].trim();
+
+  // Fallback: first sentence
+  return text.split(/[.!?]/)[0]?.trim().slice(0, 120) ?? "repo health check";
+}

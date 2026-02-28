@@ -14,8 +14,9 @@ import {
   ensureMemoryRoot
 } from "./chat/systemPrompt.js";
 
-import { extractToolProposal, isApproval, isDenial } from "./chat/toolDetector.js";
+import { extractToolProposal, isApproval, isDenial, isPlanProposal, extractPlanGoal } from "./chat/toolDetector.js";
 import { storePending, getPending, clearPending, hasPending } from "./chat/pendingTools.js";
+import { storePendingPlan, getPendingPlan, clearPendingPlan, hasPendingPlan } from "./chat/pendingPlans.js";
 import { runTool } from "./tools/runner.js";
 import { writeAnalysisThread } from "./chat/memoryWriter.js";
 
@@ -63,8 +64,7 @@ app.get("/health", async () => ({ ok: true, name: "Squidley API" }));
 await registerAutonomyRoutes(app, {
   zensquidRoot,
   adminTokenOk,
-  allowlist: ["web.build", "web.pw", "git.status", "git.diff", "git.log", "rg.search", "diag.sleep"],
-  workspace: zensquidRoot,
+  allowlist: ["web.build", "web.pw", "git.status", "git.diff", "git.log", "rg.search", "diag.sleep"]
 });
 
 function zensquidRoot(): string {
@@ -470,6 +470,68 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
 
   if (!input) return reply.code(400).send({ error: "Missing input" });
 
+  // ── Plan approval loop ───────────────────────────────────────────────────────
+  if (session_id && hasPendingPlan(session_id)) {
+    const pendingPlan = getPendingPlan(session_id)!;
+
+    if (isDenial(input)) {
+      clearPendingPlan(session_id);
+      return reply.send({
+        output: "Got it — plan cancelled. What would you like to do instead?",
+        session_id,
+        pending_plan: null,
+      });
+    }
+
+    if (isApproval(input)) {
+      clearPendingPlan(session_id);
+      const adminToken = String((req.headers as any)["x-zensquid-admin-token"] ?? "").trim();
+      try {
+        const approveResp = await app.inject({
+          method: "POST",
+          url: "/autonomy/approve",
+          headers: { "content-type": "application/json", "x-zensquid-admin-token": adminToken },
+          payload: { plan_id: pendingPlan.plan_id, stop_on_fail: true },
+        });
+        const approveJson = typeof (approveResp as any).json === "function"
+          ? (approveResp as any).json()
+          : JSON.parse(approveResp.payload);
+
+        const summary = approveJson?.summary;
+        const results: any[] = approveJson?.results ?? [];
+
+        // Format results as readable output
+        const lines: string[] = [];
+        lines.push(`Plan: ${pendingPlan.goal}`);
+        lines.push("");
+        for (const r of results) {
+          const icon = r.ok ? "✓" : "✗";
+          const out = r.output?.stdout ? r.output.stdout.slice(0, 400).trim() : "";
+          lines.push(`${icon} ${r.tool}`);
+          if (out) lines.push(out);
+          if (!r.ok && r.error) lines.push(`  Error: ${r.error}`);
+          lines.push("");
+        }
+        if (summary) {
+          lines.push(`${summary.pass}/${summary.steps_total} steps passed${summary.halted ? " (halted on failure)" : ""}.`);
+        }
+
+        return reply.send({
+          output: lines.join("\n").trim(),
+          session_id,
+          plan_executed: pendingPlan.plan_id,
+          plan_ok: approveJson?.ok ?? false,
+        });
+      } catch (e: any) {
+        return reply.send({
+          output: `Plan execution failed: ${String(e?.message ?? e)}`,
+          session_id,
+          plan_ok: false,
+        });
+      }
+    }
+  }
+
   // ── Tool approval loop ────────────────────────────────────────────────────
   if (session_id && hasPending(session_id)) {
     const pending = getPending(session_id)!;
@@ -577,6 +639,8 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
         if (analysisProposal) {
           // For fs.write proposals, inject the real analysis content as the skill body
           if (analysisProposal.tool_id === "fs.write" && analysisProposal.args.path) {
+            // Strip characters that trip the injection guard (backticks, semicolons in content)
+            const sanitizeSkillContent = (s: string) => s.replace(/[`]/g, "'").replace(/[;&|$<>]/g, "-");
             analysisProposal.args.content = [
               `# Skill: ${String(analysisProposal.args.path).split("/").slice(-2, -1)[0] ?? "git-skill"}`,
               "",
@@ -857,6 +921,28 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       storePending(ollamaSessionId, ollamaProposal, out.output);
     }
 
+    // ✅ Plan proposal detection — if Squidley proposes a multi-step plan, generate it
+    let pendingPlanId: string | null = null;
+    if (!ollamaProposal && isPlanProposal(out.output)) {
+      try {
+        const planGoal = extractPlanGoal(out.output);
+        const adminToken = String((req.headers as any)["x-zensquid-admin-token"] ?? "").trim();
+        const planResp = await app.inject({
+          method: "POST",
+          url: "/autonomy/plan",
+          headers: { "content-type": "application/json", "x-zensquid-admin-token": adminToken },
+          payload: { goal: planGoal, ollama_url: cfg.providers.ollama.base_url, model: decision.tier.model },
+        });
+        const planJson = typeof (planResp as any).json === "function" ? (planResp as any).json() : JSON.parse(planResp.payload);
+        if (planJson?.ok && planJson?.plan_id) {
+          storePendingPlan(ollamaSessionId, planJson.plan_id, planGoal, planJson.steps);
+          pendingPlanId = planJson.plan_id;
+        }
+      } catch (e) {
+        // best effort — never block response
+      }
+    }
+
     return reply.send({
       output: out.output,
       tier: decision.tier.name,
@@ -869,6 +955,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       context: meta,
       session_id: ollamaSessionId,
       pending_tool: ollamaProposal ? ollamaProposal.tool_id : null,
+      pending_plan: pendingPlanId,
     });
   }
 
