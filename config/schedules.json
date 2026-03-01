@@ -67,7 +67,17 @@
       "enabled": true,
       "label": "Proactive watcher — every 30min, 6am-10pm",
       "focus": null,
-      "last_run": "2026-03-01T12:25:52.510Z",
+      "last_run": "2026-03-01T12:30:00.003Z",
+      "last_result": "pass"
+    },
+    {
+      "id": "resume-builder-weekly",
+      "agent": "resume-builder",
+      "cron": "0 6 * * 0",
+      "enabled": true,
+      "label": "Weekly resume review — Sunday 6am",
+      "focus": null,
+      "last_run": "2026-03-01T12:40:27.127Z",
       "last_result": "pass"
     }
   ],
