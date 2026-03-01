@@ -57,6 +57,7 @@ import { registerCapabilitiesRoutes } from "./http/routes/capabilities.js";
 import { registerGuardRoutes, evaluateGuard } from "./http/routes/guard.js";
 import { registerAutonomyRoutes } from "./http/routes/autonomy.js";
 import { addTurn, getHistory } from "./chat/sessionHistory.js";
+import { maybeExtractMemory } from "./chat/memoryExtractor.js";
 import { checkDailyBudget, getDailySpend } from "./chat/dailyBudget.js";
 import { startScheduler, stopScheduler, registerSchedulerRoutes, getPendingBriefings, clearPendingBriefings } from "./scheduler.js";
 import { startTelegramBot, stopTelegramBot, registerTelegramRoutes, sendTelegramMessage } from "./http/routes/telegram.js";
@@ -1260,6 +1261,8 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       if (oaiProposal) {
         storePending(oaiSessionId, oaiProposal, out.output);
       }
+      addTurn(oaiSessionId, "assistant", out.output);
+      maybeExtractMemory(normalized.input, out.output).catch(() => {});
 
       return reply.send({
         output: out.output,
