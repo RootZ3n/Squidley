@@ -1,5 +1,6 @@
 // apps/api/src/chat/systemPrompt.ts
 import path from "node:path";
+import { buildProactiveContext } from "./proactiveContext.js";
 import { mkdir, readdir, readFile, stat } from "node:fs/promises";
 import { buildWorkspaceContext, formatWorkspaceContext } from "./contextBuilder.js";
 
@@ -757,6 +758,7 @@ export async function buildChatSystemPrompt(args: {
   const { soul, identity } = await loadAgentTexts();
   const personality = await loadPersonalityText();
   const projectIndex = await loadProjectIndex();
+  const proactive = await buildProactiveContext().catch(() => ({ text: "", sources: [] }));
 
   const squid = await buildSquidNotes({ input });
   const memHits = await searchMemoryForChat(input, 5);
@@ -815,6 +817,9 @@ export async function buildChatSystemPrompt(args: {
   }
   if (projectIndex.trim()) {
     parts.push("\n---\n# PROJECTS & IDEAS (Jeff's active work)\n" + projectIndex.trim());
+  }
+  if (proactive.text.trim()) {
+    parts.push("\n---\n" + proactive.text.trim());
   }
 
   if (skill.trim()) {

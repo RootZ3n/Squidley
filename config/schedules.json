@@ -7,7 +7,7 @@
       "enabled": true,
       "label": "Daily news briefing — runs at 4:50am, ready for 5am",
       "focus": null,
-      "last_run": "2026-03-01T01:27:50.904Z",
+      "last_run": "2026-03-01T10:50:00.002Z",
       "last_result": "pass"
     },
     {
@@ -17,7 +17,7 @@
       "enabled": true,
       "label": "Morning briefing — runs at 5:00am, pushes to Telegram",
       "focus": null,
-      "last_run": "2026-03-01T01:33:24.614Z",
+      "last_run": "2026-03-01T11:00:00.001Z",
       "last_result": "pass"
     },
     {
