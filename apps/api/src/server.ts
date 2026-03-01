@@ -56,6 +56,7 @@ import { registerOnboardingRoutes } from "./http/routes/onboarding.js";
 import { registerCapabilitiesRoutes } from "./http/routes/capabilities.js";
 import { registerGuardRoutes, evaluateGuard } from "./http/routes/guard.js";
 import { registerAutonomyRoutes } from "./http/routes/autonomy.js";
+import { addTurn, getHistory } from "./chat/sessionHistory.js";
 import { startScheduler, stopScheduler, registerSchedulerRoutes, getPendingBriefings, clearPendingBriefings } from "./scheduler.js";
 import { startTelegramBot, stopTelegramBot, registerTelegramRoutes, sendTelegramMessage } from "./http/routes/telegram.js";
 
@@ -952,8 +953,12 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
     });
   }
 
+  // ── Conversation history ─────────────────────────────────────────────────
+  const history = session_id ? getHistory(session_id) : [];
+  if (session_id) addTurn(session_id, "user", normalized.input);
   const messages = [
     { role: "system", content: systemWithSquidNotes },
+    ...history,
     { role: "user", content: normalized.input }
   ] as const;
 
