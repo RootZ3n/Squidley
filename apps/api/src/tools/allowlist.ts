@@ -502,7 +502,48 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     timeoutMs: 30 * 60_000, // 30 min — large models take time
     maxOutputBytes: 128 * 1024,
   },
-
+// ── ComfyUI ───────────────────────────────────────────────────────────────
+  "comfyui.status": {
+    id: "comfyui.status",
+    title: "ComfyUI: check if server is running (read-only)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: false,
+    timeoutMs: 10_000,
+    maxOutputBytes: 16 * 1024,
+  },
+  "comfyui.start": {
+    id: "comfyui.start",
+    title: "ComfyUI: start the image generation server (admin)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: 30_000,
+    maxOutputBytes: 16 * 1024,
+  },
+  "comfyui.stop": {
+    id: "comfyui.stop",
+    title: "ComfyUI: stop the image generation server (admin)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: 15_000,
+    maxOutputBytes: 16 * 1024,
+  },
+  "comfyui.generate": {
+    id: "comfyui.generate",
+    title: "ComfyUI: generate an image from a prompt (admin)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: 5 * 60_000, // 5 min — large images can take time
+    maxOutputBytes: 256 * 1024,
+  },
+  
   // ── Skill security ────────────────────────────────────────────────────────
 
   "skill.scan": {

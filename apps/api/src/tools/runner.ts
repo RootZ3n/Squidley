@@ -944,6 +944,158 @@ Rules:
         stderr: "", truncated: { stdout: false, stderr: false }
       };
     }
+    // ── comfyui.status ────────────────────────────────────────────────────────
+    if (opts.tool_id === "comfyui.status") {
+      try {
+        const resp = await fetch("http://127.0.0.1:8188/system_stats", { signal: AbortSignal.timeout(5_000) });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json() as any;
+        return {
+          ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+          stdout: `ComfyUI: running ✓\nVersion: ${data.system?.comfyui_version}\nPyTorch: ${data.system?.pytorch_version}\nRAM free: ${Math.round((data.system?.ram_free ?? 0) / 1024 / 1024 / 1024 * 10) / 10}GB`,
+          stderr: "", truncated: { stdout: false, stderr: false }
+        };
+      } catch (e: any) {
+        return {
+          ok: false, exit_code: 1, signal: null as NodeJS.Signals | null,
+          stdout: `ComfyUI: not running\n${String(e?.message ?? e)}`,
+          stderr: "", truncated: { stdout: false, stderr: false }
+        };
+      }
+    }
+
+    // ── comfyui.start ─────────────────────────────────────────────────────────
+    if (opts.tool_id === "comfyui.start") {
+      const { execFile } = await import("node:child_process");
+      const { promisify } = await import("node:util");
+      const execFileAsync = promisify(execFile);
+      try {
+        await execFileAsync("systemctl", ["--user", "start", "comfyui"]);
+        // Wait up to 15s for it to be ready
+        for (let i = 0; i < 15; i++) {
+          await new Promise(r => setTimeout(r, 1000));
+          try {
+            const resp = await fetch("http://127.0.0.1:8188/system_stats", { signal: AbortSignal.timeout(2_000) });
+            if (resp.ok) {
+              return {
+                ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+                stdout: `ComfyUI started ✓ (ready in ${i + 1}s)`,
+                stderr: "", truncated: { stdout: false, stderr: false }
+              };
+            }
+          } catch {}
+        }
+        throw new Error("timed out waiting for ComfyUI to become ready");
+      } catch (e: any) {
+        return {
+          ok: false, exit_code: 1, signal: null as NodeJS.Signals | null,
+          stdout: `comfyui.start failed: ${String(e?.message ?? e)}`,
+          stderr: "", truncated: { stdout: false, stderr: false }
+        };
+      }
+    }
+
+    // ── comfyui.stop ──────────────────────────────────────────────────────────
+    if (opts.tool_id === "comfyui.stop") {
+      const { execFile } = await import("node:child_process");
+      const { promisify } = await import("node:util");
+      const execFileAsync = promisify(execFile);
+      try {
+        await execFileAsync("systemctl", ["--user", "stop", "comfyui"]);
+        return {
+          ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+          stdout: "ComfyUI stopped ✓",
+          stderr: "", truncated: { stdout: false, stderr: false }
+        };
+      } catch (e: any) {
+        return {
+          ok: false, exit_code: 1, signal: null as NodeJS.Signals | null,
+          stdout: `comfyui.stop failed: ${String(e?.message ?? e)}`,
+          stderr: "", truncated: { stdout: false, stderr: false }
+        };
+      }
+    }
+
+    // ── comfyui.generate ──────────────────────────────────────────────────────
+    if (opts.tool_id === "comfyui.generate") {
+      const rawArgs = (Array.isArray(opts.rawArgs) ? {} : (opts.rawArgs ?? {})) as Record<string, string>;
+      const prompt = String(rawArgs?.prompt ?? rawArgs?.query ?? "").trim();
+      const negativePrompt = String(rawArgs?.negative ?? "blurry, bad anatomy, watermark, text, logo").trim();
+      const outputName = String(rawArgs?.output ?? rawArgs?.filename ?? "squidley_gen").trim().replace(/[^a-zA-Z0-9_\-]/g, "_");
+      const steps = Math.min(50, Math.max(1, parseInt(String(rawArgs?.steps ?? "20"), 10)));
+      const width = parseInt(String(rawArgs?.width ?? "1024"), 10);
+      const height = parseInt(String(rawArgs?.height ?? "1024"), 10);
+      const seed = parseInt(String(rawArgs?.seed ?? String(Math.floor(Math.random() * 2**32))), 10);
+
+      if (!prompt) throw new ToolRunnerError("BAD_REQUEST", "comfyui.generate: prompt required");
+
+      // Check ComfyUI is running
+      try {
+        const check = await fetch("http://127.0.0.1:8188/system_stats", { signal: AbortSignal.timeout(3_000) });
+        if (!check.ok) throw new Error("not ready");
+      } catch {
+        throw new ToolRunnerError("INTERNAL", "comfyui.generate: ComfyUI is not running — use comfyui.start first");
+      }
+
+      // Build SDXL workflow
+      const workflow = {
+        "1": { class_type: "CheckpointLoaderSimple", inputs: { ckpt_name: "sd_xl_base_1.0.safetensors" } },
+        "2": { class_type: "CLIPTextEncode", inputs: { text: prompt, clip: ["1", 1] } },
+        "3": { class_type: "CLIPTextEncode", inputs: { text: negativePrompt, clip: ["1", 1] } },
+        "4": { class_type: "EmptyLatentImage", inputs: { width, height, batch_size: 1 } },
+        "5": { class_type: "KSampler", inputs: { model: ["1", 0], positive: ["2", 0], negative: ["3", 0], latent_image: ["4", 0], seed, steps, cfg: 7.0, sampler_name: "euler", scheduler: "normal", denoise: 1.0 } },
+        "6": { class_type: "VAEDecode", inputs: { samples: ["5", 0], vae: ["1", 2] } },
+        "7": { class_type: "SaveImage", inputs: { images: ["6", 0], filename_prefix: outputName } },
+      };
+
+      // Submit prompt
+      const submitResp = await fetch("http://127.0.0.1:8188/prompt", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ prompt: workflow }),
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!submitResp.ok) throw new ToolRunnerError("INTERNAL", `comfyui.generate: submit failed (${submitResp.status})`);
+      const submitData = await submitResp.json() as any;
+      const promptId = submitData?.prompt_id;
+      if (!promptId) throw new ToolRunnerError("INTERNAL", "comfyui.generate: no prompt_id returned");
+
+      // Poll for completion
+      const maxWaitMs = 4 * 60_000;
+      const pollInterval = 2_000;
+      const started = Date.now();
+      let outputFile = "";
+
+      while (Date.now() - started < maxWaitMs) {
+        await new Promise(r => setTimeout(r, pollInterval));
+        try {
+          const histResp = await fetch(`http://127.0.0.1:8188/history/${promptId}`, { signal: AbortSignal.timeout(5_000) });
+          if (!histResp.ok) continue;
+          const hist = await histResp.json() as any;
+          const entry = hist[promptId];
+          if (!entry?.outputs) continue;
+          // Find SaveImage output
+          for (const nodeOut of Object.values(entry.outputs) as any[]) {
+            if (nodeOut?.images?.[0]?.filename) {
+              outputFile = nodeOut.images[0].filename;
+              break;
+            }
+          }
+          if (outputFile) break;
+        } catch {}
+      }
+
+      if (!outputFile) throw new ToolRunnerError("INTERNAL", "comfyui.generate: timed out waiting for output");
+
+      const outputPath = `/media/zen/AI/comfyui/output/${outputFile}`;
+      const elapsedS = ((Date.now() - started) / 1000).toFixed(1);
+
+      return {
+        ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+        stdout: `comfyui.generate: ✓\nFile: ${outputPath}\nPrompt: ${prompt}\nSeed: ${seed}\nSteps: ${steps}\nElapsed: ${elapsedS}s`,
+        stderr: "", truncated: { stdout: false, stderr: false }
+      };
+    }
 
   })();
 
