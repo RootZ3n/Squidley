@@ -844,7 +844,6 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
     force_tier: body.force_tier,
     reason: body.reason
   };
-  console.log("[debug] normalized force_tier:", normalized.force_tier, "mode:", normalized.mode, "body.force_tier:", body.force_tier);
 
 
 
