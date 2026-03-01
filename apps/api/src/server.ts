@@ -911,7 +911,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
     });
   }
 
-  const needsReason = decision.tier.provider !== "ollama";
+  const needsReason = ["big_brain", "plan", "build"].includes(decision.tier.name);
   const hasReason = typeof normalized.reason === "string" && normalized.reason.trim().length > 0;
 
   if (needsReason && (cfg as any)?.budgets?.escalation_requires_reason && !hasReason) {

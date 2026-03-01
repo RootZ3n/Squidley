@@ -128,6 +128,7 @@ async function handleInboundMessage(
       payload: JSON.stringify({
         input: text,
         session_id: `telegram-${chatId}`,
+        source: "telegram",
       }),
     });
 
