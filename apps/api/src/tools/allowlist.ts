@@ -478,6 +478,54 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     timeoutMs: 5 * 60_000,
     maxOutputBytes: 512 * 1024,
   },
+
+  // ── Ollama (local AI) ─────────────────────────────────────────────────────
+
+  "ollama.list": {
+    id: "ollama.list",
+    title: "Ollama: list downloaded models (read-only)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: false,
+    timeoutMs: 10_000,
+    maxOutputBytes: 128 * 1024,
+  },
+
+  "ollama.pull": {
+    id: "ollama.pull",
+    title: "Ollama: pull a model (admin, long-running)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: 30 * 60_000, // 30 min — large models take time
+    maxOutputBytes: 128 * 1024,
+  },
+
+  // ── Skill security ────────────────────────────────────────────────────────
+
+  "skill.scan": {
+    id: "skill.scan",
+    title: "Skill: security scan a skill file (read-only)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: false,
+    timeoutMs: 30_000,
+    maxOutputBytes: 128 * 1024,
+  },
+
+  "skill.quarantine": {
+    id: "skill.quarantine",
+    title: "Skill: move a skill to quarantine (admin)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: 10_000,
+    maxOutputBytes: 64 * 1024,
+  },
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

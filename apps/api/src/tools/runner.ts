@@ -753,6 +753,102 @@ async function runInternalTool(opts: {
       }
     }
 
+    // ── ollama.list ───────────────────────────────────────────────────────────
+    // Lists all downloaded Ollama models. Read-only.
+    if (opts.tool_id === "ollama.list") {
+      const ollamaUrl = (process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434").replace(/\/$/, "");
+      const resp = await fetch(`${ollamaUrl}/api/tags`, { signal: AbortSignal.timeout(8_000) });
+      if (!resp.ok) throw new ToolRunnerError("INTERNAL", `ollama.list: Ollama returned ${resp.status}`);
+      const data = await resp.json() as any;
+      const models = (data?.models ?? []) as any[];
+      if (models.length === 0) {
+        return { ok: true, exit_code: 0, signal: null as NodeJS.Signals | null, stdout: "No models downloaded.\n", stderr: "", truncated: { stdout: false, stderr: false } };
+      }
+      const lines = models.map((m: any) => {
+        const sizeGb = ((m.size ?? 0) / 1e9).toFixed(1);
+        const modified = m.modified_at ? new Date(m.modified_at).toISOString().slice(0, 10) : "unknown";
+        return `${m.name.padEnd(40)} ${sizeGb.padStart(6)}GB  ${modified}`;
+      });
+      return {
+        ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+        stdout: `${models.length} model(s):\n${"name".padEnd(40)} ${"size".padStart(6)}    modified\n${"-".repeat(60)}\n${lines.join("\n")}\n`,
+        stderr: "", truncated: { stdout: false, stderr: false }
+      };
+    }
+
+    // ── ollama.pull ───────────────────────────────────────────────────────────
+    // Pulls a model from Ollama registry. Admin-only. Long-running.
+    // rawArgs: { model: "qwen2.5:7b" }
+    if (opts.tool_id === "ollama.pull") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const model = (rawArgsObj?.model as string ?? opts.userArgs[0] ?? "").trim();
+      if (!model) throw new ToolRunnerError("BAD_REQUEST", "ollama.pull: model name required");
+      if (!/^[a-zA-Z0-9_\-.:]+$/.test(model)) throw new ToolRunnerError("BAD_REQUEST", `ollama.pull: invalid model name: ${model}`);
+      const ollamaUrl = (process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434").replace(/\/$/, "");
+      const resp = await fetch(`${ollamaUrl}/api/pull`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: model, stream: false }),
+        signal: AbortSignal.timeout(29 * 60_000),
+      });
+      if (!resp.ok) throw new ToolRunnerError("INTERNAL", `ollama.pull: Ollama returned ${resp.status}`);
+      const data = await resp.json() as any;
+      const status = String(data?.status ?? "unknown");
+      return {
+        ok: status === "success" || status.includes("success"),
+        exit_code: 0, signal: null as NodeJS.Signals | null,
+        stdout: `ollama.pull ${model}: ${status}\n`,
+        stderr: "", truncated: { stdout: false, stderr: false }
+      };
+    }
+
+    // ── skill.scan ────────────────────────────────────────────────────────────
+    // Scans a skill file for injection patterns, impersonation, encoding tricks.
+    // Read-only — never executes skill content.
+    // rawArgs: { path: "skills/my-skill/skill.md" }
+    if (opts.tool_id === "skill.scan") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const relPath = (rawArgsObj?.path as string ?? opts.userArgs[0] ?? "").trim();
+      if (!relPath || relPath.includes("..") || path.isAbsolute(relPath)) {
+        throw new ToolRunnerError("BAD_REQUEST", "skill.scan: invalid path");
+      }
+      const repoRoot = process.env.ZENSQUID_ROOT ?? process.cwd();
+      const abs = path.resolve(repoRoot, relPath);
+      if (!abs.startsWith(repoRoot + path.sep)) throw new ToolRunnerError("FORBIDDEN", "skill.scan: path escapes repo root");
+      const text = await fsNode.readFile(abs, "utf8");
+      const { scanSkillText, formatScanResult } = await import("./skillScanner.js");
+      const result = scanSkillText(relPath, text);
+      return {
+        ok: true, exit_code: result.risk === "BLOCK" ? 2 : result.risk === "HIGH" ? 1 : 0,
+        signal: null as NodeJS.Signals | null,
+        stdout: formatScanResult(result) + "\n",
+        stderr: "",
+        truncated: { stdout: false, stderr: false }
+      };
+    }
+
+    // ── skill.quarantine ──────────────────────────────────────────────────────
+    // Moves a skill directory to skills/_quarantine/. Admin-only.
+    // rawArgs: { skill: "my-skill" }
+    if (opts.tool_id === "skill.quarantine") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const skillName = (rawArgsObj?.skill as string ?? rawArgsObj?.name as string ?? opts.userArgs[0] ?? "").trim();
+      if (!skillName || skillName.includes("..") || skillName.includes("/")) {
+        throw new ToolRunnerError("BAD_REQUEST", "skill.quarantine: invalid skill name");
+      }
+      const repoRoot = process.env.ZENSQUID_ROOT ?? process.cwd();
+      const srcDir = path.join(repoRoot, "skills", skillName);
+      const quarantineDir = path.join(repoRoot, "skills", "_quarantine");
+      const dstDir = path.join(quarantineDir, skillName);
+      await fsNode.mkdir(quarantineDir, { recursive: true });
+      await fsNode.rename(srcDir, dstDir);
+      return {
+        ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+        stdout: `quarantined: skills/${skillName} → skills/_quarantine/${skillName}\n`,
+        stderr: "", truncated: { stdout: false, stderr: false }
+      };
+    }
+
   })();
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
