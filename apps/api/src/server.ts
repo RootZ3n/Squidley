@@ -57,6 +57,7 @@ import { registerCapabilitiesRoutes } from "./http/routes/capabilities.js";
 import { registerGuardRoutes, evaluateGuard } from "./http/routes/guard.js";
 import { registerAutonomyRoutes } from "./http/routes/autonomy.js";
 import { startScheduler, stopScheduler, registerSchedulerRoutes, getPendingBriefings, clearPendingBriefings } from "./scheduler.js";
+import { startTelegramBot, stopTelegramBot, registerTelegramRoutes, sendTelegramMessage } from "./http/routes/telegram.js";
 
 type RequestKind = "chat" | "heartbeat" | "tool" | "system";
 
@@ -475,17 +476,20 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
   if (!input) return reply.code(400).send({ error: "Missing input" });
 
   // ── Scheduled briefings ───────────────────────────────────────────────────
-  // Collect any agent runs that happened while the user was away
-  // Don't intercept — prepend to normal response instead
+  // Surface any agent runs that happened while the user was away
   const briefings = getPendingBriefings();
-  let briefingPrefix = "";
   if (briefings.length > 0) {
     clearPendingBriefings();
     const briefingText = briefings.map((b) => {
       const status = b.fail > 0 ? "⚠️ partial" : "✅";
-      return `${status} **${b.agent}** — ${b.pass}/${b.steps_ran} steps passed`;
+      return `${status} **${b.agent}** ran at ${new Date(b.ran_at).toLocaleTimeString()} — ${b.pass}/${b.steps_ran} steps passed`;
     }).join("\n");
-    briefingPrefix = `🦑 *Background update: ${briefings.length} scheduled task(s) ran while you were away:*\n${briefingText}\n\n---\n\n`;
+    return reply.send({
+      response: `🦑 While you were away, I ran ${briefings.length} scheduled task(s):\n\n${briefingText}\n\nWant me to summarize the results?`,
+      tier: "local",
+      session_id,
+      briefings,
+    });
   }
 
   // ── Agent approval loop ──────────────────────────────────────────────────────
@@ -907,7 +911,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
     });
   }
 
-  const needsReason = ["big_brain", "plan", "build"].includes(decision.tier.name);
+  const needsReason = decision.tier.provider !== "ollama";
   const hasReason = typeof normalized.reason === "string" && normalized.reason.trim().length > 0;
 
   if (needsReason && (cfg as any)?.budgets?.escalation_requires_reason && !hasReason) {
@@ -1139,7 +1143,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
     }
 
     return reply.send({
-      output: briefingPrefix + out.content,
+      output: out.content,
       tier: decision.tier.name,
       provider: decision.tier.provider,
       model: decision.tier.model,
@@ -1150,7 +1154,6 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       context: meta,
       session_id: msSessionId,
       pending_tool: msProposal ? msProposal.tool_id : null,
-      briefings: briefings.length > 0 ? briefings : undefined,
     });
   }
 
@@ -1505,15 +1508,19 @@ if (!isLocalhost && !isWildcard && !isPrivateishHost(bindHostRaw) && !allowPubli
 }
 
 const host = bindHostRaw;
+// Register routes (must be before listen)
 await registerSchedulerRoutes(app);
+await registerTelegramRoutes(app);
 await app.listen({ port, host });
 
-// Start heartbeat scheduler
+// Start background services
 await startScheduler(app);
+await startTelegramBot(app);
 
 // Graceful shutdown
 const shutdown = async () => {
   stopScheduler();
+  stopTelegramBot();
   await app.close();
   process.exit(0);
 };

@@ -10,6 +10,7 @@ import { Cron } from "croner";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { FastifyInstance } from "fastify";
+import { sendTelegramMessage } from "./http/routes/telegram.js";
 
 export type ScheduleEntry = {
   id: string;
@@ -99,14 +100,21 @@ async function runScheduledAgent(
     );
 
     // Queue briefing for next chat session
-    pendingBriefings.push({
+    const briefing = {
       agent: entry.agent,
       ran_at,
       steps_ran,
       pass,
       fail,
       summary: summary.slice(0, 500),
-    });
+    };
+    pendingBriefings.push(briefing);
+
+    // Push to Telegram proactively
+    const status = fail > 0 ? "⚠️" : "✅";
+    await sendTelegramMessage(
+      `${status} *${entry.agent}* finished\n${pass}/${steps_ran} steps passed\n\n${summary.slice(0, 400)}`
+    ).catch(() => {});
 
     // Update last_run in schedules.json
     await saveSchedule({
