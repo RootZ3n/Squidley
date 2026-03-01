@@ -67,7 +67,7 @@
       "enabled": true,
       "label": "Proactive watcher — every 30min, 6am-10pm",
       "focus": null,
-      "last_run": "2026-03-01T21:00:00.000Z",
+      "last_run": "2026-03-01T22:30:00.003Z",
       "last_result": "pass"
     },
     {

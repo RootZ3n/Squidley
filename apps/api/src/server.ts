@@ -434,7 +434,6 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
   if (!input) return reply.code(400).send({ error: "Missing input" });
 
   // ── Scheduled briefings ───────────────────────────────────────────────────
-  // Surface any agent runs that happened while the user was away
   const briefings = getPendingBriefings();
   if (briefings.length > 0) {
     clearPendingBriefings();
@@ -450,7 +449,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
     });
   }
 
-  // ── Agent approval loop ──────────────────────────────────────────────────────
+  // ── Agent approval loop ───────────────────────────────────────────────────
   if (session_id && hasPendingAgent(session_id)) {
     const pendingAgent = getPendingAgent(session_id)!;
 
@@ -473,13 +472,11 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
           adminToken,
         });
 
-        // Read the thread it wrote and format as readable output
         const lines: string[] = [];
         lines.push(`🤖 Agent: ${result.agent}`);
         lines.push(`${result.pass}/${result.steps_ran} steps passed${result.fail > 0 ? ` (${result.fail} failed)` : ""}`);
         lines.push("");
         if (result.summary) {
-          // Show the key findings — skip the header lines
           const summaryLines = result.summary.split("\n").filter((l: string) =>
             !l.startsWith("Agent:") && !l.startsWith("Focus:") && !l.startsWith("Ran:")
           );
@@ -507,7 +504,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
     }
   }
 
-  // ── Plan approval loop ───────────────────────────────────────────────────────
+  // ── Plan approval loop ────────────────────────────────────────────────────
   if (session_id && hasPendingPlan(session_id)) {
     const pendingPlan = getPendingPlan(session_id)!;
 
@@ -537,7 +534,6 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
         const summary = approveJson?.summary;
         const results: any[] = approveJson?.results ?? [];
 
-        // Format results as readable output
         const lines: string[] = [];
         lines.push(`Plan: ${pendingPlan.goal}`);
         lines.push("");
@@ -589,8 +585,6 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       try {
         const adminToken = String((req.headers as any)["x-zensquid-admin-token"] ?? "").trim() || undefined;
 
-        // Convert object args to array for subprocess tools (rg.search, git.*, etc.)
-        // JS-handled tools (web.search, fs.read, etc.) receive the object directly.
         const rawArgs = pending.proposal.args;
         const jsTools = new Set(["web.search", "fs.read", "fs.write", "proc.exec", "systemctl.user", "diag.sleep", "browser.visit", "browser.extract", "browser.search", "browser.screenshot", "fs.survey", "fs.organize", "job.detect-form", "job.fill-form"]);
         let finalArgs: string[] | Record<string, string>;
@@ -606,16 +600,14 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
             const parts: string[] = [];
             if (rawArgs.range) parts.push(rawArgs.range);
             if (rawArgs.file) parts.push("--", rawArgs.file);
-            finalArgs = parts; // empty = unstaged diff, which is useful default
+            finalArgs = parts;
           } else if (toolId === "git.log") {
             finalArgs = rawArgs.count ? ["-n", rawArgs.count] : [];
           } else if (toolId === "fs.write") {
-            // args: { path: "skills/foo/skill.md", content: "..." }
             const p = rawArgs.path ?? "";
             const content = rawArgs.content ?? "";
             finalArgs = [p, content];
           } else if (toolId === "fs.read") {
-            // args: { path: "skills/foo/skill.md" }
             finalArgs = [rawArgs.path ?? ""];
           } else {
             finalArgs = Object.values(rawArgs).filter(Boolean) as string[];
@@ -634,12 +626,10 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
         toolOutput = `Error: ${String(e?.message ?? "tool failed")}`;
         toolOk = false;
       }
-      // For git/rg tools, send output through the model for analysis
+
       const analysisTools = new Set(["git.status", "git.diff", "git.log", "rg.search"]);
       if (toolOk && analysisTools.has(pending.proposal.tool_id)) {
-        // Fall through to normal chat with tool output injected as context
         const toolContext = `[Tool: ${pending.proposal.tool_id} output]\n${toolOutput}\n[/Tool output]\n\nAnalyze the above output as my building partner. Be direct and concrete.`;
-        // Re-enter chat flow with tool output as the input
         const cfg2 = await loadConfig(process.env.ZENSQUID_CONFIG);
         const { listTools: lt2 } = await import("./tools/allowlist.js");
         const toolList2 = lt2(false);
@@ -663,18 +653,15 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
           messages: analysisMessages,
         });
 
-        // ✅ Auto-write thread summary from analysis — best effort, never blocks response
         void writeAnalysisThread({
           toolId: pending.proposal.tool_id,
           analysisText: analysisOut.output,
           rawToolOutput: toolOutput,
         });
 
-        // ✅ Check if analysis response contains a new proposal (e.g. skill write offer)
         const analysisProposal = extractToolProposal(analysisOut.output);
         let analysisPendingTool: string | null = null;
         if (analysisProposal) {
-          // For fs.write proposals, inject the real analysis content as the skill body
           if (analysisProposal.tool_id === "fs.write" && analysisProposal.args.path) {
             analysisProposal.args.content = [
               `# Skill: ${String(analysisProposal.args.path).split("/").slice(-2, -1)[0] ?? "git-skill"}`,
@@ -713,7 +700,6 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
         tool_ok: toolOk,
       });
     }
-    // Not approval or denial — fall through to normal chat
     clearPending(session_id);
   }
   // ── End tool approval loop ────────────────────────────────────────────────
@@ -859,7 +845,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
     });
   }
 
-  // ── Daily budget + nightly lockout (scheduled runs only) ────────────────
+  // ── Daily budget + nightly lockout (scheduled runs only) ─────────────────
   if (decision.tier.provider !== "ollama") {
     const triggeredBy = (body as any)?.triggered_by ?? "";
     const isScheduledRun = String(triggeredBy).startsWith("scheduler:");
@@ -915,7 +901,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
     });
   }
 
-  // ── Conversation history ─────────────────────────────────────────────────
+  // ── Conversation history ──────────────────────────────────────────────────
   const history = session_id ? getHistory(session_id) : [];
   if (session_id) addTurn(session_id, "user", normalized.input);
   const messages = [
@@ -924,7 +910,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
     { role: "user", content: normalized.input }
   ] as const;
 
-  // ── Ollama (local) ──────────────────────────────────────────────────────────
+  // ── Ollama (local) ────────────────────────────────────────────────────────
   if (decision.tier.provider === "ollama") {
     const out = await ollamaChat({
       baseUrl: cfg.providers.ollama.base_url,
@@ -959,15 +945,21 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
 
     await writeReceipt(zensquidRoot(), receipt as ReceiptV1);
 
-    const ollamaProposal = extractToolProposal(out.output);
     const ollamaSessionId = session_id ?? crypto.randomUUID();
-    if (ollamaProposal) {
-      storePending(ollamaSessionId, ollamaProposal, out.output);
+
+    // ✅ Agent proposal detection — FIRST, takes priority over tool/plan
+    let pendingAgentName: string | null = null;
+    if (isAgentProposal(out.output)) {
+      const agentProposal = extractAgentProposal(out.output, normalized.input);
+      if (agentProposal) {
+        storePendingAgent(ollamaSessionId, agentProposal.agent_name, agentProposal.focus);
+        pendingAgentName = agentProposal.agent_name;
+      }
     }
 
-    // ✅ Plan proposal detection — if Squidley proposes a multi-step plan, generate it
+    // ✅ Plan proposal detection — only if no agent detected
     let pendingPlanId: string | null = null;
-    if (!ollamaProposal && isPlanProposal(out.output)) {
+    if (!pendingAgentName && isPlanProposal(out.output)) {
       try {
         const planGoal = extractPlanGoal(out.output);
         const adminToken = String((req.headers as any)["x-zensquid-admin-token"] ?? "").trim();
@@ -987,14 +979,12 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       }
     }
 
-    // ✅ Agent proposal detection
-    let pendingAgentName: string | null = null;
-    if (!ollamaProposal && !pendingPlanId && isAgentProposal(out.output)) {
-      const agentProposal = extractAgentProposal(out.output, normalized.input);
-      if (agentProposal) {
-        storePendingAgent(ollamaSessionId, agentProposal.agent_name, agentProposal.focus);
-        pendingAgentName = agentProposal.agent_name;
-      }
+    // ✅ Tool proposal detection — only if no agent and no plan
+    const ollamaProposal = (!pendingAgentName && !pendingPlanId)
+      ? extractToolProposal(out.output)
+      : null;
+    if (ollamaProposal) {
+      storePending(ollamaSessionId, ollamaProposal, out.output);
     }
 
     // ✅ Memory extraction + session history for Ollama
@@ -1018,7 +1008,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
     });
   }
 
-  // ── ModelStudio ─────────────────────────────────────────────────────────────
+  // ── ModelStudio ───────────────────────────────────────────────────────────
   if (decision.tier.provider === "modelstudio") {
     const provCfg = (cfg as any)?.providers?.modelstudio ?? {};
     const envKeyName = String(provCfg?.env_key ?? "").trim() || "DASHSCOPE_API_KEY";
@@ -1107,15 +1097,21 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
 
     await writeReceipt(zensquidRoot(), receipt);
 
-    const msProposal = extractToolProposal(out.content);
     const msSessionId = session_id ?? crypto.randomUUID();
-    if (msProposal) {
-      storePending(msSessionId, msProposal, out.content);
+
+    // ✅ Agent proposal detection — FIRST, takes priority over tool/plan
+    let msPendingAgentName: string | null = null;
+    if (isAgentProposal(out.content)) {
+      const agentProposal = extractAgentProposal(out.content, normalized.input);
+      if (agentProposal) {
+        storePendingAgent(msSessionId, agentProposal.agent_name, agentProposal.focus);
+        msPendingAgentName = agentProposal.agent_name;
+      }
     }
 
-    // ✅ Plan proposal detection for ModelStudio
+    // ✅ Plan proposal detection — only if no agent
     let msPendingPlanId: string | null = null;
-    if (!msProposal && isPlanProposal(out.content)) {
+    if (!msPendingAgentName && isPlanProposal(out.content)) {
       try {
         const planGoal = extractPlanGoal(out.content);
         const adminToken = String((req.headers as any)["x-zensquid-admin-token"] ?? "").trim();
@@ -1135,14 +1131,12 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       }
     }
 
-    // ✅ Agent proposal detection for ModelStudio
-    let msPendingAgentName: string | null = null;
-    if (!msProposal && !msPendingPlanId && isAgentProposal(out.content)) {
-      const agentProposal = extractAgentProposal(out.content, normalized.input);
-      if (agentProposal) {
-        storePendingAgent(msSessionId, agentProposal.agent_name, agentProposal.focus);
-        msPendingAgentName = agentProposal.agent_name;
-      }
+    // ✅ Tool proposal detection — only if no agent and no plan
+    const msProposal = (!msPendingAgentName && !msPendingPlanId)
+      ? extractToolProposal(out.content)
+      : null;
+    if (msProposal) {
+      storePending(msSessionId, msProposal, out.content);
     }
 
     // ✅ Session history + memory extraction for ModelStudio
@@ -1166,7 +1160,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
     });
   }
 
-  // ── OpenAI ──────────────────────────────────────────────────────────────────
+  // ── OpenAI ────────────────────────────────────────────────────────────────
   if (decision.tier.provider === "openai") {
     const provCfg = (cfg as any)?.providers?.openai ?? {};
     const envKeyName = String(provCfg?.env_key ?? "").trim() || "OPENAI_API_KEY";
@@ -1252,15 +1246,21 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
 
       await writeReceipt(zensquidRoot(), receipt as ReceiptV1);
 
-      const oaiProposal = extractToolProposal(out.output);
       const oaiSessionId = session_id ?? crypto.randomUUID();
-      if (oaiProposal) {
-        storePending(oaiSessionId, oaiProposal, out.output);
+
+      // ✅ Agent proposal detection — FIRST, takes priority over tool/plan
+      let oaiPendingAgentName: string | null = null;
+      if (isAgentProposal(out.output)) {
+        const agentProposal = extractAgentProposal(out.output, normalized.input);
+        if (agentProposal) {
+          storePendingAgent(oaiSessionId, agentProposal.agent_name, agentProposal.focus);
+          oaiPendingAgentName = agentProposal.agent_name;
+        }
       }
 
-      // ✅ Plan proposal detection for OpenAI
+      // ✅ Plan proposal detection — only if no agent
       let oaiPendingPlanId: string | null = null;
-      if (!oaiProposal && isPlanProposal(out.output)) {
+      if (!oaiPendingAgentName && isPlanProposal(out.output)) {
         try {
           const planGoal = extractPlanGoal(out.output);
           const adminToken = String((req.headers as any)["x-zensquid-admin-token"] ?? "").trim();
@@ -1280,14 +1280,12 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
         }
       }
 
-      // ✅ Agent proposal detection for OpenAI
-      let oaiPendingAgentName: string | null = null;
-      if (!oaiProposal && !oaiPendingPlanId && isAgentProposal(out.output)) {
-        const agentProposal = extractAgentProposal(out.output, normalized.input);
-        if (agentProposal) {
-          storePendingAgent(oaiSessionId, agentProposal.agent_name, agentProposal.focus);
-          oaiPendingAgentName = agentProposal.agent_name;
-        }
+      // ✅ Tool proposal detection — only if no agent and no plan
+      const oaiProposal = (!oaiPendingAgentName && !oaiPendingPlanId)
+        ? extractToolProposal(out.output)
+        : null;
+      if (oaiProposal) {
+        storePending(oaiSessionId, oaiProposal, out.output);
       }
 
       addTurn(oaiSessionId, "assistant", out.output);
@@ -1554,16 +1552,13 @@ if (!isLocalhost && !isWildcard && !isPrivateishHost(bindHostRaw) && !allowPubli
 }
 
 const host = bindHostRaw;
-// Register routes (must be before listen)
 await registerSchedulerRoutes(app);
 await registerTelegramRoutes(app);
 await app.listen({ port, host });
 
-// Start background services
 await startScheduler(app);
 await startTelegramBot(app);
 
-// Graceful shutdown
 const shutdown = async () => {
   stopScheduler();
   stopTelegramBot();

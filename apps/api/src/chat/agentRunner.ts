@@ -180,13 +180,11 @@ export async function listAgents(): Promise<Array<{ name: string; role: string }
 }
 
 // ── Resolve target directory from focus string ────────────────────────────────
-// Expands ~ and resolves relative paths. Falls back to ZENSQUID_ROOT.
 
 function resolveTargetDir(focus?: string): string {
   if (!focus || focus === "default") {
     return process.env.ZENSQUID_ROOT ?? process.cwd();
   }
-  // Expand ~ to home
   const expanded = focus.trim().replace(/^~(?=\/|$)/, os.homedir());
   return path.resolve(expanded);
 }
@@ -201,12 +199,18 @@ function substituteVars(str: string, vars: Record<string, string>): string {
   return result;
 }
 
+// ── Derive a safe skill name slug from a focus string ─────────────────────────
+
+function toSkillSlug(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9\-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+}
+
 // ── Run agent ─────────────────────────────────────────────────────────────────
 
 export async function runAgent(args: {
   agentName: string;
   focus?: string;
-  app: any; // Fastify instance for inject
+  app: any;
   adminToken: string;
   ollamaUrl?: string;
   model?: string;
@@ -220,7 +224,6 @@ export async function runAgent(args: {
     `memory/threads/${thread_id}.json`
   );
 
-  // Load agent definition
   const agent = await loadAgentDefinition(agentName);
   if (!agent) {
     return {
@@ -237,31 +240,29 @@ export async function runAgent(args: {
     };
   }
 
-  // Resolve the actual target directory from focus
-  const targetDir = resolveTargetDir(focus);
+  const isPathFocus = focus && (focus.startsWith("/") || focus.startsWith("~"));
+  const targetDir = isPathFocus ? resolveTargetDir(focus) : (process.env.ZENSQUID_ROOT ?? process.cwd());
 
-  // Template vars available to all plan steps
   const templateVars: Record<string, string> = {
     target_dir: targetDir,
     focus: focus ?? targetDir,
+    focus_slug: focus && !focus.startsWith("/") && !focus.startsWith("~")
+      ? toSkillSlug(focus)
+      : toSkillSlug(focus ?? ""),
     date: today,
   };
 
   // Build plan — substitute template vars in all steps
   const steps = agent.default_plan.map((step) => {
-    // Substitute {target_dir} and other vars in the query/cmd arg
     const substituted: Record<string, any> = {};
     if (step.args) {
       for (const [k, v] of Object.entries(step.args)) {
         substituted[k] = typeof v === "string" ? substituteVars(v, templateVars) : v;
       }
     }
-
-    // For rg.search with focus, override query with focus
     if (step.tool === "rg.search" && focus && focus !== "default") {
       return { tool: step.tool, args: { query: focus, path: targetDir } };
     }
-
     return { tool: step.tool, args: Object.keys(substituted).length > 0 ? substituted : undefined };
   });
 
@@ -274,7 +275,6 @@ export async function runAgent(args: {
   }> = [];
 
   for (const step of steps) {
-    // Check tool is allowed
     if (!agent.allowed_tools.includes(step.tool)) {
       results.push({ tool: step.tool, ok: false, stdout: "", error: "not in agent allowlist" });
       break;
@@ -284,8 +284,6 @@ export async function runAgent(args: {
       let payload: any;
 
       if (step.tool === "proc.exec") {
-        // proc.exec gets the full command string as rawArgs { cmd: "..." }
-        // The query arg from the plan parser contains the full command string
         const cmdStr = step.args?.query ?? step.args?.cmd ?? "";
         payload = {
           workspace: "squidley",
@@ -293,13 +291,53 @@ export async function runAgent(args: {
           args: { cmd: String(cmdStr) },
         };
       } else if (step.tool === "fs.read" || step.tool === "fs.write") {
-        const fsReadArgs = step.tool === "fs.read"
+        const fsArgs = step.tool === "fs.read"
           ? { path: step.args?.path ?? step.args?.query ?? "" }
           : step.args ?? {};
         payload = {
           workspace: "squidley",
           tool_id: step.tool,
-          args: fsReadArgs,
+          args: fsArgs,
+        };
+      } else if (step.tool === "fs.tree") {
+        // fs.tree: args.query is the path, args.depth optionally set
+        const treePath = step.args?.path ?? step.args?.query ?? "skills";
+        const treeDepth = step.args?.depth ?? "2";
+        payload = {
+          workspace: "squidley",
+          tool_id: "fs.tree",
+          args: { path: String(treePath), depth: String(treeDepth) },
+        };
+      } else if (step.tool === "skill.build") {
+        // skill.build: use raw focus if it's a topic string (not a path), else use substituted arg
+        const rawTopic = focus && !focus.startsWith("/") && !focus.startsWith("~")
+          ? focus
+          : String(step.args?.topic ?? step.args?.name ?? step.args?.query ?? focus ?? "");
+        const name = toSkillSlug(rawTopic);
+        const topic = rawTopic;
+        payload = {
+          workspace: "squidley",
+          tool_id: "skill.build",
+          args: { name, topic },
+        };
+      } else if (step.tool === "skill.scan") {
+        // skill.scan path may contain {focus} which needs to be slugified for the path
+        const rawScanPath = String(step.args?.path ?? step.args?.query ?? "");
+        const skillSlug = focus && !focus.startsWith("/") && !focus.startsWith("~")
+          ? toSkillSlug(focus)
+          : toSkillSlug(String(focus ?? ""));
+        const scanPath = rawScanPath.replace(/\{focus\}/g, skillSlug);
+        payload = {
+          workspace: "squidley",
+          tool_id: "skill.scan",
+          args: { path: scanPath },
+        };
+      } else if (step.tool === "skill.quarantine") {
+        const skillName = step.args?.skill ?? step.args?.name ?? step.args?.query ?? "";
+        payload = {
+          workspace: "squidley",
+          tool_id: "skill.quarantine",
+          args: { skill: String(skillName) },
         };
       } else {
         payload = {
@@ -340,7 +378,7 @@ export async function runAgent(args: {
         error: !ok ? (errMsg || "tool failed") : undefined,
       });
 
-      if (!ok) break; // stop on fail
+      if (!ok) break;
     } catch (e: any) {
       results.push({ tool: step.tool, ok: false, stdout: "", error: String(e?.message ?? e) });
       break;
@@ -350,7 +388,6 @@ export async function runAgent(args: {
   const pass = results.filter((r) => r.ok).length;
   const fail = results.filter((r) => !r.ok).length;
 
-  // Build summary from results
   const summaryLines: string[] = [];
   summaryLines.push(`Agent: ${agentName}`);
   summaryLines.push(`Focus: ${focus ?? "default inspection"}`);
@@ -365,7 +402,6 @@ export async function runAgent(args: {
   }
   const summary = summaryLines.join("\n");
 
-  // Extract open loops from stdout (TODOs, FIXMEs, etc.)
   const open_loops: string[] = [];
   for (const r of results) {
     if (r.tool === "rg.search" && r.stdout) {
@@ -376,7 +412,7 @@ export async function runAgent(args: {
     }
   }
 
-  // ── Post-process: send results to model for extraction ────────────────────
+  // ── Post-process ──────────────────────────────────────────────────────────
   let modelOutput = "";
   let writtenFiles: string[] = [];
 
@@ -468,7 +504,6 @@ export async function runAgent(args: {
           const outDir = path.resolve(zensquidRoot(), agent.post_process.write_to);
           await fs.mkdir(outDir, { recursive: true });
 
-          // Model output may contain multiple --- FILE: path --- sections
           const fileBlocks = modelOutput.split(/^---\s*FILE:\s*/m).filter(Boolean);
           if (fileBlocks.length > 1) {
             for (const block of fileBlocks) {
@@ -522,7 +557,6 @@ export async function runAgent(args: {
     await fs.mkdir(threadsDir(), { recursive: true });
     await fs.writeFile(thread_path, JSON.stringify(thread, null, 2), "utf8");
 
-    // Update _active.txt
     const activeFp = path.resolve(threadsDir(), "_active.txt");
     await fs.writeFile(activeFp, thread_id + "\n", "utf8");
   } catch (e: any) {

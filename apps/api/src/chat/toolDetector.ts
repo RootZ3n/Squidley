@@ -199,10 +199,25 @@ export type AgentProposal = {
   focus?: string;
 };
 
-// Extract a clean path only — matches ~/path or /absolute/path, nothing else
+// Extract a clean path only — matches ~/path or /absolute/path at word boundary
+// Intentionally does NOT match relative paths like skills/foo/bar.md
 function extractCleanPath(text: string): string | undefined {
-  const m = text.match(/(~\/[^\s,;.?!'"]+|\/[a-zA-Z0-9_\-./]+)/);
+  const m = text.match(/(?:^|\s)(~\/[^\s,;.?!'"]+|\/[a-zA-Z0-9_\-]+(?:\/[a-zA-Z0-9_\-./]+)+)/);
   return m?.[1]?.trim();
+}
+
+// Extract a topic phrase after "about", "covering", "for", "called", "named", "on"
+// Used for skill-builder and similar topic-based agents.
+// Returns the raw topic string (not slugified — caller handles that).
+function extractTopicFocus(text: string): string | undefined {
+  const m = text.match(
+    /(?:about|covering|regarding|documenting|for|called|named|on)\s+(?:a\s+skill\s+(?:about|for|covering)\s+)?([a-zA-Z0-9][a-zA-Z0-9\s._\-]{2,60}?)(?:\s*[,?!]|\s*\.(?:\s|$)|$)/i
+  );
+  if (!m?.[1]) return undefined;
+  const topic = m[1].trim().replace(/\.$/, "");
+  // Reject if it looks like common filler words
+  if (/^(the|a|an|it|this|that|these|those|me|my|our)$/i.test(topic)) return undefined;
+  return topic;
 }
 
 /**
@@ -213,6 +228,8 @@ function extractCleanPath(text: string): string | undefined {
  * 1. Clean path from user input (~/ or /absolute) — most reliable
  * 2. Clean path from Squidley's response
  * 3. Named target from user input ("on the openclaw repo")
+ * 4. Topic phrase from user input ("about proc.exec best practices")
+ * 5. Topic phrase from Squidley's response
  */
 export function extractAgentProposal(text: string, userInput?: string): AgentProposal | null {
   for (const pattern of AGENT_PROPOSAL_PATTERNS) {
@@ -232,6 +249,16 @@ export function extractAgentProposal(text: string, userInput?: string): AgentPro
           /(?:on|at|in|for|inspect|analyze|survey|check)\s+(?:the\s+)?([a-zA-Z0-9_\-]+(?:\s+[a-zA-Z0-9_\-]+)?)\s*(?:repo|dir|directory|folder|codebase|project)?/i
         );
         if (km?.[1]) focus = km[1].trim();
+      }
+
+      // Priority 4: topic phrase from user input e.g. "about proc.exec best practices"
+      if (!focus && userInput) {
+        focus = extractTopicFocus(userInput);
+      }
+
+      // Priority 5: topic phrase from Squidley's response
+      if (!focus) {
+        focus = extractTopicFocus(text);
       }
 
       return { agent_name, focus };
