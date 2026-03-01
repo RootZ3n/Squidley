@@ -526,6 +526,17 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     timeoutMs: 10_000,
     maxOutputBytes: 64 * 1024,
   },
+
+  "skill.build": {
+    id: "skill.build",
+    title: "Skill: draft, scan, and write a new skill file (admin)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: 60_000,
+    maxOutputBytes: 128 * 1024,
+  },
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

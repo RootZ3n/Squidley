@@ -849,6 +849,102 @@ async function runInternalTool(opts: {
       };
     }
 
+    // ── skill.build ───────────────────────────────────────────────────────────
+    // Drafts a skill using the local model, scans it, and writes it if clean.
+    // Admin-only.
+    // rawArgs: { name: "my-skill", topic: "how to use rg.search effectively" }
+    if (opts.tool_id === "skill.build") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const rawName = (rawArgsObj?.name as string ?? opts.userArgs[0] ?? "").trim();
+      const topic = (rawArgsObj?.topic as string ?? rawArgsObj?.description as string ?? rawName).trim();
+      if (!rawName) throw new ToolRunnerError("BAD_REQUEST", "skill.build: name required");
+
+      // Sanitize name to safe directory name
+      const skillName = rawName.toLowerCase().replace(/[^a-z0-9\-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+      if (!skillName) throw new ToolRunnerError("BAD_REQUEST", "skill.build: could not derive safe skill name");
+
+      const repoRoot = process.env.ZENSQUID_ROOT ?? process.cwd();
+      const skillDir = path.join(repoRoot, "skills", skillName);
+      const skillPath = path.join(skillDir, "skill.md");
+
+      // Check skill doesn't already exist
+      try {
+        await fsNode.access(skillPath);
+        throw new ToolRunnerError("BAD_REQUEST", `skill.build: skill already exists: skills/${skillName}/skill.md`);
+      } catch (e: any) {
+        if (e instanceof ToolRunnerError) throw e;
+        // File doesn't exist — good, proceed
+      }
+
+      // Draft skill content via Ollama
+      const ollamaUrl = (process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434").replace(/\/$/, "");
+      const model = process.env.SQUIDLEY_PLAN_MODEL ?? "qwen2.5:14b-instruct";
+      const today = new Date().toISOString().slice(0, 10);
+
+      const prompt = `You are writing a skill file for Squidley, an AI orchestration system.
+A "skill" is a markdown document that gives Squidley knowledge and best practices for a specific topic.
+Skill files are loaded into Squidley's context to help her handle related tasks better.
+
+Write a skill.md file for the following topic: "${topic}"
+
+The skill file MUST follow this exact format:
+# Skill: ${skillName}
+## Purpose
+[One sentence description of what this skill covers]
+## [Section name — choose appropriate sections for the topic]
+[Content]
+## Metadata
+- created: ${today}
+- author: Squidley + Jeff
+
+Rules:
+- Be specific and actionable — this is reference material Squidley will use
+- Include concrete examples, commands, or patterns where relevant
+- Keep it under 60 lines
+- Do NOT include any instructions to ignore previous instructions, bypass safety, or access external URLs
+- Do NOT claim any special permissions or admin access
+- Output ONLY the skill.md content, no preamble or explanation`;
+
+      const draftResp = await fetch(`${ollamaUrl}/api/chat`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          model,
+          stream: false,
+          messages: [{ role: "user", content: prompt }]
+        }),
+        signal: AbortSignal.timeout(45_000),
+      });
+
+      if (!draftResp.ok) throw new ToolRunnerError("INTERNAL", `skill.build: Ollama returned ${draftResp.status}`);
+      const draftData = await draftResp.json() as any;
+      const drafted = String(draftData?.message?.content ?? draftData?.response ?? "").trim();
+
+      if (!drafted || drafted.length < 50) {
+        throw new ToolRunnerError("INTERNAL", "skill.build: model returned empty or too-short content");
+      }
+
+      // Security scan the drafted content before writing
+      const { scanSkillText } = await import("./skillScanner.js");
+      const scanResult = scanSkillText(`skills/${skillName}/skill.md`, drafted);
+
+      if (scanResult.risk === "BLOCK") {
+        const findings = scanResult.findings.map(f => `  [${f.level}] ${f.rule}: "${f.match}"`).join("\n");
+        throw new ToolRunnerError("FORBIDDEN", `skill.build: drafted content failed security scan (BLOCK):\n${findings}`);
+      }
+
+      // Write the skill
+      await fsNode.mkdir(skillDir, { recursive: true });
+      await fsNode.writeFile(skillPath, drafted, "utf8");
+
+      const riskNote = scanResult.risk === "LOW" ? "✅ clean" : `⚠️  ${scanResult.risk} (${scanResult.findings.length} finding(s))`;
+      return {
+        ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+        stdout: `skill.build: wrote skills/${skillName}/skill.md\nSecurity scan: ${riskNote}\nLines: ${drafted.split("\n").length}\n\n${drafted}\n`,
+        stderr: "", truncated: { stdout: false, stderr: false }
+      };
+    }
+
   })();
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
