@@ -423,51 +423,6 @@ app.post("/heartbeat", async (req, reply) => {
   }
 });
 
-// ── Chat ──────────────────────────────────────────────────────────────────────
-
-function looksInfraOrTooling(input: string): boolean {
-  const s = input.toLowerCase();
-  return (
-    s.includes("zensquid") ||
-    s.includes("squidley") ||
-    s.includes("openclaw") ||
-    s.includes("receipt") ||
-    s.includes("receipts") ||
-    s.includes("snapshot") ||
-    s.includes("doctor") ||
-    s.includes("sanity") ||
-    s.includes("systemctl") ||
-    s.includes("journalctl") ||
-    s.includes("curl ") ||
-    s.includes("port ") ||
-    s.includes("http://") ||
-    s.includes("https://") ||
-    s.includes("/health") ||
-    s.includes("/runtime") ||
-    s.includes("/skills") ||
-    s.includes("/memory")
-  );
-}
-
-function looksCodey(input: string): boolean {
-  const s = input.toLowerCase();
-  return (
-    s.includes("diff --git") ||
-    s.includes("--- a/") ||
-    s.includes("+++ b/") ||
-    s.includes("@@ ") ||
-    s.includes("stack trace") ||
-    s.includes("traceback") ||
-    s.includes("tsconfig") ||
-    s.includes("package.json") ||
-    s.includes("systemd") ||
-    s.includes("dockerfile") ||
-    s.includes("error ts") ||
-    s.includes("cannot find module") ||
-    s.includes("module not found")
-  );
-}
-
 app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", async (req, reply) => {
   const cfg = await loadConfig(process.env.ZENSQUID_CONFIG);
   const body = (req.body ?? {}) as Partial<ChatRequest> & { selected_skill?: string | null };
@@ -846,8 +801,6 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
     reason: body.reason
   };
 
-
-
   const effStrict = await effectiveStrictLocal(cfg);
   (cfg as any).budgets = (cfg as any).budgets ?? {};
   (cfg as any).budgets.strict_local_only = effStrict.effective;
@@ -920,7 +873,8 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
     }
   }
 
-  const needsReason = ["big_brain", "plan", "build"].includes(decision.tier.name);
+  // Only require reason for cloud tiers — local tiers (build, local_*) cost nothing
+  const needsReason = ["big_brain", "plan"].includes(decision.tier.name);
   const hasReason = typeof normalized.reason === "string" && normalized.reason.trim().length > 0;
 
   if (needsReason && (cfg as any)?.budgets?.escalation_requires_reason && !hasReason) {
@@ -1036,12 +990,16 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
     // ✅ Agent proposal detection
     let pendingAgentName: string | null = null;
     if (!ollamaProposal && !pendingPlanId && isAgentProposal(out.output)) {
-      const agentProposal = extractAgentProposal(out.output);
+      const agentProposal = extractAgentProposal(out.output, normalized.input);
       if (agentProposal) {
         storePendingAgent(ollamaSessionId, agentProposal.agent_name, agentProposal.focus);
         pendingAgentName = agentProposal.agent_name;
       }
     }
+
+    // ✅ Memory extraction + session history for Ollama
+    addTurn(ollamaSessionId, "assistant", out.output);
+    maybeExtractMemory(normalized.input, out.output).catch(() => {});
 
     return reply.send({
       output: out.output,
@@ -1155,6 +1113,42 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       storePending(msSessionId, msProposal, out.content);
     }
 
+    // ✅ Plan proposal detection for ModelStudio
+    let msPendingPlanId: string | null = null;
+    if (!msProposal && isPlanProposal(out.content)) {
+      try {
+        const planGoal = extractPlanGoal(out.content);
+        const adminToken = String((req.headers as any)["x-zensquid-admin-token"] ?? "").trim();
+        const planResp = await app.inject({
+          method: "POST",
+          url: "/autonomy/plan",
+          headers: { "content-type": "application/json", "x-zensquid-admin-token": adminToken },
+          payload: { goal: planGoal, ollama_url: cfg.providers.ollama.base_url, model: decision.tier.model },
+        });
+        const planJson = typeof (planResp as any).json === "function" ? (planResp as any).json() : JSON.parse(planResp.payload);
+        if (planJson?.ok && planJson?.plan_id) {
+          storePendingPlan(msSessionId, planJson.plan_id, planGoal, planJson.steps);
+          msPendingPlanId = planJson.plan_id;
+        }
+      } catch (e) {
+        // best effort — never block response
+      }
+    }
+
+    // ✅ Agent proposal detection for ModelStudio
+    let msPendingAgentName: string | null = null;
+    if (!msProposal && !msPendingPlanId && isAgentProposal(out.content)) {
+      const agentProposal = extractAgentProposal(out.content, normalized.input);
+      if (agentProposal) {
+        storePendingAgent(msSessionId, agentProposal.agent_name, agentProposal.focus);
+        msPendingAgentName = agentProposal.agent_name;
+      }
+    }
+
+    // ✅ Session history + memory extraction for ModelStudio
+    addTurn(msSessionId, "assistant", out.content);
+    maybeExtractMemory(normalized.input, out.content).catch(() => {});
+
     return reply.send({
       output: out.content,
       tier: decision.tier.name,
@@ -1167,6 +1161,8 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       context: meta,
       session_id: msSessionId,
       pending_tool: msProposal ? msProposal.tool_id : null,
+      pending_plan: msPendingPlanId,
+      pending_agent: msPendingAgentName,
     });
   }
 
@@ -1261,6 +1257,39 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       if (oaiProposal) {
         storePending(oaiSessionId, oaiProposal, out.output);
       }
+
+      // ✅ Plan proposal detection for OpenAI
+      let oaiPendingPlanId: string | null = null;
+      if (!oaiProposal && isPlanProposal(out.output)) {
+        try {
+          const planGoal = extractPlanGoal(out.output);
+          const adminToken = String((req.headers as any)["x-zensquid-admin-token"] ?? "").trim();
+          const planResp = await app.inject({
+            method: "POST",
+            url: "/autonomy/plan",
+            headers: { "content-type": "application/json", "x-zensquid-admin-token": adminToken },
+            payload: { goal: planGoal, ollama_url: cfg.providers.ollama.base_url, model: decision.tier.model },
+          });
+          const planJson = typeof (planResp as any).json === "function" ? (planResp as any).json() : JSON.parse(planResp.payload);
+          if (planJson?.ok && planJson?.plan_id) {
+            storePendingPlan(oaiSessionId, planJson.plan_id, planGoal, planJson.steps);
+            oaiPendingPlanId = planJson.plan_id;
+          }
+        } catch (e) {
+          // best effort — never block response
+        }
+      }
+
+      // ✅ Agent proposal detection for OpenAI
+      let oaiPendingAgentName: string | null = null;
+      if (!oaiProposal && !oaiPendingPlanId && isAgentProposal(out.output)) {
+        const agentProposal = extractAgentProposal(out.output, normalized.input);
+        if (agentProposal) {
+          storePendingAgent(oaiSessionId, agentProposal.agent_name, agentProposal.focus);
+          oaiPendingAgentName = agentProposal.agent_name;
+        }
+      }
+
       addTurn(oaiSessionId, "assistant", out.output);
       maybeExtractMemory(normalized.input, out.output).catch(() => {});
 
@@ -1276,6 +1305,8 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
         context: meta,
         session_id: oaiSessionId,
         pending_tool: oaiProposal ? oaiProposal.tool_id : null,
+        pending_plan: oaiPendingPlanId,
+        pending_agent: oaiPendingAgentName,
       });
     } catch (e: any) {
       const receipt: any = withKind("chat", {

@@ -39,7 +39,6 @@ class ToolRunnerError extends Error {
   code: ToolRunnerErrorCode;
   // optional: surfaced to HTTP layer so UI can link to receipt
   receipt_id?: string;
-
   constructor(code: ToolRunnerErrorCode, message: string, receipt_id?: string) {
     super(message);
     this.code = code;
@@ -78,6 +77,43 @@ function parseSleepMs(args: string[], defaultMs = 250, maxMs = 60_000): number {
 }
 
 /**
+ * Parse a command string into [cmd, ...args] without using a shell.
+ * Handles quoted strings: 'find /tmp -name "*.ts"' → ["find", "/tmp", "-name", "*.ts"]
+ * Does NOT support shell operators (|, &, ;, $, >, <) — throws if found.
+ */
+function parseCommand(cmdStr: string): string[] {
+  // Reject dangerous shell operators (subshell, command injection)
+  // Pipes (|) and redirects (>) are allowed since we use shell:true for legitimate agent commands
+  if (/[;&`$]/.test(cmdStr)) {
+    throw new ToolRunnerError("BAD_REQUEST", `proc.exec: shell operators not allowed in command: "${cmdStr}"`);
+  }
+
+  const tokens: string[] = [];
+  let current = "";
+  let inSingle = false;
+  let inDouble = false;
+
+  for (let i = 0; i < cmdStr.length; i++) {
+    const ch = cmdStr[i];
+    if (ch === "'" && !inDouble) {
+      inSingle = !inSingle;
+    } else if (ch === '"' && !inSingle) {
+      inDouble = !inDouble;
+    } else if (ch === " " && !inSingle && !inDouble) {
+      if (current.length > 0) {
+        tokens.push(current);
+        current = "";
+      }
+    } else {
+      current += ch;
+    }
+  }
+  if (current.length > 0) tokens.push(current);
+  if (tokens.length === 0) throw new ToolRunnerError("BAD_REQUEST", "proc.exec: empty command");
+  return tokens;
+}
+
+/**
  * Internal tools (no shell, no subprocess).
  * Contract: spec.cmd === "__js__"
  */
@@ -87,6 +123,7 @@ async function runInternalTool(opts: {
   maxOutputBytes: number;
   userArgs: string[];
   rawArgs?: string[] | Record<string, string | string[]>;
+  admin_token?: string;
 }): Promise<{
   ok: boolean;
   exit_code: number | null;
@@ -306,6 +343,416 @@ async function runInternalTool(opts: {
         truncated: { stdout: false, stderr: false }
       };
     }
+
+    // ── fs.mkdir ──────────────────────────────────────────────────────────────
+    // Creates a directory (and parents). Admin-only.
+    // rawArgs: { path: "memory/new-folder" }
+    if (opts.tool_id === "fs.mkdir") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const relPath = (rawArgsObj?.path as string ?? opts.userArgs[0] ?? "").trim();
+      if (!relPath || relPath.includes("..") || path.isAbsolute(relPath)) {
+        throw new ToolRunnerError("BAD_REQUEST", "fs.mkdir: invalid path");
+      }
+      const repoRoot = process.env.ZENSQUID_ROOT ?? process.cwd();
+      const abs = path.resolve(repoRoot, relPath);
+      if (!abs.startsWith(repoRoot + path.sep) && abs !== repoRoot) {
+        throw new ToolRunnerError("FORBIDDEN", "fs.mkdir: path escapes repo root");
+      }
+      await fsNode.mkdir(abs, { recursive: true });
+      return {
+        ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+        stdout: `created directory: ${relPath}\n`,
+        stderr: "", truncated: { stdout: false, stderr: false }
+      };
+    }
+
+    // ── fs.move ───────────────────────────────────────────────────────────────
+    // Moves or renames a file or directory. Admin-only.
+    // rawArgs: { from: "memory/old.md", to: "memory/new.md" }
+    if (opts.tool_id === "fs.move") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const fromRel = (rawArgsObj?.from as string ?? rawArgsObj?.src as string ?? opts.userArgs[0] ?? "").trim();
+      const toRel = (rawArgsObj?.to as string ?? rawArgsObj?.dst as string ?? opts.userArgs[1] ?? "").trim();
+      if (!fromRel || fromRel.includes("..") || path.isAbsolute(fromRel)) {
+        throw new ToolRunnerError("BAD_REQUEST", "fs.move: invalid 'from' path");
+      }
+      if (!toRel || toRel.includes("..") || path.isAbsolute(toRel)) {
+        throw new ToolRunnerError("BAD_REQUEST", "fs.move: invalid 'to' path");
+      }
+      const repoRoot = process.env.ZENSQUID_ROOT ?? process.cwd();
+      const absFrom = path.resolve(repoRoot, fromRel);
+      const absTo = path.resolve(repoRoot, toRel);
+      if (!absFrom.startsWith(repoRoot + path.sep)) throw new ToolRunnerError("FORBIDDEN", "fs.move: 'from' escapes repo root");
+      if (!absTo.startsWith(repoRoot + path.sep)) throw new ToolRunnerError("FORBIDDEN", "fs.move: 'to' escapes repo root");
+      await fsNode.mkdir(path.dirname(absTo), { recursive: true });
+      await fsNode.rename(absFrom, absTo);
+      return {
+        ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+        stdout: `moved: ${fromRel} → ${toRel}\n`,
+        stderr: "", truncated: { stdout: false, stderr: false }
+      };
+    }
+
+    // ── fs.delete ─────────────────────────────────────────────────────────────
+    // Deletes a file or empty directory. Admin-only. No recursive delete.
+    // rawArgs: { path: "memory/old-file.md" }
+    if (opts.tool_id === "fs.delete") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const relPath = (rawArgsObj?.path as string ?? opts.userArgs[0] ?? "").trim();
+      if (!relPath || relPath.includes("..") || path.isAbsolute(relPath)) {
+        throw new ToolRunnerError("BAD_REQUEST", "fs.delete: invalid path");
+      }
+      const repoRoot = process.env.ZENSQUID_ROOT ?? process.cwd();
+      const abs = path.resolve(repoRoot, relPath);
+      if (!abs.startsWith(repoRoot + path.sep)) throw new ToolRunnerError("FORBIDDEN", "fs.delete: path escapes repo root");
+      const stat = await fsNode.stat(abs);
+      if (stat.isDirectory()) {
+        // Only allow deleting empty directories
+        const entries = await fsNode.readdir(abs);
+        if (entries.length > 0) throw new ToolRunnerError("BAD_REQUEST", `fs.delete: directory not empty: ${relPath}`);
+        await fsNode.rmdir(abs);
+      } else {
+        await fsNode.unlink(abs);
+      }
+      return {
+        ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+        stdout: `deleted: ${relPath}\n`,
+        stderr: "", truncated: { stdout: false, stderr: false }
+      };
+    }
+
+    // ── fs.diff ───────────────────────────────────────────────────────────────
+    // Diffs two files using a simple line-by-line comparison. Read-only.
+    // rawArgs: { a: "apps/api/src/server.ts", b: "apps/api/src/server.ts.bak" }
+    if (opts.tool_id === "fs.diff") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const aRel = (rawArgsObj?.a as string ?? rawArgsObj?.from as string ?? opts.userArgs[0] ?? "").trim();
+      const bRel = (rawArgsObj?.b as string ?? rawArgsObj?.to as string ?? opts.userArgs[1] ?? "").trim();
+      if (!aRel || aRel.includes("..") || path.isAbsolute(aRel)) throw new ToolRunnerError("BAD_REQUEST", "fs.diff: invalid 'a' path");
+      if (!bRel || bRel.includes("..") || path.isAbsolute(bRel)) throw new ToolRunnerError("BAD_REQUEST", "fs.diff: invalid 'b' path");
+      const repoRoot = process.env.ZENSQUID_ROOT ?? process.cwd();
+      const absA = path.resolve(repoRoot, aRel);
+      const absB = path.resolve(repoRoot, bRel);
+      if (!absA.startsWith(repoRoot + path.sep)) throw new ToolRunnerError("FORBIDDEN", "fs.diff: 'a' escapes repo root");
+      if (!absB.startsWith(repoRoot + path.sep)) throw new ToolRunnerError("FORBIDDEN", "fs.diff: 'b' escapes repo root");
+      const [textA, textB] = await Promise.all([fsNode.readFile(absA, "utf8"), fsNode.readFile(absB, "utf8")]);
+      const linesA = textA.split("\n");
+      const linesB = textB.split("\n");
+      const diffLines: string[] = [`--- ${aRel}`, `+++ ${bRel}`];
+      const maxLines = Math.max(linesA.length, linesB.length);
+      let changes = 0;
+      for (let i = 0; i < maxLines; i++) {
+        const la = linesA[i] ?? "";
+        const lb = linesB[i] ?? "";
+        if (la !== lb) {
+          if (la) diffLines.push(`- ${la}`);
+          if (lb) diffLines.push(`+ ${lb}`);
+          changes++;
+        }
+      }
+      if (changes === 0) diffLines.push("(files are identical)");
+      else diffLines.push(`\n${changes} line(s) differ`);
+      return {
+        ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+        stdout: diffLines.join("\n") + "\n",
+        stderr: "", truncated: { stdout: false, stderr: false }
+      };
+    }
+
+    // ── fs.tree ───────────────────────────────────────────────────────────────
+    // Produces a directory tree. Read-only. Max depth 4.
+    // rawArgs: { path: "apps/api/src", depth: "3" }
+    if (opts.tool_id === "fs.tree") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const relPath = (rawArgsObj?.path as string ?? rawArgsObj?.dir as string ?? opts.userArgs[0] ?? ".").trim();
+      const maxDepth = Math.min(parseInt(String(rawArgsObj?.depth ?? opts.userArgs[1] ?? "3"), 10) || 3, 4);
+      if (relPath.includes("..") || path.isAbsolute(relPath)) throw new ToolRunnerError("BAD_REQUEST", "fs.tree: invalid path");
+      const repoRoot = process.env.ZENSQUID_ROOT ?? process.cwd();
+      const abs = path.resolve(repoRoot, relPath);
+      if (!abs.startsWith(repoRoot + path.sep) && abs !== repoRoot) throw new ToolRunnerError("FORBIDDEN", "fs.tree: path escapes repo root");
+
+      const IGNORE = new Set(["node_modules", ".git", "dist", ".next", ".playwright-browsers"]);
+      const lines: string[] = [relPath === "." ? repoRoot : relPath];
+
+      async function walk(dir: string, prefix: string, depth: number) {
+        if (depth > maxDepth) return;
+        let entries: import("node:fs").Dirent[];
+        try { entries = await fsNode.readdir(dir, { withFileTypes: true }) as import("node:fs").Dirent[]; }
+        catch { return; }
+        const filtered = entries.filter(e => !IGNORE.has(e.name)).sort((a, b) => {
+          if (a.isDirectory() && !b.isDirectory()) return -1;
+          if (!a.isDirectory() && b.isDirectory()) return 1;
+          return a.name.localeCompare(b.name);
+        });
+        for (let i = 0; i < filtered.length; i++) {
+          const e = filtered[i];
+          const isLast = i === filtered.length - 1;
+          const connector = isLast ? "└── " : "├── ";
+          const childPrefix = isLast ? prefix + "    " : prefix + "│   ";
+          lines.push(prefix + connector + e.name + (e.isDirectory() ? "/" : ""));
+          if (e.isDirectory()) await walk(path.join(dir, e.name), childPrefix, depth + 1);
+        }
+      }
+
+      await walk(abs, "", 1);
+      return {
+        ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+        stdout: lines.join("\n") + "\n",
+        stderr: "", truncated: { stdout: false, stderr: false }
+      };
+    }
+
+    // ── proc.exec ─────────────────────────────────────────────────────────────
+    // Admin-only: runs a command directly without a shell.
+    // Accepts rawArgs: { cmd: "find ~/openclaw -type f ..." }
+    // or userArgs[0] as the full command string.
+    // No shell operators allowed. No shell spawned.
+    if (opts.tool_id === "proc.exec") {
+      // Require admin token
+      const expectedToken = (process.env.ZENSQUID_ADMIN_TOKEN ?? "").trim();
+      const providedToken = (opts.admin_token ?? "").trim();
+      if (
+        expectedToken.length < 12 ||
+        providedToken.length !== expectedToken.length ||
+        !crypto.timingSafeEqual(Buffer.from(providedToken), Buffer.from(expectedToken))
+      ) {
+        throw new ToolRunnerError("FORBIDDEN", "proc.exec: admin token required");
+      }
+
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      // Accept { cmd: "..." } or first userArg as full command string
+      const cmdStr = (rawArgsObj?.cmd as string ?? rawArgsObj?.query as string ?? opts.userArgs.join(" ") ?? "").trim();
+      if (!cmdStr) throw new ToolRunnerError("BAD_REQUEST", "proc.exec: cmd required");
+
+      // Expand ~ to home directory
+      const expandedCmd = cmdStr.replace(/^~(?=\/|$)/, os.homedir()).replace(/(?<=\s)~(?=\/)/g, os.homedir());
+
+      const tokens = parseCommand(expandedCmd);
+      const [cmd, ...cmdArgs] = tokens;
+
+      // Resolve working directory — use ZENSQUID_ROOT as cwd for relative paths
+      const cwd = process.env.ZENSQUID_ROOT ?? process.cwd();
+
+      const stdout = await new Promise<string>((resolve, reject) => {
+        const stdoutChunks: Buffer[] = [];
+        const stderrChunks: Buffer[] = [];
+
+        // shell: true so pipes, find|grep|head etc. work in agent commands.
+        // Safe because proc.exec is admin-token gated.
+        const child = spawn(expandedCmd, [], {
+          cwd,
+          shell: true,
+          env: { ...process.env },
+        });
+
+        child.stdout.on("data", (chunk: Buffer) => stdoutChunks.push(chunk));
+        child.stderr.on("data", (chunk: Buffer) => stderrChunks.push(chunk));
+
+        const timer = setTimeout(() => {
+          child.kill("SIGKILL");
+          reject(new ToolRunnerError("BAD_REQUEST", `proc.exec: command timed out after 30s`));
+        }, 30_000);
+
+        child.on("close", (code) => {
+          clearTimeout(timer);
+          const out = Buffer.concat(stdoutChunks).toString("utf8");
+          const err = Buffer.concat(stderrChunks).toString("utf8");
+          if (code !== 0) {
+            // Non-zero exit — return stderr as part of output so agent can see what failed
+            resolve(out + (err ? `\nSTDERR:\n${err}` : ""));
+          } else {
+            resolve(out);
+          }
+        });
+
+        child.on("error", (e) => {
+          clearTimeout(timer);
+          reject(new ToolRunnerError("INTERNAL", `proc.exec: spawn error: ${e.message}`));
+        });
+      });
+
+      return {
+        ok: true,
+        exit_code: 0,
+        signal: null as NodeJS.Signals | null,
+        stdout,
+        stderr: "",
+        truncated: { stdout: false, stderr: false }
+      };
+    }
+
+    // ── proc.list ─────────────────────────────────────────────────────────────
+    // Lists running processes. Admin-only.
+    // rawArgs: { filter: "node" } — optional grep filter
+    if (opts.tool_id === "proc.list") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const filter = (rawArgsObj?.filter as string ?? opts.userArgs[0] ?? "").trim().toLowerCase();
+      const { execFile } = await import("node:child_process");
+      const { promisify } = await import("node:util");
+      const execFileAsync = promisify(execFile);
+      const { stdout: psOut } = await execFileAsync("ps", ["aux", "--no-headers"], { timeout: 8000 });
+      const lines = psOut.split("\n").filter(Boolean);
+      const filtered = filter ? lines.filter(l => l.toLowerCase().includes(filter)) : lines;
+      const summary = filtered.slice(0, 50).join("\n");
+      return {
+        ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+        stdout: `${filtered.length} process(es)${filter ? ` matching "${filter}"` : ""}:\n${summary}\n`,
+        stderr: "", truncated: { stdout: filtered.length > 50, stderr: false }
+      };
+    }
+
+    // ── proc.kill ─────────────────────────────────────────────────────────────
+    // Kills a process by PID. Admin-only. SIGTERM by default, SIGKILL if forced.
+    // rawArgs: { pid: "12345", signal: "SIGTERM" }
+    if (opts.tool_id === "proc.kill") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const pidStr = (rawArgsObj?.pid as string ?? opts.userArgs[0] ?? "").trim();
+      const sig = (rawArgsObj?.signal as string ?? opts.userArgs[1] ?? "SIGTERM").trim().toUpperCase();
+      const pid = parseInt(pidStr, 10);
+      if (!pid || isNaN(pid) || pid < 2) throw new ToolRunnerError("BAD_REQUEST", `proc.kill: invalid PID: ${pidStr}`);
+      const allowedSignals = ["SIGTERM", "SIGKILL", "SIGINT", "SIGHUP"];
+      if (!allowedSignals.includes(sig)) throw new ToolRunnerError("BAD_REQUEST", `proc.kill: signal must be one of: ${allowedSignals.join(", ")}`);
+      process.kill(pid, sig as NodeJS.Signals);
+      return {
+        ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+        stdout: `sent ${sig} to PID ${pid}\n`,
+        stderr: "", truncated: { stdout: false, stderr: false }
+      };
+    }
+
+    // ── systemctl.status ──────────────────────────────────────────────────────
+    // Checks status of a systemd user service. Read-only.
+    // rawArgs: { service: "squidley-api" }
+    if (opts.tool_id === "systemctl.status") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const service = (rawArgsObj?.service as string ?? opts.userArgs[0] ?? "").trim();
+      if (!service) throw new ToolRunnerError("BAD_REQUEST", "systemctl.status: service name required");
+      if (!/^[a-zA-Z0-9_\-.:@]+$/.test(service)) throw new ToolRunnerError("BAD_REQUEST", "systemctl.status: invalid service name");
+      const { execFile } = await import("node:child_process");
+      const { promisify } = await import("node:util");
+      const execFileAsync = promisify(execFile);
+      try {
+        const { stdout: statusOut } = await execFileAsync(
+          "systemctl", ["--user", "status", service, "--no-pager", "-l"],
+          { timeout: 8000 }
+        );
+        return {
+          ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+          stdout: statusOut, stderr: "", truncated: { stdout: false, stderr: false }
+        };
+      } catch (e: any) {
+        // systemctl exits non-zero for inactive services — still useful output
+        const out = String(e?.stdout ?? e?.message ?? "service not found");
+        return {
+          ok: true, exit_code: 1, signal: null as NodeJS.Signals | null,
+          stdout: out, stderr: "", truncated: { stdout: false, stderr: false }
+        };
+      }
+    }
+
+    // ── env.read ──────────────────────────────────────────────────────────────
+    // Reads specific env vars by name. Admin-only. Never dumps all env.
+    // rawArgs: { keys: "ZENSQUID_ROOT,NODE_ENV" } or { keys: ["ZENSQUID_ROOT"] }
+    if (opts.tool_id === "env.read") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const keysRaw = rawArgsObj?.keys as string | string[] ?? opts.userArgs[0] ?? "";
+      const keys = Array.isArray(keysRaw)
+        ? keysRaw.map(String)
+        : String(keysRaw).split(",").map(s => s.trim()).filter(Boolean);
+      if (keys.length === 0) throw new ToolRunnerError("BAD_REQUEST", "env.read: at least one key required");
+      if (keys.length > 20) throw new ToolRunnerError("BAD_REQUEST", "env.read: max 20 keys per call");
+      // Never expose secrets — block known sensitive key patterns
+      const BLOCKED = /password|secret|token|key|credential|auth|private/i;
+      const lines: string[] = [];
+      for (const k of keys) {
+        if (BLOCKED.test(k)) {
+          lines.push(`${k}=[REDACTED — sensitive key name]`);
+        } else {
+          const val = process.env[k];
+          lines.push(val !== undefined ? `${k}=${val}` : `${k}=(not set)`);
+        }
+      }
+      return {
+        ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+        stdout: lines.join("\n") + "\n",
+        stderr: "", truncated: { stdout: false, stderr: false }
+      };
+    }
+
+    // ── http.get ──────────────────────────────────────────────────────────────
+    // Makes an HTTP GET request. Admin-only. Local URLs only by default.
+    // rawArgs: { url: "http://127.0.0.1:11434/api/tags" }
+    if (opts.tool_id === "http.get") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const url = (rawArgsObj?.url as string ?? opts.userArgs[0] ?? "").trim();
+      if (!url) throw new ToolRunnerError("BAD_REQUEST", "http.get: url required");
+      const resp = await fetch(url, {
+        method: "GET",
+        headers: { "accept": "application/json, text/plain, */*" },
+        signal: AbortSignal.timeout(25_000),
+      });
+      const text = await resp.text();
+      return {
+        ok: resp.ok, exit_code: resp.ok ? 0 : 1, signal: null as NodeJS.Signals | null,
+        stdout: `HTTP ${resp.status} ${resp.statusText}\n${text}`,
+        stderr: "", truncated: { stdout: false, stderr: false }
+      };
+    }
+
+    // ── http.post ─────────────────────────────────────────────────────────────
+    // Makes an HTTP POST request. Admin-only.
+    // rawArgs: { url: "http://...", body: "{...}", content_type: "application/json" }
+    if (opts.tool_id === "http.post") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const url = (rawArgsObj?.url as string ?? opts.userArgs[0] ?? "").trim();
+      const body = (rawArgsObj?.body as string ?? opts.userArgs[1] ?? "").trim();
+      const contentType = (rawArgsObj?.content_type as string ?? "application/json").trim();
+      if (!url) throw new ToolRunnerError("BAD_REQUEST", "http.post: url required");
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": contentType, "accept": "application/json, text/plain, */*" },
+        body: body || undefined,
+        signal: AbortSignal.timeout(25_000),
+      });
+      const text = await resp.text();
+      return {
+        ok: resp.ok, exit_code: resp.ok ? 0 : 1, signal: null as NodeJS.Signals | null,
+        stdout: `HTTP ${resp.status} ${resp.statusText}\n${text}`,
+        stderr: "", truncated: { stdout: false, stderr: false }
+      };
+    }
+
+    // ── dns.lookup ────────────────────────────────────────────────────────────
+    // DNS lookup for a hostname. Read-only.
+    // rawArgs: { hostname: "api.openai.com" }
+    if (opts.tool_id === "dns.lookup") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const hostname = (rawArgsObj?.hostname as string ?? rawArgsObj?.host as string ?? opts.userArgs[0] ?? "").trim();
+      if (!hostname) throw new ToolRunnerError("BAD_REQUEST", "dns.lookup: hostname required");
+      const dns = await import("node:dns/promises");
+      try {
+        const address = await dns.lookup(hostname);
+        const addresses = await dns.resolve(hostname).catch(() => []);
+        const lines = [
+          `hostname: ${hostname}`,
+          `address: ${address.address}`,
+          `family: IPv${address.family}`,
+        ];
+        if (addresses.length > 1) lines.push(`all: ${addresses.join(", ")}`);
+        return {
+          ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+          stdout: lines.join("\n") + "\n",
+          stderr: "", truncated: { stdout: false, stderr: false }
+        };
+      } catch (e: any) {
+        return {
+          ok: false, exit_code: 1, signal: null as NodeJS.Signals | null,
+          stdout: "", stderr: `dns.lookup failed: ${e?.message ?? e}`,
+          truncated: { stdout: false, stderr: false }
+        };
+      }
+    }
+
   })();
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -342,7 +789,8 @@ export async function runTool(req: RunToolRequest): Promise<RunToolResult> {
   const userArgs: string[] = Array.isArray(rawReqArgs)
     ? rawReqArgs.filter(Boolean).map(String)
     : Object.values(rawReqArgs).flat().filter(Boolean).map(String);
-  // Skip injection guard for internal JS tools (fs.read, fs.write, diag.sleep)
+
+  // Skip injection guard for internal JS tools (fs.read, fs.write, diag.sleep, proc.exec)
   // They handle their own validation and never spawn a shell
   if (spec.cmd !== "__js__") {
     for (const a of userArgs) {
@@ -352,14 +800,13 @@ export async function runTool(req: RunToolRequest): Promise<RunToolResult> {
     }
   }
 
-  const receipt_id = crypto.randomUUID();
+  const receipt_id = crypto.randomBytes(9).toString("base64url");
   const started = Date.now();
   const started_at = new Date(started).toISOString();
 
-  const failWithReceipt = async (code: ToolRunnerErrorCode, message: string) => {
+  async function failWithReceipt(code: ToolRunnerErrorCode, msg: string): Promise<never> {
     const finished = Date.now();
     const finished_at = new Date(finished).toISOString();
-
     const result: RunToolResult = {
       receipt_id,
       ok: false,
@@ -373,17 +820,14 @@ export async function runTool(req: RunToolRequest): Promise<RunToolResult> {
       exit_code: null,
       signal: null,
       stdout: "",
-      stderr: message,
+      stderr: msg,
       truncated: { stdout: false, stderr: false }
     };
-
     await writeReceipt(result);
+    const err = new ToolRunnerError(code, msg, receipt_id);
+    throw err;
+  }
 
-    // throw error WITH receipt_id attached
-    throw new ToolRunnerError(code, message, receipt_id);
-  };
-
-  // Internal tool path (no subprocess)
   if (spec.cmd === "__js__") {
     try {
       const r = await runInternalTool({
@@ -391,12 +835,11 @@ export async function runTool(req: RunToolRequest): Promise<RunToolResult> {
         specTimeoutMs: spec.timeoutMs,
         maxOutputBytes: spec.maxOutputBytes,
         userArgs,
-        rawArgs: rawReqArgs
+        rawArgs: rawReqArgs,
+        admin_token: req.admin_token,
       });
-
       const finished = Date.now();
       const finished_at = new Date(finished).toISOString();
-
       const result: RunToolResult = {
         receipt_id,
         ok: r.ok,
@@ -413,13 +856,10 @@ export async function runTool(req: RunToolRequest): Promise<RunToolResult> {
         stderr: r.stderr,
         truncated: r.truncated
       };
-
       await writeReceipt(result);
-
       if (!r.ok) {
         return await failWithReceipt("INTERNAL", r.stderr || "Internal tool failed");
       }
-
       return result;
     } catch (e: any) {
       const msg = String(e?.message ?? e ?? "Internal tool failed");
@@ -430,10 +870,8 @@ export async function runTool(req: RunToolRequest): Promise<RunToolResult> {
 
   // Subprocess tool path (spawn)
   const fullArgs = [...spec.argsPrefix, ...userArgs];
-
   let stdoutChunks: Buffer[] = [];
   let stderrChunks: Buffer[] = [];
-
   const child = spawn(spec.cmd, fullArgs, {
     cwd,
     shell: false,
@@ -442,33 +880,36 @@ export async function runTool(req: RunToolRequest): Promise<RunToolResult> {
       NODE_OPTIONS: (process.env.NODE_OPTIONS || "") + " --dns-result-order=ipv4first"
     }
   });
-
   let killedByTimeout = false;
-
   const timer = setTimeout(() => {
     killedByTimeout = true;
     child.kill("SIGKILL");
-  }, spec.timeoutMs);
+  }, spec.timeoutMs ?? 30_000);
 
-  child.stdout.on("data", (d) => stdoutChunks.push(Buffer.from(d)));
-  child.stderr.on("data", (d) => stderrChunks.push(Buffer.from(d)));
+  child.stdout.on("data", (chunk: Buffer) => stdoutChunks.push(chunk));
+  child.stderr.on("data", (chunk: Buffer) => stderrChunks.push(chunk));
 
-  const exit = await new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolve) => {
-    child.on("close", (code, signal) => resolve({ code, signal: signal as any }));
+  const exitCode = await new Promise<number | null>((resolve) => {
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      resolve(code);
+    });
+    child.on("error", () => {
+      clearTimeout(timer);
+      resolve(null);
+    });
   });
-
-  clearTimeout(timer);
 
   const finished = Date.now();
   const finished_at = new Date(finished).toISOString();
 
-  const stdoutBuf = Buffer.concat(stdoutChunks);
-  const stderrBuf = Buffer.concat(stderrChunks);
+  const rawStdout = Buffer.concat(stdoutChunks);
+  const rawStderr = Buffer.concat(stderrChunks);
+  const maxBytes = spec.maxOutputBytes ?? 200_000;
+  const outClamped = clampOutput(rawStdout, maxBytes);
+  const errClamped = clampOutput(rawStderr, maxBytes);
 
-  const out = clampOutput(stdoutBuf, spec.maxOutputBytes);
-  const err = clampOutput(stderrBuf, spec.maxOutputBytes);
-
-  const ok = !killedByTimeout && exit.code === 0;
+  const ok = exitCode === 0 && !killedByTimeout;
 
   const result: RunToolResult = {
     receipt_id,
@@ -480,17 +921,22 @@ export async function runTool(req: RunToolRequest): Promise<RunToolResult> {
     started_at,
     finished_at,
     duration_ms: finished - started,
-    exit_code: exit.code,
-    signal: exit.signal,
-    stdout: out.text,
-    stderr: err.text,
-    truncated: { stdout: out.truncated, stderr: err.truncated }
+    exit_code: killedByTimeout ? null : exitCode,
+    signal: killedByTimeout ? "SIGKILL" : null,
+    stdout: outClamped.text,
+    stderr: errClamped.text,
+    truncated: { stdout: outClamped.truncated, stderr: errClamped.truncated }
   };
 
   await writeReceipt(result);
 
-  if (killedByTimeout) {
-    throw new ToolRunnerError("BAD_REQUEST", `Tool timed out after ${spec.timeoutMs}ms`, receipt_id);
+  if (!ok) {
+    return await failWithReceipt(
+      "INTERNAL",
+      killedByTimeout
+        ? `Command timed out after ${spec.timeoutMs}ms`
+        : errClamped.text || `Exit code ${exitCode}`
+    );
   }
 
   return result;

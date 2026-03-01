@@ -24,7 +24,6 @@ const APPROVAL_PATTERNS = [
   /^\s*yes[,.]?\s*(run|do|execute|go|search|use)[^a-z]*/i,
   /^\s*ok(ay)?\s*[,.]?\s*(run|do|go|yes)?[.!]?\s*$/i,
   /^\s*please\s*(run|do|execute|go)\s*/i,
-  // "yes, search TODO using rg.search" — yes followed by anything
   /^\s*yes[,.]?\s+\w/i,
   /^\s*yeah[,.]?\s+\w/i,
   /^\s*yep[,.]?\s+\w/i,
@@ -54,7 +53,6 @@ export function isDenial(input: string): boolean {
 
 const ALL_TOOL_IDS = Object.keys(TOOL_ALLOWLIST);
 
-// Patterns that indicate a tool proposal in the model's response
 const PROPOSAL_INDICATORS = [
   /want me to run/i,
   /shall i run/i,
@@ -71,15 +69,11 @@ const PROPOSAL_INDICATORS = [
 ];
 
 function extractToolId(text: string): string | null {
-  // Implicit mapping: skill write proposals map to fs.write
   if (/i can (write|save|create) a skill/i.test(text) ||
       /want me to (write|save) (a |this )?skill/i.test(text)) {
     return "fs.write";
   }
-
-  // Look for exact tool IDs in the text
   for (const id of ALL_TOOL_IDS) {
-    // Match the tool id as a standalone word/token
     const escaped = id.replace(/\./g, "\\.");
     const re = new RegExp(`(?<![a-zA-Z])${escaped}(?![a-zA-Z0-9_])`, "i");
     if (re.test(text)) return id;
@@ -90,7 +84,6 @@ function extractToolId(text: string): string | null {
 function extractArgs(text: string, tool_id: string): Record<string, string> {
   const args: Record<string, string> = {};
 
-  // rg.search — extract query pattern
   if (tool_id === "rg.search") {
     const patterns = [
       /(?:search|pattern|query|for|rg\.search)\s+["""'`]([^"""'`\n]+)["""'`]/i,
@@ -106,7 +99,6 @@ function extractArgs(text: string, tool_id: string): Record<string, string> {
     }
   }
 
-  // web.search — extract query
   if (tool_id === "web.search") {
     const patterns = [
       /(?:search|query|for|web\.search)\s+["""'`]([^"""'`\n]+)["""'`]/i,
@@ -118,38 +110,27 @@ function extractArgs(text: string, tool_id: string): Record<string, string> {
     }
   }
 
-  // git.log — extract count if specified
   if (tool_id === "git.log") {
     const m = text.match(/last\s+(\d+)\s+commit/i);
     if (m?.[1]) args.count = m[1];
   }
 
-  // git.diff — extract range or file path if specified
   if (tool_id === "git.diff") {
-    // Range patterns: HEAD~3, main..feature, abc123..def456
     const rangeMatch = text.match(/\b(HEAD[~^]\d*|[a-f0-9]{6,}\.{2,3}[a-f0-9]{6,}|[\w\-]+\.{2,3}[\w\-]+)\b/);
-    if (rangeMatch?.[1]) {
-      args.range = rangeMatch[1];
-    }
-    // File path patterns: diff of apps/api/src/server.ts
+    if (rangeMatch?.[1]) args.range = rangeMatch[1];
     const fileMatch = text.match(/(?:diff|changes?|in)\s+(?:to\s+|of\s+)?([a-zA-Z0-9_\-./]+\.[a-zA-Z]{1,6})\b/i);
-    if (fileMatch?.[1] && !fileMatch[1].includes("git")) {
-      args.file = fileMatch[1];
-    }
+    if (fileMatch?.[1] && !fileMatch[1].includes("git")) args.file = fileMatch[1];
   }
 
-  // fs.write — extract path and content for skill writes
   if (tool_id === "fs.write") {
     const nameMatch = text.match(/skill\s+(?:for|called|named)\s+["""']?([a-zA-Z0-9\s\-_]{2,40})["""']?/i);
     if (nameMatch?.[1]) {
       const skillId = nameMatch[1].trim().toLowerCase().replace(/\s+/g, "-");
       args.path = `skills/${skillId}/skill.md`;
-      // Content will be generated after approval — placeholder for now
       args.content = `# Skill: ${nameMatch[1].trim()}\n\n## Purpose\nAuto-generated skill.\n`;
     }
   }
 
-  // fs.read — extract path
   if (tool_id === "fs.read") {
     const m = text.match(/(?:read|open|view)\s+["""'`]?([a-zA-Z0-9_\-./]+\.[a-zA-Z]+)["""'`]?/i);
     if (m?.[1]) args.path = m[1].trim();
@@ -162,29 +143,23 @@ function extractArgs(text: string, tool_id: string): Record<string, string> {
     if (queryMatch) args.query = queryMatch[1].trim();
     args.action = tool_id.replace("browser.", "");
   }
+
   return args;
 }
 
 export function extractToolProposal(modelResponse: string): ToolProposal | null {
-  // Must contain a proposal indicator
   const hasIndicator = PROPOSAL_INDICATORS.some((p) => p.test(modelResponse));
   if (!hasIndicator) return null;
 
-  // Must name a known tool
   const tool_id = extractToolId(modelResponse);
   if (!tool_id) return null;
 
   const args = extractArgs(modelResponse, tool_id);
 
-  return {
-    tool_id,
-    args,
-    raw_match: tool_id,
-  };
+  return { tool_id, args, raw_match: tool_id };
 }
 
 // ── Plan proposal detection ───────────────────────────────────────────────────
-// Detects when Squidley proposes a multi-step plan in her response.
 
 const PLAN_PROPOSAL_PATTERNS = [
   /want me to run this plan\?/i,
@@ -200,15 +175,11 @@ export function isPlanProposal(text: string): boolean {
   return PLAN_PROPOSAL_PATTERNS.some((p) => p.test(text));
 }
 
-// Extract goal from a plan proposal text
 export function extractPlanGoal(text: string): string {
-  // Look for "To <goal> I'll run:" or "I'll run these steps to <goal>"
   const m =
     text.match(/to\s+(.{10,120}?)[,.]?\s+i['']?(?:ll|will|can)\s+(?:run|execute|use)/i) ??
     text.match(/i['']?(?:ll|will|can)\s+(?:run|execute|use)\s+(?:these\s+steps\s+)?to\s+(.{10,120})/i);
   if (m?.[1]) return m[1].trim();
-
-  // Fallback: first sentence
   return text.split(/[.!?]/)[0]?.trim().slice(0, 120) ?? "repo health check";
 }
 
@@ -228,14 +199,41 @@ export type AgentProposal = {
   focus?: string;
 };
 
-export function extractAgentProposal(text: string): AgentProposal | null {
+// Extract a clean path only — matches ~/path or /absolute/path, nothing else
+function extractCleanPath(text: string): string | undefined {
+  const m = text.match(/(~\/[^\s,;.?!'"]+|\/[a-zA-Z0-9_\-./]+)/);
+  return m?.[1]?.trim();
+}
+
+/**
+ * Extract agent proposal from Squidley's response.
+ * Optionally pass the original user input for better focus extraction.
+ *
+ * Focus priority:
+ * 1. Clean path from user input (~/ or /absolute) — most reliable
+ * 2. Clean path from Squidley's response
+ * 3. Named target from user input ("on the openclaw repo")
+ */
+export function extractAgentProposal(text: string, userInput?: string): AgentProposal | null {
   for (const pattern of AGENT_PROPOSAL_PATTERNS) {
     const m = text.match(pattern);
     if (m?.[1]) {
       const agent_name = m[1].trim().toLowerCase();
-      // Extract focus if present: "to check X" or "focused on X"
-      const focusMatch = text.match(/(?:to check|focused on|looking for|searching for|about)\s+([^.?!]{5,60})/i);
-      const focus = focusMatch?.[1]?.trim();
+
+      // Priority 1: clean path from user input (user typed it directly — most reliable)
+      let focus: string | undefined = userInput ? extractCleanPath(userInput) : undefined;
+
+      // Priority 2: clean path from Squidley's response
+      if (!focus) focus = extractCleanPath(text);
+
+      // Priority 3: named target from user input e.g. "on the openclaw repo"
+      if (!focus && userInput) {
+        const km = userInput.match(
+          /(?:on|at|in|for|inspect|analyze|survey|check)\s+(?:the\s+)?([a-zA-Z0-9_\-]+(?:\s+[a-zA-Z0-9_\-]+)?)\s*(?:repo|dir|directory|folder|codebase|project)?/i
+        );
+        if (km?.[1]) focus = km[1].trim();
+      }
+
       return { agent_name, focus };
     }
   }

@@ -5,6 +5,7 @@
 // This is the core of Squidley's sub-agent system.
 
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 
@@ -94,10 +95,14 @@ export async function loadAgentDefinition(agentName: string): Promise<AgentDefin
       .filter(Boolean);
 
     // Extract default plan
+    // Parse lines like:
+    //   1. proc.exec(find {target_dir} -type f ...)
+    //   2. rg.search({target_dir} def |class ...)
     const planSection = extractSection(raw, "Default plan");
     const default_plan: Array<{ tool: string; args?: Record<string, any> }> = [];
     for (const line of planSection.split("\n")) {
-      const m = line.match(/^\d+\.\s+(\w+[\.\w]*)\(?(.*?)\)?$/);
+      // Match: "1. tool_name(args...)" or "1. tool_name"
+      const m = line.match(/^\d+\.\s+([\w.]+)\(?([^)]*)\)?$/);
       if (m?.[1]) {
         const tool = m[1].trim();
         const argStr = m[2]?.trim() ?? "";
@@ -116,8 +121,6 @@ export async function loadAgentDefinition(agentName: string): Promise<AgentDefin
       .filter(Boolean);
 
     // Parse post_process section if present
-    // Keys: model, provider, write_to in ## Post process section
-    // Prompt between prompt_start / prompt_end markers (avoids ## heading conflicts)
     const ppSection = extractSection(raw, "Post process");
     let post_process: AgentPostProcess | undefined;
     if (ppSection) {
@@ -134,6 +137,7 @@ export async function loadAgentDefinition(agentName: string): Promise<AgentDefin
         };
       }
     }
+
     return {
       name: agentName,
       role,
@@ -175,6 +179,28 @@ export async function listAgents(): Promise<Array<{ name: string; role: string }
   }
 }
 
+// ── Resolve target directory from focus string ────────────────────────────────
+// Expands ~ and resolves relative paths. Falls back to ZENSQUID_ROOT.
+
+function resolveTargetDir(focus?: string): string {
+  if (!focus || focus === "default") {
+    return process.env.ZENSQUID_ROOT ?? process.cwd();
+  }
+  // Expand ~ to home
+  const expanded = focus.trim().replace(/^~(?=\/|$)/, os.homedir());
+  return path.resolve(expanded);
+}
+
+// ── Substitute template variables in a command string ────────────────────────
+
+function substituteVars(str: string, vars: Record<string, string>): string {
+  let result = str;
+  for (const [key, value] of Object.entries(vars)) {
+    result = result.replace(new RegExp(`\\{${key}\\}`, "g"), value);
+  }
+  return result;
+}
+
 // ── Run agent ─────────────────────────────────────────────────────────────────
 
 export async function runAgent(args: {
@@ -211,12 +237,32 @@ export async function runAgent(args: {
     };
   }
 
-  // Build plan — use focus to override rg.search query if provided
+  // Resolve the actual target directory from focus
+  const targetDir = resolveTargetDir(focus);
+
+  // Template vars available to all plan steps
+  const templateVars: Record<string, string> = {
+    target_dir: targetDir,
+    focus: focus ?? targetDir,
+    date: today,
+  };
+
+  // Build plan — substitute template vars in all steps
   const steps = agent.default_plan.map((step) => {
-    if (step.tool === "rg.search" && focus) {
-      return { tool: step.tool, args: { query: focus, path: "." } };
+    // Substitute {target_dir} and other vars in the query/cmd arg
+    const substituted: Record<string, any> = {};
+    if (step.args) {
+      for (const [k, v] of Object.entries(step.args)) {
+        substituted[k] = typeof v === "string" ? substituteVars(v, templateVars) : v;
+      }
     }
-    return step;
+
+    // For rg.search with focus, override query with focus
+    if (step.tool === "rg.search" && focus && focus !== "default") {
+      return { tool: step.tool, args: { query: focus, path: targetDir } };
+    }
+
+    return { tool: step.tool, args: Object.keys(substituted).length > 0 ? substituted : undefined };
   });
 
   // Execute steps via /tools/run
@@ -235,29 +281,39 @@ export async function runAgent(args: {
     }
 
     try {
-      // fs.read and fs.write use rawArgs format
-      const usesRawArgs = step.tool === "fs.read" || step.tool === "fs.write";
-      // fs.read needs { path } not { query } — map from plan parser output
-      const fsReadArgs = step.tool === "fs.read"
-        ? { path: step.args?.path ?? step.args?.query ?? "" }
-        : step.args ?? {};
-      const payload = usesRawArgs
-        ? {
-            workspace: "squidley",
-            tool_id: step.tool,
-            args: fsReadArgs,
-          }
-        : {
-            workspace: "squidley",
-            tool_id: step.tool,
-            args: (() => {
-              if (!step.args) return [];
-              if (step.tool === "rg.search") {
-                return [String(step.args.query ?? "TODO"), String(step.args.path ?? ".")];
-              }
-              return Object.values(step.args).map(String);
-            })(),
-          };
+      let payload: any;
+
+      if (step.tool === "proc.exec") {
+        // proc.exec gets the full command string as rawArgs { cmd: "..." }
+        // The query arg from the plan parser contains the full command string
+        const cmdStr = step.args?.query ?? step.args?.cmd ?? "";
+        payload = {
+          workspace: "squidley",
+          tool_id: "proc.exec",
+          args: { cmd: String(cmdStr) },
+        };
+      } else if (step.tool === "fs.read" || step.tool === "fs.write") {
+        const fsReadArgs = step.tool === "fs.read"
+          ? { path: step.args?.path ?? step.args?.query ?? "" }
+          : step.args ?? {};
+        payload = {
+          workspace: "squidley",
+          tool_id: step.tool,
+          args: fsReadArgs,
+        };
+      } else {
+        payload = {
+          workspace: "squidley",
+          tool_id: step.tool,
+          args: (() => {
+            if (!step.args) return [];
+            if (step.tool === "rg.search") {
+              return [String(step.args.query ?? "TODO"), String(step.args.path ?? ".")];
+            }
+            return Object.values(step.args).map(String);
+          })(),
+        };
+      }
 
       const res = await app.inject({
         method: "POST",
@@ -276,7 +332,13 @@ export async function runAgent(args: {
 
       const ok = Boolean(json?.ok);
       const stdout = String(json?.stdout ?? json?.output ?? json?.content ?? "");
-      results.push({ tool: step.tool, ok, stdout: stdout.slice(0, 2000) });
+      const errMsg = String(json?.error ?? json?.stderr ?? "");
+      results.push({
+        tool: step.tool,
+        ok,
+        stdout: stdout.slice(0, 2000),
+        error: !ok ? (errMsg || "tool failed") : undefined,
+      });
 
       if (!ok) break; // stop on fail
     } catch (e: any) {
@@ -292,6 +354,7 @@ export async function runAgent(args: {
   const summaryLines: string[] = [];
   summaryLines.push(`Agent: ${agentName}`);
   summaryLines.push(`Focus: ${focus ?? "default inspection"}`);
+  summaryLines.push(`Target: ${targetDir}`);
   summaryLines.push(`Ran: ${results.length} steps, ${pass} passed, ${fail} failed`);
   summaryLines.push("");
   for (const r of results) {
@@ -313,7 +376,7 @@ export async function runAgent(args: {
     }
   }
 
-  // ── Post-process: send results to local model for extraction ─────────────────
+  // ── Post-process: send results to model for extraction ────────────────────
   let modelOutput = "";
   let writtenFiles: string[] = [];
 
@@ -328,13 +391,13 @@ export async function runAgent(args: {
       const prompt = agent.post_process.prompt
         .replace("{output}", combinedOutput)
         .replace("{date}", today)
-        .replace("{focus}", focus ?? "default");
+        .replace("{focus}", focus ?? targetDir)
+        .replace("{target_dir}", targetDir);
 
       const provider = agent.post_process.provider ?? "ollama";
       let resp: Response;
 
       if (provider === "openai") {
-        // Key may be in a file (systemd credentials pattern)
         let apiKey = (process.env.OPENAI_API_KEY ?? "").trim();
         if (!apiKey) {
           const keyFile = (process.env.OPENAI_API_KEY_FILE ?? "").trim();
@@ -396,7 +459,6 @@ export async function runAgent(args: {
       console.log("DEBUG resp.ok:", resp.ok, "status:", resp.status);
       if (resp.ok) {
         const data = await resp.json() as any;
-        // OpenAI/modelstudio use choices[0].message.content, ollama uses response
         modelOutput = String(
           data?.choices?.[0]?.message?.content ?? data?.response ?? ""
         ).trim();
@@ -446,6 +508,7 @@ export async function runAgent(args: {
       run_id,
       agent: agentName,
       focus: focus ?? "default",
+      target_dir: targetDir,
       steps_ran: results.length,
       pass,
       fail,

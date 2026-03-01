@@ -2,7 +2,8 @@
   "meta": {
     "name": "Squidley",
     "node": "ZenPop",
-    "local_first": true
+    "local_first": true,
+    "safety_zone": "forge"
   },
   "tiers": [
     {
@@ -45,55 +46,55 @@
       "name": "local_small",
       "provider": "ollama",
       "model": "llama3.2:3b",
-      "role": "Tier 0: Tiny local \u2014 fast responses, simple tasks"
+      "role": "Tier 0: Tiny local — fast responses, simple tasks"
     },
     {
       "name": "local_phi",
       "provider": "ollama",
       "model": "phi4-mini-reasoning:3.8b",
-      "role": "Tier 0: Phi4 mini \u2014 reasoning-focused small model"
+      "role": "Tier 0: Phi4 mini — reasoning-focused small model"
     },
     {
       "name": "local_mid",
       "provider": "ollama",
       "model": "ministral-3:14b",
-      "role": "Tier 1: Mistral 14b \u2014 local mid-size alternative"
+      "role": "Tier 1: Mistral 14b — local mid-size alternative"
     },
     {
       "name": "local_deepseek",
       "provider": "ollama",
       "model": "deepseek-coder-v2:16b",
-      "role": "Tier 1: DeepSeek Coder \u2014 local code-focused model"
+      "role": "Tier 1: DeepSeek Coder — local code-focused model"
     },
     {
       "name": "local_gpt_oss",
       "provider": "ollama",
       "model": "gpt-oss:20b",
-      "role": "Tier 2: GPT OSS 20b \u2014 local large model"
+      "role": "Tier 2: GPT OSS 20b — local large model"
     },
     {
       "name": "local_qwen27",
       "provider": "ollama",
       "model": "qwen3.5:27b",
-      "role": "Tier 2: Qwen 27b \u2014 local large, good context following"
+      "role": "Tier 2: Qwen 27b — local large, good context following"
     },
     {
       "name": "local_qwen35",
       "provider": "ollama",
       "model": "qwen3.5:35b",
-      "role": "Tier 2: Qwen 35b \u2014 local largest, best local reasoning"
+      "role": "Tier 2: Qwen 35b — local largest, best local reasoning"
     },
     {
       "name": "local_nemotron",
       "provider": "ollama",
       "model": "nemotron-3-nano:latest",
-      "role": "Tier 2: Nemotron \u2014 NVIDIA local model"
+      "role": "Tier 2: Nemotron — NVIDIA local model"
     },
     {
       "name": "local_glm",
       "provider": "ollama",
       "model": "glm-4.7-flash:latest",
-      "role": "Tier 2: GLM Flash \u2014 fast local large model"
+      "role": "Tier 2: GLM Flash — fast local large model"
     }
   ],
   "budgets": {

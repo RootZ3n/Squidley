@@ -7,32 +7,17 @@
 export type AllowlistedTool = {
   id: string;
   title: string;
-
-  // "__js__" = internal JS handler (no subprocess)
-  // "__admin__" = requires admin token (checked by runner before exec)
-  // anything else = executable name spawned directly
   cmd: string;
-
-  // Static args that come BEFORE user args
   argsPrefix: string[];
-
-  // Optional working directory override
   cwd?: string;
-
-  // Optional environment variables merged onto process.env
   env?: Record<string, string>;
-
-  // Whether admin token is required to run this tool
   requiresAdmin?: boolean;
-
-  // Safety limits
   timeoutMs: number;
   maxOutputBytes: number;
 };
 
 export type ToolAllowlist = Record<string, AllowlistedTool>;
 
-// ✅ Resolved at runtime — works on any machine
 function getRepoRoot(): string {
   return process.env.ZENSQUID_ROOT ?? process.cwd();
 }
@@ -50,7 +35,7 @@ function getSearxngUrl(): string {
 }
 
 const DEFAULT_TIMEOUT_MS = 30_000;
-const DEFAULT_MAX_OUTPUT_BYTES = 256 * 1024; // 256 KB
+const DEFAULT_MAX_OUTPUT_BYTES = 256 * 1024;
 
 export const TOOL_ALLOWLIST: ToolAllowlist = {
 
@@ -120,7 +105,8 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     maxOutputBytes: 512 * 1024,
   },
 
-  // ── Job application ──────────────────────────────────────────────────────
+  // ── Job application ───────────────────────────────────────────────────────
+
   "job.detect-form": {
     id: "job.detect-form",
     title: "Job Apply: detect form fields on application page (read-only)",
@@ -130,6 +116,7 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     timeoutMs: 30_000,
     maxOutputBytes: 512 * 1024,
   },
+
   "job.fill-form": {
     id: "job.fill-form",
     title: "Job Apply: fill application form fields (requires approval, never auto-submits)",
@@ -139,7 +126,9 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     timeoutMs: 60_000,
     maxOutputBytes: 512 * 1024,
   },
-  // ── File organizer ───────────────────────────────────────────────────────
+
+  // ── File organizer ────────────────────────────────────────────────────────
+
   "fs.survey": {
     id: "fs.survey",
     title: "File System: survey a directory and build organization plan (read-only)",
@@ -149,6 +138,7 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     timeoutMs: 60_000,
     maxOutputBytes: 512 * 1024,
   },
+
   "fs.organize": {
     id: "fs.organize",
     title: "File System: execute approved file moves (requires approval)",
@@ -159,7 +149,90 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     timeoutMs: 60_000,
     maxOutputBytes: 512 * 1024,
   },
-  // ── Browser control ──────────────────────────────────────────────────────
+
+  // ── Filesystem read/write (admin-gated) ───────────────────────────────────
+
+  "fs.read": {
+    id: "fs.read",
+    title: "File: read (admin)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: 10_000,
+    maxOutputBytes: 512 * 1024,
+  },
+
+  "fs.write": {
+    id: "fs.write",
+    title: "File: write (admin)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: 10_000,
+    maxOutputBytes: 64 * 1024,
+  },
+
+  // ── Filesystem expanded (admin-gated) ─────────────────────────────────────
+
+  "fs.mkdir": {
+    id: "fs.mkdir",
+    title: "File System: create directory (admin)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: 10_000,
+    maxOutputBytes: 64 * 1024,
+  },
+
+  "fs.move": {
+    id: "fs.move",
+    title: "File System: move or rename file/directory (admin)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: 10_000,
+    maxOutputBytes: 64 * 1024,
+  },
+
+  "fs.delete": {
+    id: "fs.delete",
+    title: "File System: delete file or empty directory (admin, no recursive)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: 10_000,
+    maxOutputBytes: 64 * 1024,
+  },
+
+  "fs.diff": {
+    id: "fs.diff",
+    title: "File System: diff two files (read-only)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: false,
+    timeoutMs: 10_000,
+    maxOutputBytes: 256 * 1024,
+  },
+
+  "fs.tree": {
+    id: "fs.tree",
+    title: "File System: directory tree (read-only)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: false,
+    timeoutMs: 10_000,
+    maxOutputBytes: 256 * 1024,
+  },
+
+  // ── Browser control ───────────────────────────────────────────────────────
+
   "browser.visit": {
     id: "browser.visit",
     title: "Browser: visit URL and extract text (read-only)",
@@ -169,6 +242,7 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     timeoutMs: 30_000,
     maxOutputBytes: 512 * 1024,
   },
+
   "browser.extract": {
     id: "browser.extract",
     title: "Browser: extract structured content from URL (read-only)",
@@ -178,6 +252,7 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     timeoutMs: 30_000,
     maxOutputBytes: 512 * 1024,
   },
+
   "browser.search": {
     id: "browser.search",
     title: "Browser: search Google and return results (read-only)",
@@ -187,6 +262,7 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     timeoutMs: 30_000,
     maxOutputBytes: 512 * 1024,
   },
+
   "browser.screenshot": {
     id: "browser.screenshot",
     title: "Browser: screenshot a URL (read-only, saves to memory/screenshots/)",
@@ -196,7 +272,8 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     timeoutMs: 30_000,
     maxOutputBytes: 512 * 1024,
   },
-  // ── Build + Test ───────────────────────────────────────────────────────────
+
+  // ── Build + Test ──────────────────────────────────────────────────────────
 
   "web.build": {
     id: "web.build",
@@ -219,30 +296,6 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     },
     timeoutMs: 5 * 60_000,
     maxOutputBytes: 512 * 1024,
-  },
-
-  // ── Filesystem (admin-gated) ───────────────────────────────────────────────
-
-  "fs.read": {
-    id: "fs.read",
-    title: "File: read (admin)",
-    cmd: "__js__",
-    argsPrefix: [],
-    get cwd() { return getRepoRoot(); },
-    requiresAdmin: true,
-    timeoutMs: 10_000,
-    maxOutputBytes: 512 * 1024,
-  },
-
-  "fs.write": {
-    id: "fs.write",
-    title: "File: write (admin)",
-    cmd: "__js__",
-    argsPrefix: [],
-    get cwd() { return getRepoRoot(); },
-    requiresAdmin: true,
-    timeoutMs: 10_000,
-    maxOutputBytes: 64 * 1024,
   },
 
   // ── Process execution (admin-gated) ───────────────────────────────────────
@@ -270,9 +323,164 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     timeoutMs: 30_000,
     maxOutputBytes: DEFAULT_MAX_OUTPUT_BYTES,
   },
+
+  // ── Process management (admin-gated) ──────────────────────────────────────
+
+  "proc.list": {
+    id: "proc.list",
+    title: "Process: list running processes (admin)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: 10_000,
+    maxOutputBytes: DEFAULT_MAX_OUTPUT_BYTES,
+  },
+
+  "proc.kill": {
+    id: "proc.kill",
+    title: "Process: kill a process by PID (admin)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: 10_000,
+    maxOutputBytes: 64 * 1024,
+  },
+
+  // ── Systemd status (read-only) ────────────────────────────────────────────
+
+  "systemctl.status": {
+    id: "systemctl.status",
+    title: "Systemd: check service status (read-only)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: false,
+    timeoutMs: 10_000,
+    maxOutputBytes: DEFAULT_MAX_OUTPUT_BYTES,
+  },
+
+  // ── Environment (admin-gated) ─────────────────────────────────────────────
+
+  "env.read": {
+    id: "env.read",
+    title: "Environment: read specific env vars by name (admin)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: 5_000,
+    maxOutputBytes: 64 * 1024,
+  },
+
+  // ── Network (admin-gated) ─────────────────────────────────────────────────
+
+  "http.get": {
+    id: "http.get",
+    title: "Network: HTTP GET request (admin)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: 30_000,
+    maxOutputBytes: 512 * 1024,
+  },
+
+  "http.post": {
+    id: "http.post",
+    title: "Network: HTTP POST request (admin)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: 30_000,
+    maxOutputBytes: 512 * 1024,
+  },
+
+  "dns.lookup": {
+    id: "dns.lookup",
+    title: "Network: DNS lookup (read-only)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: false,
+    timeoutMs: 10_000,
+    maxOutputBytes: 64 * 1024,
+  },
+
+  // ── Git write (admin-gated) ───────────────────────────────────────────────
+
+  "git.add": {
+    id: "git.add",
+    title: "Git: stage files (admin)",
+    cmd: "git",
+    argsPrefix: ["add"],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: DEFAULT_TIMEOUT_MS,
+    maxOutputBytes: DEFAULT_MAX_OUTPUT_BYTES,
+  },
+
+  "git.commit": {
+    id: "git.commit",
+    title: "Git: commit staged changes (admin)",
+    cmd: "git",
+    argsPrefix: ["commit", "-m"],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: DEFAULT_TIMEOUT_MS,
+    maxOutputBytes: DEFAULT_MAX_OUTPUT_BYTES,
+  },
+
+  "git.push": {
+    id: "git.push",
+    title: "Git: push to remote (admin)",
+    cmd: "git",
+    argsPrefix: ["push"],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: 60_000,
+    maxOutputBytes: DEFAULT_MAX_OUTPUT_BYTES,
+  },
+
+  // ── Dev tools ─────────────────────────────────────────────────────────────
+
+  "pnpm.run": {
+    id: "pnpm.run",
+    title: "pnpm: run a script in a workspace package (admin)",
+    cmd: "pnpm",
+    argsPrefix: ["run"],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: 5 * 60_000,
+    maxOutputBytes: 512 * 1024,
+  },
+
+  "lint.check": {
+    id: "lint.check",
+    title: "Lint: run TypeScript type check (read-only)",
+    cmd: "pnpm",
+    argsPrefix: ["-C", "apps/api", "exec", "tsc", "--noEmit", "--pretty"],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: false,
+    timeoutMs: 2 * 60_000,
+    maxOutputBytes: 512 * 1024,
+  },
+
+  "test.run": {
+    id: "test.run",
+    title: "Test: run Playwright or vitest tests (admin)",
+    cmd: "pnpm",
+    argsPrefix: ["test"],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: 5 * 60_000,
+    maxOutputBytes: 512 * 1024,
+  },
 };
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 export function listTools(includeAdmin = false): { id: string; title: string }[] {
   return Object.values(TOOL_ALLOWLIST)

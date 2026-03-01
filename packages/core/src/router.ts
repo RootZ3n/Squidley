@@ -14,17 +14,56 @@ function providerIsLocal(provider: string): boolean {
   return provider === "ollama";
 }
 
-function isCodey(input: string): boolean {
+function isCodeTask(input: string): boolean {
   const s = input.toLowerCase();
-  return (
+  // Explicit code artifacts
+  if (
     s.includes("```") ||
     s.includes("diff --git") ||
     s.includes("--- a/") ||
     s.includes("+++ b/") ||
     s.includes("@@ ") ||
     s.includes("stack trace") ||
-    s.includes("traceback")
-  );
+    s.includes("traceback") ||
+    s.includes("tsconfig") ||
+    s.includes("package.json") ||
+    s.includes("error ts") ||
+    s.includes("cannot find module") ||
+    s.includes("module not found")
+  ) return true;
+
+  // Explicit code task verbs
+  const codeVerbs = [
+    /\b(write|create|build|generate|implement|code|program)\b.{0,40}\b(function|class|script|component|module|tool|agent|route|endpoint|api|test|spec)\b/i,
+    /\b(fix|debug|refactor|update|modify|edit|patch|improve)\b.{0,40}\b(bug|error|issue|code|function|class|file|script)\b/i,
+    /\bhow (do|would|should) (i|we|you)\b.{0,40}\b(implement|code|build|write|create)\b/i,
+    /\b(add|implement)\b.{0,60}\b(feature|functionality|support|handler|middleware)\b/i,
+    /\.(ts|js|py|go|rs|tsx|jsx|sh|bash|mjs|cjs)\b/i,
+  ];
+  return codeVerbs.some(p => p.test(s));
+}
+
+function isPlanTask(input: string): boolean {
+  const s = input.toLowerCase();
+  const planVerbs = [
+    /\b(plan|design|architect|structure|outline|roadmap|strategy)\b/i,
+    /\bhow (should|would|do) (i|we)\b.{0,40}\b(approach|structure|organize|design|build)\b/i,
+    /\bwhat('?s| is) the best way to\b/i,
+    /\bthink through\b/i,
+    /\bbreak (this|it) down\b/i,
+  ];
+  return planVerbs.some(p => p.test(s));
+}
+
+function isBigBrainTask(input: string): boolean {
+  const s = input.toLowerCase();
+  const bigVerbs = [
+    /\b(analyze|analyse|evaluate|assess|compare|review|audit)\b.{0,40}\b(architecture|system|codebase|design|tradeoffs?)\b/i,
+    /\bdeep dive\b/i,
+    /\bcomprehensive\b/i,
+    /\bfull (analysis|review|audit|report)\b/i,
+  ];
+  return bigVerbs.some(p => p.test(s));
 }
 
 function pickByName(tiers: TierConfig[], name: string): TierConfig | undefined {
@@ -55,7 +94,6 @@ export function chooseTier(cfg: ZenSquidConfig, req: ChatRequest): TierDecision 
   const localBaseline = localBaselineTier(tiers);
   const primary = primaryTier(tiers);
 
-  // budgets.strict_local_only exists at runtime, but your TS type doesn’t include it yet.
   const strictLocalOnly = !!((cfg as any).budgets?.strict_local_only);
 
   const finalize = (picked: TierConfig, reason: string): TierDecision => {
@@ -66,7 +104,6 @@ export function chooseTier(cfg: ZenSquidConfig, req: ChatRequest): TierDecision 
         escalation_reason: `blocked: strict_local_only enabled (wanted ${picked.name})`
       };
     }
-
     return {
       tier: picked,
       escalated: normalizeName(picked.name) !== normalizeName(primary.name),
@@ -80,11 +117,10 @@ export function chooseTier(cfg: ZenSquidConfig, req: ChatRequest): TierDecision 
     if (match) return finalize(match, `forced: tier=${match.name}`);
   }
 
-  // 2) Mode handling (schema-compatible)
+  // 2) Mode handling
   if (req.mode === "force_local") {
     return finalize(localBaseline, "mode: force_local");
   }
-
   if (req.mode === "force_tier") {
     return finalize(
       localBaseline,
@@ -94,12 +130,23 @@ export function chooseTier(cfg: ZenSquidConfig, req: ChatRequest): TierDecision 
     );
   }
 
-  // 3) Auto routing
-  if (isCodey(req.input)) {
-    const coder = pickByName(tiers, "coder") ?? localBaseline;
-    return finalize(coder, "auto: coder selected (diff/patch/code fences)");
+  // 3) Auto routing — most specific first
+  if (isBigBrainTask(req.input)) {
+    const bigBrain = pickByName(tiers, "big_brain");
+    if (bigBrain) return finalize(bigBrain, "auto: big_brain selected (deep analysis)");
   }
 
-  // Default = primary (usually tier name "mini")
+  if (isCodeTask(req.input)) {
+    // Prefer "build" tier (qwen3-coder:30b), fall back to local baseline
+    const buildTier = pickByName(tiers, "build") ?? localBaseline;
+    return finalize(buildTier, "auto: build tier selected (code task)");
+  }
+
+  if (isPlanTask(req.input)) {
+    const planTier = pickByName(tiers, "plan");
+    if (planTier) return finalize(planTier, "auto: plan tier selected (planning task)");
+  }
+
+  // Default = primary (chat tier)
   return finalize(primary, "auto: primary selected");
 }
