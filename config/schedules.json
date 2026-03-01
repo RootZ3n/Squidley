@@ -53,12 +53,12 @@
     {
       "id": "pipeline-tracker-weekly",
       "agent": "pipeline-tracker",
-      "cron": "0 8 * * 1",
-      "enabled": false,
-      "label": "Weekly job pipeline summary — runs Monday 8am",
+      "cron": "0 7 * * 1",
+      "enabled": true,
+      "label": "Weekly pipeline digest — Monday 7am, pushes to Telegram",
       "focus": null,
-      "last_run": null,
-      "last_result": null
+      "last_run": "2026-03-01T12:45:45.245Z",
+      "last_result": "pass"
     },
     {
       "id": "proactive-watcher",
