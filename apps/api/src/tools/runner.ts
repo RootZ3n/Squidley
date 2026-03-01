@@ -167,6 +167,43 @@ async function runInternalTool(opts: {
       };
     }
 
+    if (opts.tool_id === "job.detect-form" || opts.tool_id === "job.fill-form") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const { detectApplicationForm, fillApplicationForm } = await import("./jobApply.js");
+
+      if (opts.tool_id === "job.detect-form") {
+        const url = (rawArgsObj?.url as string ?? opts.userArgs[0] ?? "").trim();
+        if (!url) throw new ToolRunnerError("BAD_REQUEST", "job.detect-form: url required");
+        const result = await detectApplicationForm(url);
+        const lines = [
+          `# Application Form: ${url}`,
+          `Platform: ${result.platform}`,
+          `Fields found: ${result.fields.length}`,
+          "",
+          "## Fields",
+          ...result.fields.map((f: any) => `- [${f.required ? "required" : "optional"}] ${f.label} (${f.type}) → ${f.selector}`),
+          result.screenshot_path ? `\nScreenshot: ${result.screenshot_path}` : "",
+        ];
+        return { ok: true, exit_code: 0, signal: null as any, stdout: lines.join("\n"), stderr: "", truncated: { stdout: false, stderr: false } };
+      }
+
+      if (opts.tool_id === "job.fill-form") {
+        const planJson = rawArgsObj?.plan as string ?? "{}";
+        const dryRun = rawArgsObj?.dry_run !== "false";
+        const plan = JSON.parse(planJson);
+        const result = await fillApplicationForm(plan, dryRun);
+        const lines = [
+          dryRun ? "# DRY RUN — no fields were filled" : "# Form Fill Complete",
+          `Filled: ${result.filled} fields`,
+          `Skipped: ${result.skipped.length} fields`,
+          ...result.skipped.map((s: string) => `- Skipped: ${s}`),
+          result.screenshot_path ? `Screenshot: ${result.screenshot_path}` : "",
+          "\n⚠️ Browser left open — review and submit manually.",
+        ];
+        return { ok: result.ok, exit_code: result.ok ? 0 : 1, signal: null as any, stdout: lines.join("\n"), stderr: "", truncated: { stdout: false, stderr: false } };
+      }
+    }
+
     if (opts.tool_id === "fs.survey" || opts.tool_id === "fs.organize") {
       const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
       const { surveyDirectory, buildOrganizerPlan, executeMoves } = await import("./fileOrganizer.js");

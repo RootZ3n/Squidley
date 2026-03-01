@@ -637,7 +637,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
         // Convert object args to array for subprocess tools (rg.search, git.*, etc.)
         // JS-handled tools (web.search, fs.read, etc.) receive the object directly.
         const rawArgs = pending.proposal.args;
-        const jsTools = new Set(["web.search", "fs.read", "fs.write", "proc.exec", "systemctl.user", "diag.sleep", "browser.visit", "browser.extract", "browser.search", "browser.screenshot", "fs.survey", "fs.organize"]);
+        const jsTools = new Set(["web.search", "fs.read", "fs.write", "proc.exec", "systemctl.user", "diag.sleep", "browser.visit", "browser.extract", "browser.search", "browser.screenshot", "fs.survey", "fs.organize", "job.detect-form", "job.fill-form"]);
         let finalArgs: string[] | Record<string, string>;
         if (jsTools.has(pending.proposal.tool_id)) {
           finalArgs = rawArgs;

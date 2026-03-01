@@ -120,6 +120,25 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     maxOutputBytes: 512 * 1024,
   },
 
+  // ── Job application ──────────────────────────────────────────────────────
+  "job.detect-form": {
+    id: "job.detect-form",
+    title: "Job Apply: detect form fields on application page (read-only)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    timeoutMs: 30_000,
+    maxOutputBytes: 512 * 1024,
+  },
+  "job.fill-form": {
+    id: "job.fill-form",
+    title: "Job Apply: fill application form fields (requires approval, never auto-submits)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    timeoutMs: 60_000,
+    maxOutputBytes: 512 * 1024,
+  },
   // ── File organizer ───────────────────────────────────────────────────────
   "fs.survey": {
     id: "fs.survey",
