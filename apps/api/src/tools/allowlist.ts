@@ -120,6 +120,26 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     maxOutputBytes: 512 * 1024,
   },
 
+  // ── File organizer ───────────────────────────────────────────────────────
+  "fs.survey": {
+    id: "fs.survey",
+    title: "File System: survey a directory and build organization plan (read-only)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    timeoutMs: 60_000,
+    maxOutputBytes: 512 * 1024,
+  },
+  "fs.organize": {
+    id: "fs.organize",
+    title: "File System: execute approved file moves (requires approval)",
+    cmd: "__js__",
+    argsPrefix: [],
+    requiresAdmin: false,
+    get cwd() { return getRepoRoot(); },
+    timeoutMs: 60_000,
+    maxOutputBytes: 512 * 1024,
+  },
   // ── Browser control ──────────────────────────────────────────────────────
   "browser.visit": {
     id: "browser.visit",

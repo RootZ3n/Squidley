@@ -167,6 +167,49 @@ async function runInternalTool(opts: {
       };
     }
 
+    if (opts.tool_id === "fs.survey" || opts.tool_id === "fs.organize") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const { surveyDirectory, buildOrganizerPlan, executeMoves } = await import("./fileOrganizer.js");
+      const repoRoot = process.env.ZENSQUID_ROOT ?? process.cwd();
+
+      if (opts.tool_id === "fs.survey") {
+        const targetDir = (rawArgsObj?.dir as string ?? rawArgsObj?.path as string ?? opts.userArgs[0] ?? process.env.HOME ?? "/home").trim();
+        const entries = await surveyDirectory(targetDir, 300);
+        const plan = await buildOrganizerPlan(entries, targetDir);
+        const lines = [
+          `# File Survey: ${targetDir}`,
+          `${plan.summary}`,
+          "",
+          "## Proposed Auto-Moves",
+          ...plan.moves.slice(0, 30).map(m => `- ${m.from} → ${m.to} (${m.reason})`),
+          plan.moves.length > 30 ? `... and ${plan.moves.length - 30} more` : "",
+          "",
+          "## Needs Review",
+          ...plan.needsReview.slice(0, 20).map(r => `- ${r.path} — ${r.reason}`),
+          "",
+          "## Duplicates",
+          ...plan.duplicates.slice(0, 10).map(d => `- ${d.files.join(" == ")}`),
+        ];
+        return {
+          ok: true, exit_code: 0, signal: null as any,
+          stdout: lines.filter(l => l !== undefined).join("\n"),
+          stderr: "", truncated: { stdout: false, stderr: false }
+        };
+      }
+
+      if (opts.tool_id === "fs.organize") {
+        const movesJson = rawArgsObj?.moves as string ?? "[]";
+        const dryRun = rawArgsObj?.dry_run !== "false";
+        const moves = JSON.parse(movesJson);
+        const result = await executeMoves(moves, dryRun);
+        return {
+          ok: result.ok, exit_code: result.ok ? 0 : 1, signal: null as any,
+          stdout: `${dryRun ? "[DRY RUN] " : ""}Moved ${result.moved} files. Errors: ${result.errors.length}\n${result.errors.join("\n")}`,
+          stderr: "", truncated: { stdout: false, stderr: false }
+        };
+      }
+    }
+
     if (opts.tool_id.startsWith("browser.")) {
       const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
       const action = opts.tool_id.replace("browser.", "") as any;
