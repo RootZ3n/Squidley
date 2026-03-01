@@ -120,6 +120,43 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     maxOutputBytes: 512 * 1024,
   },
 
+  // ── Browser control ──────────────────────────────────────────────────────
+  "browser.visit": {
+    id: "browser.visit",
+    title: "Browser: visit URL and extract text (read-only)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    timeoutMs: 30_000,
+    maxOutputBytes: 512 * 1024,
+  },
+  "browser.extract": {
+    id: "browser.extract",
+    title: "Browser: extract structured content from URL (read-only)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    timeoutMs: 30_000,
+    maxOutputBytes: 512 * 1024,
+  },
+  "browser.search": {
+    id: "browser.search",
+    title: "Browser: search Google and return results (read-only)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    timeoutMs: 30_000,
+    maxOutputBytes: 512 * 1024,
+  },
+  "browser.screenshot": {
+    id: "browser.screenshot",
+    title: "Browser: screenshot a URL (read-only, saves to memory/screenshots/)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    timeoutMs: 30_000,
+    maxOutputBytes: 512 * 1024,
+  },
   // ── Build + Test ───────────────────────────────────────────────────────────
 
   "web.build": {

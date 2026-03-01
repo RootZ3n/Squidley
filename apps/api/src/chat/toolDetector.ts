@@ -155,6 +155,13 @@ function extractArgs(text: string, tool_id: string): Record<string, string> {
     if (m?.[1]) args.path = m[1].trim();
   }
 
+  if (tool_id.startsWith("browser.")) {
+    const urlMatch = text.match(/https?:\/\/[^\s"')]+/);
+    if (urlMatch) args.url = urlMatch[0].trim();
+    const queryMatch = text.match(/(?:search(?:ing)? for|query[:\s]+)["']?([^"'\n]+)["']?/i);
+    if (queryMatch) args.query = queryMatch[1].trim();
+    args.action = tool_id.replace("browser.", "");
+  }
   return args;
 }
 

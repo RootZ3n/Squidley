@@ -26,8 +26,8 @@
     {
       "name": "plan",
       "provider": "modelstudio",
-      "model": "qwen-plus-us",
-      "role": "Tier 2: Planning Mode (smarter reasoning)"
+      "model": "qwen-plus-2025-12-01",
+      "role": "Tier 2: Planning Mode (qwen-plus-2025-12-01)"
     },
     {
       "name": "build",
@@ -38,8 +38,8 @@
     {
       "name": "big_brain",
       "provider": "modelstudio",
-      "model": "qwen-plus-2025-12-01-us",
-      "role": "Tier 3: Big Brain (explicit approval required)"
+      "model": "qwen3-max-2026-01-23",
+      "role": "Tier 3: Big Brain (qwen3-max-2026-01-23, approval required)"
     },
     {
       "name": "local_small",
@@ -100,7 +100,19 @@
     "monthly_usd": 40,
     "strict_local_only": false,
     "escalation_requires_reason": true,
-    "big_brain_requires_approval": true
+    "big_brain_requires_approval": true,
+    "daily_usd": 2.0,
+    "nightly_lockout": {
+      "enabled": true,
+      "start": "23:00",
+      "end": "04:00",
+      "allow_local": true,
+      "allow_cloud": false,
+      "override_agents": [
+        "news-briefing",
+        "morning-briefing"
+      ]
+    }
   },
   "providers": {
     "ollama": {

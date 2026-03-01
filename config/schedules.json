@@ -1,20 +1,44 @@
 {
   "schedules": [
     {
+      "id": "news-briefing-daily",
+      "agent": "news-briefing",
+      "cron": "50 4 * * *",
+      "enabled": true,
+      "label": "Daily news briefing — runs at 4:50am, ready for 5am",
+      "focus": null,
+      "last_run": "2026-03-01T01:27:50.904Z",
+      "last_result": "pass"
+    },
+    {
+      "id": "morning-briefing-daily",
+      "agent": "morning-briefing",
+      "cron": "0 5 * * *",
+      "enabled": true,
+      "label": "Morning briefing — runs at 5:00am, pushes to Telegram",
+      "focus": null,
+      "last_run": "2026-03-01T01:33:24.614Z",
+      "last_result": "pass"
+    },
+    {
       "id": "job-scanner-daily",
       "agent": "job-scanner",
       "cron": "0 8 * * *",
       "enabled": false,
       "label": "Daily job search — runs at 8am",
-      "focus": null
+      "focus": null,
+      "last_run": null,
+      "last_result": null
     },
     {
       "id": "openclaw-watcher-weekly",
       "agent": "openclaw-watcher",
       "cron": "0 9 * * 1",
-      "enabled": false,
+      "enabled": true,
       "label": "Weekly OpenClaw intelligence — runs Monday 9am",
-      "focus": null
+      "focus": null,
+      "last_run": null,
+      "last_result": null
     },
     {
       "id": "repo-inspector-daily",
@@ -23,8 +47,8 @@
       "enabled": false,
       "label": "Daily repo health check — runs at 7am",
       "focus": null,
-      "last_run": "2026-02-28T22:35:43.748Z",
-      "last_result": "pass"
+      "last_run": null,
+      "last_result": null
     },
     {
       "id": "pipeline-tracker-weekly",
@@ -32,8 +56,10 @@
       "cron": "0 8 * * 1",
       "enabled": false,
       "label": "Weekly job pipeline summary — runs Monday 8am",
-      "focus": null
+      "focus": null,
+      "last_run": null,
+      "last_result": null
     }
   ],
-  "_comment": "cron format: minute hour day month weekday. Set enabled:true to activate. Schedules run in the API process timezone."
+  "_comment": "cron format: minute hour day month weekday. Times are America/Chicago (CST). news-briefing runs 10min before morning-briefing to populate the news file first."
 }

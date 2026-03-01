@@ -167,6 +167,35 @@ async function runInternalTool(opts: {
       };
     }
 
+    if (opts.tool_id.startsWith("browser.")) {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const action = opts.tool_id.replace("browser.", "") as any;
+      const url = (rawArgsObj?.url as string ?? opts.userArgs[0] ?? "").trim();
+      const query = (rawArgsObj?.query as string ?? opts.userArgs[0] ?? "").trim();
+      const selector = (rawArgsObj?.selector as string ?? "").trim() || undefined;
+      const wait_for = (rawArgsObj?.wait_for as string ?? "").trim() || undefined;
+      const repoRoot = process.env.ZENSQUID_ROOT ?? process.cwd();
+      const { runBrowserTool } = await import("./browser.js");
+      const result = await runBrowserTool({ action, url: url || undefined, query: query || undefined, selector, wait_for }, repoRoot);
+      if (!result.ok) throw new ToolRunnerError("INTERNAL", result.error ?? "browser tool failed");
+      const lines: string[] = [];
+      if (result.title) lines.push(`# ${result.title}`);
+      if (result.text) lines.push(result.text);
+      if (result.links?.length) {
+        lines.push("\n## Links");
+        result.links.forEach(l => lines.push(`- [${l.text}](${l.href})`));
+      }
+      if (result.screenshot_path) lines.push(`Screenshot saved: ${result.screenshot_path}`);
+      return {
+        ok: true,
+        exit_code: 0,
+        signal: null as NodeJS.Signals | null,
+        stdout: lines.join("\n"),
+        stderr: "",
+        truncated: { stdout: false, stderr: false }
+      };
+    }
+
     if (opts.tool_id === "fs.write") {
       // userArgs: [relPath, content] or rawArgs: { path: "...", content: "..." }
       const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;

@@ -57,6 +57,7 @@ import { registerCapabilitiesRoutes } from "./http/routes/capabilities.js";
 import { registerGuardRoutes, evaluateGuard } from "./http/routes/guard.js";
 import { registerAutonomyRoutes } from "./http/routes/autonomy.js";
 import { addTurn, getHistory } from "./chat/sessionHistory.js";
+import { checkDailyBudget, getDailySpend } from "./chat/dailyBudget.js";
 import { startScheduler, stopScheduler, registerSchedulerRoutes, getPendingBriefings, clearPendingBriefings } from "./scheduler.js";
 import { startTelegramBot, stopTelegramBot, registerTelegramRoutes, sendTelegramMessage } from "./http/routes/telegram.js";
 
@@ -635,7 +636,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
         // Convert object args to array for subprocess tools (rg.search, git.*, etc.)
         // JS-handled tools (web.search, fs.read, etc.) receive the object directly.
         const rawArgs = pending.proposal.args;
-        const jsTools = new Set(["web.search", "fs.read", "fs.write", "proc.exec", "systemctl.user", "diag.sleep"]);
+        const jsTools = new Set(["web.search", "fs.read", "fs.write", "proc.exec", "systemctl.user", "diag.sleep", "browser.visit", "browser.extract", "browser.search", "browser.screenshot"]);
         let finalArgs: string[] | Record<string, string>;
         if (jsTools.has(pending.proposal.tool_id)) {
           finalArgs = rawArgs;
@@ -843,16 +844,9 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
     force_tier: body.force_tier,
     reason: body.reason
   };
+  console.log("[debug] normalized force_tier:", normalized.force_tier, "mode:", normalized.mode, "body.force_tier:", body.force_tier);
 
-  if (normalized.mode === "auto" && looksInfraOrTooling(normalized.input)) {
-    normalized.mode = "force_tier";
-    normalized.force_tier = "local";
-  }
 
-  if (normalized.mode === "auto" && looksCodey(normalized.input)) {
-    normalized.mode = "force_tier";
-    normalized.force_tier = "coder";
-  }
 
   const effStrict = await effectiveStrictLocal(cfg);
   (cfg as any).budgets = (cfg as any).budgets ?? {};
@@ -910,6 +904,20 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       receipt_id,
       context: meta
     });
+  }
+
+  // ── Daily budget + nightly lockout (scheduled runs only) ────────────────
+  if (decision.tier.provider !== "ollama") {
+    const triggeredBy = (body as any)?.triggered_by ?? "";
+    const isScheduledRun = String(triggeredBy).startsWith("scheduler:");
+    if (isScheduledRun) {
+      const budgetCheck = await checkDailyBudget(cfg, triggeredBy);
+      if (!budgetCheck.allowed) {
+        console.warn("[budget]", budgetCheck.reason);
+        decision.tier = (cfg.tiers ?? []).find((t: any) => t.name === "local") ?? decision.tier;
+        decision.escalated = false;
+      }
+    }
   }
 
   const needsReason = ["big_brain", "plan", "build"].includes(decision.tier.name);

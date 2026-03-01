@@ -682,6 +682,9 @@ function buildToolCatalogBlock(args: { available_tools: string[]; tools?: ToolLi
   lines.push("GOOD: \"I can run rg.search to find TODO in the codebase. Want me to do that?\"");
   lines.push("GOOD: \"I can run git.status to check the repo. Want me to run it?\"");
   lines.push("GOOD: \"I can run git.log to show recent commits. Want me to run it?\"");
+  lines.push("GOOD: \"I can run browser.visit on that URL to read the page. Want me to do that?\"");
+  lines.push("GOOD: \"I can run browser.search for that topic and summarize the results. Want me to?\"");
+  lines.push("GOOD: \"I can run browser.extract to pull the job listing details. Want me to?\"");
   lines.push("BAD: Offering options or a menu before proposing.");
   lines.push("BAD: Asking what pattern, directory, or flags to use before proposing.");
   lines.push("BAD: Giving a curl command alongside the proposal.");
@@ -786,7 +789,7 @@ export async function buildChatSystemPrompt(args: {
       `- cloud_authorized: ${cloudExplicit ? "yes" : "no"}\n` +
       (cloudExplicit
         ? "- IMPORTANT: Cloud is explicitly authorized for THIS request. Do not warn/scold; just answer.\n"
-        : "- IMPORTANT: Prefer local-first unless the user explicitly requests cloud.\n")
+        : "")
   );
 
   const used: ChatContextUsed = {
