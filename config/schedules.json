@@ -59,6 +59,16 @@
       "focus": null,
       "last_run": null,
       "last_result": null
+    },
+    {
+      "id": "proactive-watcher",
+      "agent": "proactive-watcher",
+      "cron": "*/30 6-22 * * *",
+      "enabled": true,
+      "label": "Proactive watcher — every 30min, 6am-10pm",
+      "focus": null,
+      "last_run": "2026-03-01T12:25:52.510Z",
+      "last_result": "pass"
     }
   ],
   "_comment": "cron format: minute hour day month weekday. Times are America/Chicago (CST). news-briefing runs 10min before morning-briefing to populate the news file first."

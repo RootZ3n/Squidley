@@ -11,6 +11,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { FastifyInstance } from "fastify";
 import { sendTelegramMessage } from "./http/routes/telegram.js";
+import { readPendingPings, clearPing } from "./chat/proactivePush.js";
 
 export type ScheduleEntry = {
   id: string;
@@ -115,6 +116,15 @@ async function runScheduledAgent(
     await sendTelegramMessage(
       `${status} *${entry.agent}* finished\n${pass}/${steps_ran} steps passed\n\n${summary.slice(0, 400)}`
     ).catch(() => {});
+    // After proactive-watcher runs, send any pending pings
+    if (entry.agent === "proactive-watcher") {
+      const pings = await readPendingPings();
+      for (const ping of pings) {
+        const emoji = ping.priority === "HIGH" ? "🔴" : "🟡";
+        await sendTelegramMessage(`${emoji} ${ping.message}`).catch(() => {});
+        await clearPing(ping.file);
+      }
+    }
 
     // Update last_run in schedules.json
     await saveSchedule({
