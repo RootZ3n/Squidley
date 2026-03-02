@@ -270,3 +270,58 @@ export function extractAgentProposal(text: string, userInput?: string): AgentPro
 export function isAgentProposal(text: string): boolean {
   return extractAgentProposal(text) !== null;
 }
+
+// ── Image request detection ───────────────────────────────────────────────────
+
+const IMAGE_REQUEST_PATTERNS = [
+  /i can generate (an?|the) image/i,
+  /i can create (an?|the) image/i,
+  /i can draw/i,
+  /want me to generate (an?|the) image/i,
+  /want me to create (an?|the) image/i,
+  /shall i generate (an?|the) image/i,
+  /i['']ll generate (an?|the) image/i,
+  /i['']ll create (an?|the) image/i,
+  /let me generate (an?|the) image/i,
+  /generating (an?|the) image/i,
+  /comfyui.*generat/i,
+  /generat.*comfyui/i,
+  /use comfyui/i,
+  /photorealistic version/i,
+  /higher.fidelity.*version/i,
+  /i can generat/i,
+  /generate one/i,
+  /generate a (?:photo|picture|render|portrait|scene|illustration)/i,
+  /create a (?:photo|picture|render|portrait|scene|illustration)/i,
+];
+
+export type ImagePromptProposal = {
+  prompt: string;
+  intent: string;
+  negative: string;
+};
+
+export function isImageRequest(text: string): boolean {
+  return IMAGE_REQUEST_PATTERNS.some((p) => p.test(text));
+}
+
+export function extractImagePrompt(text: string, userInput?: string): ImagePromptProposal | null {
+  if (!isImageRequest(text)) return null;
+
+  // Use user input as intent if available
+  const intent = userInput?.trim() ?? text.split(/[.!?]/)[0]?.trim() ?? "";
+
+  // Extract prompt from Squidley's response — what she says she'll generate
+  // e.g. "I can generate an image of a purple squid wearing a wizard hat"
+  const promptMatch = text.match(
+    /(?:generate|create|draw|make)\s+(?:an?\s+)?image\s+(?:of\s+|showing\s+|depicting\s+)?(.{10,200}?)(?:\s*[.!?]|$)/i
+  );
+  const prompt = promptMatch?.[1]?.trim() ?? intent;
+
+  // Default negative prompt
+  const negative = "blurry, bad anatomy, watermark, tiling, multiple subjects, text, logo";
+
+  if (!prompt) return null;
+  return { prompt, intent, negative };
+}
+

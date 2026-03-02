@@ -14,7 +14,7 @@ import {
   ensureMemoryRoot
 } from "./chat/systemPrompt.js";
 
-import { extractToolProposal, isApproval, isDenial, isPlanProposal, extractPlanGoal } from "./chat/toolDetector.js";
+import { extractToolProposal, isApproval, isDenial, isPlanProposal, extractPlanGoal, isImageRequest, extractImagePrompt } from "./chat/toolDetector.js";
 import { storePending, getPending, clearPending, hasPending } from "./chat/pendingTools.js";
 import { storePendingPlan, getPendingPlan, clearPendingPlan, hasPendingPlan } from "./chat/pendingPlans.js";
 import { storePendingAgent, getPendingAgent, clearPendingAgent, hasPendingAgent } from "./chat/pendingAgents.js";
@@ -61,6 +61,9 @@ import { maybeExtractMemory } from "./chat/memoryExtractor.js";
 import { checkDailyBudget, getDailySpend } from "./chat/dailyBudget.js";
 import { startScheduler, stopScheduler, registerSchedulerRoutes, getPendingBriefings, clearPendingBriefings } from "./scheduler.js";
 import { startTelegramBot, stopTelegramBot, registerTelegramRoutes, sendTelegramMessage } from "./http/routes/telegram.js";
+import { registerImageRoutes } from "./http/routes/image.js";
+import { storePendingImage, getPendingImage, clearPendingImage, hasPendingImage } from "./chat/pendingImages.js";
+
 
 type RequestKind = "chat" | "heartbeat" | "tool" | "system";
 
@@ -74,6 +77,7 @@ await registerAutonomyRoutes(app, {
   adminTokenOk,
   allowlist: ["web.build", "web.pw", "git.status", "git.diff", "git.log", "rg.search", "diag.sleep"]
 });
+await registerImageRoutes(app); 
 
 function zensquidRoot(): string {
   return process.env.ZENSQUID_ROOT ?? process.cwd();
@@ -503,7 +507,78 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       }
     }
   }
+ // ── Image generation approval loop ────────────────────────────────────────
+  if (session_id && hasPendingImage(session_id)) {
+    const pendingImg = getPendingImage(session_id)!;
 
+    if (isDenial(input)) {
+      clearPendingImage(session_id);
+      return reply.send({
+        output: "Got it — image generation cancelled.",
+        session_id,
+      });
+    }
+
+    if (isApproval(input) || input.trim().length > 0) {
+      // Any non-denial response is treated as feedback/approval
+      const isSimpleApproval = isApproval(input);
+      clearPendingImage(session_id);
+      const adminToken = String((req.headers as any)["x-zensquid-admin-token"] ?? "").trim();
+
+      // If user sent new feedback (not just "yes"), use it to refine
+      const feedback = isSimpleApproval ? "" : input;
+      const prompt = feedback
+        ? pendingImg.prompt + ", " + feedback
+        : pendingImg.prompt;
+
+      try {
+        const genResp = await app.inject({
+          method: "POST",
+          url: "/image/generate",
+          headers: { "content-type": "application/json", "x-zensquid-admin-token": adminToken },
+          payload: {
+            prompt,
+            negative: pendingImg.negative,
+            intent: pendingImg.intent,
+            steps: pendingImg.steps,
+            seed: pendingImg.seed,
+            max_iterations: 3,
+            output: "squidley_chat",
+          },
+        });
+        const genJson = typeof (genResp as any).json === "function"
+          ? (genResp as any).json()
+          : JSON.parse(genResp.payload);
+
+        if (!genJson?.ok) {
+          return reply.send({
+            output: `🎨 Image generation failed: ${genJson?.error ?? "unknown error"}`,
+            session_id,
+            image_ok: false,
+          });
+        }
+
+        const lastIter = genJson.iterations?.[genJson.iterations.length - 1];
+        const iterCount = genJson.total_iterations ?? 1;
+        const qcPassed = genJson.qc_passed ? "✅ QC passed" : "⚠️ QC partial";
+
+        return reply.send({
+          output: `🎨 Done! Generated in ${iterCount} iteration${iterCount > 1 ? "s" : ""} — ${qcPassed}\nFile: ${genJson.file}\nPrompt used: ${genJson.final_prompt}`,
+          session_id,
+          image_ok: true,
+          image_file: genJson.file,
+          image_url: `/image/output/${genJson.file.split("/").pop()}`,
+          image_iterations: genJson.iterations,
+        });
+      } catch (e: any) {
+        return reply.send({
+          output: `🎨 Image generation error: ${String(e?.message ?? e)}`,
+          session_id,
+          image_ok: false,
+        });
+      }
+    }
+  }
   // ── Plan approval loop ────────────────────────────────────────────────────
   if (session_id && hasPendingPlan(session_id)) {
     const pendingPlan = getPendingPlan(session_id)!;
@@ -956,6 +1031,17 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
         pendingAgentName = agentProposal.agent_name;
       }
     }
+ // ✅ Image request detection — after agent, before plan
+    let pendingImagePrompt: string | null = null;
+    if (!pendingAgentName && isImageRequest(out.output)) {
+      const extracted = extractImagePrompt(out.output, normalized.input);
+      if (extracted) {
+        const sid = session_id ?? crypto.randomUUID();
+        storePendingImage(sid, extracted.prompt, extracted.intent, extracted.negative);
+        pendingImagePrompt = extracted.prompt;
+      }
+    }
+
 
     // ✅ Plan proposal detection — only if no agent detected
     let pendingPlanId: string | null = null;
@@ -1005,6 +1091,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       pending_tool: ollamaProposal ? ollamaProposal.tool_id : null,
       pending_plan: pendingPlanId,
       pending_agent: pendingAgentName,
+      pending_image: pendingImagePrompt,
     });
   }
 
@@ -1108,6 +1195,16 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
         msPendingAgentName = agentProposal.agent_name;
       }
     }
+ // ✅ Image request detection — after agent, before plan
+    let pendingImagePrompt: string | null = null;
+    if (!msPendingAgentName && isImageRequest(out.content)) {
+      const extracted = extractImagePrompt(out.content, normalized.input);
+      if (extracted) {
+        const sid = session_id ?? crypto.randomUUID();
+        storePendingImage(sid, extracted.prompt, extracted.intent, extracted.negative);
+        pendingImagePrompt = extracted.prompt;
+      }
+    }
 
     // ✅ Plan proposal detection — only if no agent
     let msPendingPlanId: string | null = null;
@@ -1157,6 +1254,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       pending_tool: msProposal ? msProposal.tool_id : null,
       pending_plan: msPendingPlanId,
       pending_agent: msPendingAgentName,
+      pending_image: pendingImagePrompt,
     });
   }
 
@@ -1257,6 +1355,16 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
           oaiPendingAgentName = agentProposal.agent_name;
         }
       }
+ // ✅ Image request detection — after agent, before plan
+    let pendingImagePrompt: string | null = null;
+    if (!oaiPendingAgentName && isImageRequest(out.output)) {
+      const extracted = extractImagePrompt(out.output, normalized.input);
+      if (extracted) {
+        const sid = session_id ?? crypto.randomUUID();
+        storePendingImage(sid, extracted.prompt, extracted.intent, extracted.negative);
+        pendingImagePrompt = extracted.prompt;
+      }
+    }
 
       // ✅ Plan proposal detection — only if no agent
       let oaiPendingPlanId: string | null = null;
@@ -1305,6 +1413,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
         pending_tool: oaiProposal ? oaiProposal.tool_id : null,
         pending_plan: oaiPendingPlanId,
         pending_agent: oaiPendingAgentName,
+        pending_image: pendingImagePrompt,
       });
     } catch (e: any) {
       const receipt: any = withKind("chat", {
