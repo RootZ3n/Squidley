@@ -71,6 +71,16 @@ type StatusResponse = {
   tiers?: StatusTier[];
 };
 
+type ImageIteration = {
+  n: number;
+  prompt: string;
+  file: string;
+  vl_description: string;
+  qc_pass: boolean;
+  qc_notes: string;
+  elapsed_ms: number;
+};
+
 function uuidish() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
@@ -108,7 +118,7 @@ function makePlanFromGoal(goalRaw: string): ToolPlanV1 {
 
   if (g.includes("search") || g.includes("ripgrep") || g.includes("rg") || g.includes("find")) {
     let q = "TODO";
-    const m = goal.match(/[:“"']\s*([^"”']+)\s*["”']?$/);
+    const m = goal.match(/[:""']\s*([^""']+)\s*[""']?$/);
     if (m?.[1]) q = m[1].trim();
     steps.push({
       step_id: `rg.search.${steps.length + 1}`,
@@ -148,7 +158,6 @@ async function copyText(s: string) {
   }
 }
 
-/** UI-native status/health formatting (never hits the LLM) */
 function formatStatusLine(s: any): string {
   const rec = s?.recommended_default_tier;
   const hb = s?.heartbeat;
@@ -193,12 +202,20 @@ export default function Page() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [pendingPlanId, setPendingPlanId] = useState<string | null>(null);
   const [pendingAgentName, setPendingAgentName] = useState<string | null>(null);
+  const [pendingImagePrompt, setPendingImagePrompt] = useState<string | null>(null);
+
+  // ── Image state ──────────────────────────────────────────────────────────
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<string | null>(null);
+  const [imageIterations, setImageIterations] = useState<ImageIteration[]>([]);
+  const [imageBusy, setImageBusy] = useState(false);
+  const [imagePromptInput, setImagePromptInput] = useState("");
 
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "assistant",
       content:
-        "Hi — I’m Squidley. 🐙\nEverything stays local-first.\n\nTry:\n• “Remember this: Jeff hates drifting”\n• “Make a tool plan to run smoke tests”\n\nUI shortcuts:\n• /status\n• /health"
+        "Hi — I'm Squidley. 🐙\nUI shortcuts:\n• /status\n• /health"
     }
   ]);
 
@@ -206,26 +223,23 @@ export default function Page() {
 
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  // --- Tool Loop state ---
-  const [tab, setTab] = useState<"chat" | "tools" | "learn">("chat");
+  const [tab, setTab] = useState<"chat" | "tools" | "learn" | "image">("chat");
   const [goal, setGoal] = useState<string>("Build web + run Playwright tests");
   const [plan, setPlan] = useState<ToolPlanV1>(() => makePlanFromGoal("Build web + run Playwright tests"));
 
   const [tools, setTools] = useState<ToolListItem[]>([]);
-  const [adminToken, setAdminToken] = useState<string>(""); // memory-only
+  const [adminToken, setAdminToken] = useState<string>("");
   const [stepState, setStepState] = useState<Record<string, StepRunState>>({});
   const [runAllBusy, setRunAllBusy] = useState(false);
 
   const toolLogRef = useRef<HTMLDivElement | null>(null);
 
-  // --- Learn state ---
   const [onboarding, setOnboarding] = useState<OnboardingResponse | null>(null);
   const [learnBusy, setLearnBusy] = useState(false);
   const [selectedMissionId, setSelectedMissionId] = useState<string | null>(null);
 
-  // ✅ Brain selection (user choice between local/cloud tiers)
   const [status, setStatus] = useState<StatusResponse | null>(null);
-  const [brain, setBrain] = useState<string>("auto"); // "auto" | tier.name
+  const [brain, setBrain] = useState<string>("auto");
 
   function ensureStepStateInitialized(p: ToolPlanV1) {
     setStepState((prev) => {
@@ -284,7 +298,7 @@ export default function Page() {
       const s = await apiGet<StatusResponse>("/status");
       setStatus(s);
     } catch {
-      // ignore; status widget will show error if needed
+      // ignore
     }
   }
 
@@ -321,6 +335,43 @@ export default function Page() {
     return t ?? null;
   }
 
+  // ── Image generation ──────────────────────────────────────────────────────
+  async function handleImageGenerate(overridePrompt?: string) {
+    const prompt = (overridePrompt ?? imagePromptInput).trim() || pendingImagePrompt || "";
+    if (!prompt || imageBusy) return;
+    setImageBusy(true);
+    setImagePromptInput("");
+    setTab("image");
+    try {
+      const res = await fetch(`http://127.0.0.1:18790/image/generate`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-zensquid-admin-token": adminToken },
+        body: JSON.stringify({
+          prompt,
+          intent: prompt,
+          max_iterations: 3,
+          output: "squidley_ui"
+        }),
+      });
+      const json = await res.json().catch(() => ({})) as any;
+      if (json?.ok) {
+        const filename = json.file?.split("/").pop();
+        setImageUrl(json.image_url ?? (filename ? `/image/output/${filename}` : null));
+        setImageFile(json.file ?? null);
+        setImageIterations(json.iterations ?? []);
+        setPendingImagePrompt(null);
+      } else {
+        setMessages(m => [...m, { role: "assistant", content: `🎨 Generation failed: ${json?.error ?? "unknown"}` }]);
+        setTab("chat");
+      }
+    } catch (e: any) {
+      setMessages(m => [...m, { role: "assistant", content: `🎨 Error: ${String(e?.message ?? e)}` }]);
+      setTab("chat");
+    } finally {
+      setImageBusy(false);
+    }
+  }
+
   async function sendChat() {
     const input = chatInput.trim();
     if (!input || chatBusy) return;
@@ -351,16 +402,10 @@ export default function Page() {
         return;
       }
 
-      // ✅ Brain selection logic:
-      // - auto => mode:auto
-      // - tier name => mode:force_tier + force_tier:tierName
       const forced = brain !== "auto" ? brain : null;
       const forcedTier = forced ? tierByName(forced) : null;
-
       const mode = forced ? "force_tier" : "auto";
       const force_tier = forced ? forced : undefined;
-
-      // If forcing non-local provider, include a reason so escalation gating won't block.
       const isNonLocal = forcedTier ? forcedTier.provider !== "ollama" : false;
       const reason = isNonLocal ? "User selected tier in UI" : undefined;
 
@@ -390,6 +435,25 @@ export default function Page() {
       if (json?.session_id) setSessionId(json.session_id);
       if (json?.pending_plan !== undefined) setPendingPlanId(json.pending_plan);
       if (json?.pending_agent !== undefined) setPendingAgentName(json.pending_agent);
+      if (json?.pending_image !== undefined) setPendingImagePrompt(json.pending_image);
+
+      // If image was generated directly, switch to image tab
+      if (json?.image_ok && json?.image_url) {
+        const filename = json.image_file?.split("/").pop();
+        setImageUrl(json.image_url ?? (filename ? `/image/output/${filename}` : null));
+        setImageFile(json.image_file ?? null);
+        setImageIterations(json.image_iterations ?? []);
+        setPendingImagePrompt(null);
+        setTab("image");
+      }
+
+      // If image pending, show hint in chat
+      if (json?.pending_image) {
+        setMessages(m => [...m, {
+          role: "assistant",
+          content: `🎨 Ready to generate — say "yes" to start, or switch to the Image tab to type a prompt directly.`
+        }]);
+      }
 
       await refreshFooter();
       await refreshStatus();
@@ -489,13 +553,11 @@ export default function Page() {
       <div style={grain()} />
 
       <div style={contentWrap()}>
-        {/* Squidley FIRST (center hero) */}
         <div style={squidBlock()}>
           <div style={squidAura()} aria-hidden />
           <img src={SQUIDLEY_SRC} alt="Squidley" style={squidImg()} draggable={false} />
         </div>
 
-        {/* Status Widget — under Squidley, above chat */}
         <div style={glassMini()}>
           <StatusWidget />
         </div>
@@ -510,7 +572,6 @@ export default function Page() {
                     Squidley
                   </div>
 
-                  {/* ✅ Brain selector (user choice) */}
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     <div style={pill()} title="Select which tier to use for chat (cloud or local).">
                       Brain
@@ -546,6 +607,13 @@ export default function Page() {
                     >
                       Learn
                     </button>
+                    <button
+                      data-testid="tab-image"
+                      style={tabBtn(tab === "image")}
+                      onClick={() => setTab("image")}
+                    >
+                      {pendingImagePrompt ? "🎨 Image •" : "🎨 Image"}
+                    </button>
                   </div>
                 </div>
                 <div style={subtitle()}>Twilight • Calm</div>
@@ -571,6 +639,7 @@ export default function Page() {
 
           <div style={{ height: 10 }} />
 
+          {/* ── Chat tab ── */}
           {tab === "chat" && (
             <div style={chatShell()} data-testid="chat-panel">
               <div style={{ fontWeight: 800, opacity: 0.9, marginBottom: 8 }}>Squidley</div>
@@ -585,11 +654,34 @@ export default function Page() {
 
               <div style={{ height: 10 }} />
 
+              {pendingImagePrompt && (
+                <div style={{
+                  padding: "8px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(255,180,100,0.25)",
+                  background: "rgba(255,180,100,0.08)",
+                  fontSize: 12,
+                  marginBottom: 8,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  flexWrap: "wrap"
+                }}>
+                  <span style={{ opacity: 0.85 }}>🎨 Image pending: <i>"{pendingImagePrompt.slice(0, 60)}{pendingImagePrompt.length > 60 ? "…" : ""}"</i></span>
+                  <button style={btnTiny()} onClick={() => handleImageGenerate(pendingImagePrompt)}>
+                    Generate now
+                  </button>
+                  <button style={btnTiny()} onClick={() => setPendingImagePrompt(null)}>
+                    Dismiss
+                  </button>
+                </div>
+              )}
+
               <div style={composerRow()}>
                 <input
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  placeholder={`Talk to Squidley… (try /status)`}
+                  placeholder={`Talk to Squidley… (try /status or "draw me a squid")`}
                   style={composerInput()}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
@@ -607,7 +699,7 @@ export default function Page() {
                       {
                         role: "assistant",
                         content:
-                          "Hi — I’m Squidley. 🐙\nEverything stays local-first.\n\nTry:\n• “Remember this: Jeff hates drifting”\n• “Make a tool plan to run smoke tests”\n\nUI shortcuts:\n• /status\n• /health"
+                          "Hi — I'm Squidley. 🐙\nUI shortcuts:\n• /status\n• /health"
                       }
                     ])
                   }
@@ -622,9 +714,138 @@ export default function Page() {
             </div>
           )}
 
+          {/* ── Image tab ── */}
+          {tab === "image" && (
+            <div style={chatShell()} data-testid="image-panel">
+              <div style={{ fontWeight: 800, opacity: 0.9, marginBottom: 4 }}>Image Generation</div>
+              <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 12 }}>
+                ComfyUI · SDXL · RTX 4070 · 3-iteration VL feedback loop
+              </div>
+
+              {/* Preview area */}
+              <div style={{
+                borderRadius: 16,
+                border: "1px solid rgba(255,255,255,0.10)",
+                background: "rgba(0,0,0,0.30)",
+                minHeight: 300,
+                maxHeight: "55vh",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+                marginBottom: 12,
+                position: "relative"
+              }}>
+                {imageBusy && (
+                  <div style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "rgba(0,0,0,0.55)",
+                    borderRadius: 16,
+                    gap: 10,
+                    zIndex: 2
+                  }}>
+                    <div style={{ fontSize: 32 }}>🎨</div>
+                    <div style={{ fontSize: 13, opacity: 0.9 }}>Generating… (up to 3 iterations)</div>
+                    <div style={{ fontSize: 11, opacity: 0.6 }}>VL describing · QC scoring · refining prompt</div>
+                  </div>
+                )}
+                {imageUrl ? (
+                  <img
+                    src={`${ZENSQUID_API}${imageUrl}`}
+                    alt="Generated"
+                    style={{ maxWidth: "100%", maxHeight: "55vh", borderRadius: 14, display: "block" }}
+                  />
+                ) : !imageBusy ? (
+                  <div style={{ opacity: 0.3, fontSize: 13, textAlign: "center", padding: 20 }}>
+                    No image yet<br />
+                    <span style={{ fontSize: 11 }}>Ask Squidley to draw something in chat, or type a prompt below</span>
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Iteration history */}
+              {imageIterations.length > 0 && (
+                <div style={{
+                  borderRadius: 12,
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: "rgba(0,0,0,0.18)",
+                  padding: "8px 12px",
+                  marginBottom: 10,
+                  fontSize: 11,
+                  opacity: 0.8
+                }}>
+                  <div style={{ fontWeight: 800, marginBottom: 6, opacity: 0.9 }}>
+                    {imageIterations.length} iteration{imageIterations.length > 1 ? "s" : ""} — {imageIterations[imageIterations.length - 1]?.qc_pass ? "✅ QC passed" : "⚠️ QC partial"}
+                  </div>
+                  {imageIterations.map((it) => (
+                    <div key={it.n} style={{ marginBottom: 6, paddingBottom: 6, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                        <span style={{ fontWeight: 800 }}>Iter {it.n}</span>
+                        <span>{it.qc_pass ? "✅" : "⚠️"} {it.qc_notes}</span>
+                        <span style={{ opacity: 0.6 }}>{Math.round(it.elapsed_ms / 1000)}s</span>
+                      </div>
+                      {it.vl_description && (
+                        <div style={{ opacity: 0.65, fontStyle: "italic", marginTop: 2 }}>
+                          {it.vl_description.slice(0, 140)}{it.vl_description.length > 140 ? "…" : ""}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Prompt / feedback input */}
+              <div style={composerRow()}>
+                <input
+                  value={imagePromptInput}
+                  onChange={(e) => setImagePromptInput(e.target.value)}
+                  placeholder={
+                    pendingImagePrompt
+                      ? `Pending: "${pendingImagePrompt.slice(0, 50)}${pendingImagePrompt.length > 50 ? "…" : ""}" — press Generate or type new prompt`
+                      : imageUrl
+                      ? "Describe changes or a new image…"
+                      : "Describe what to generate…"
+                  }
+                  style={composerInput()}
+                  disabled={imageBusy}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleImageGenerate();
+                    }
+                  }}
+                />
+                <button
+                  onClick={() => handleImageGenerate()}
+                  style={btnPrimary()}
+                  disabled={imageBusy || (!imagePromptInput.trim() && !pendingImagePrompt)}
+                >
+                  {imageBusy ? "Generating…" : imageUrl ? "Regenerate" : "Generate"}
+                </button>
+                {imageUrl && !imageBusy && (
+                  <a
+                    href={`${ZENSQUID_API}${imageUrl}`}
+                    download
+                    style={{ ...btnGhost(), textDecoration: "none", display: "inline-block" }}
+                  >
+                    Save
+                  </a>
+                )}
+              </div>
+
+              <div style={{ height: 10 }} />
+              <div style={footer()}>{footerStatus || `API: ${ZENSQUID_API}`}</div>
+            </div>
+          )}
+
+          {/* ── Tool Loop tab ── */}
           {tab === "tools" && (
             <div style={toolShell()} data-testid="tools-panel">
-              {/* (unchanged) */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                 <div>
                   <div style={{ fontWeight: 900, opacity: 0.92 }}>Tool Plan</div>
@@ -802,14 +1023,14 @@ export default function Page() {
             </div>
           )}
 
+          {/* ── Learn tab ── */}
           {tab === "learn" && (
             <div style={toolShell()} data-testid="learn-panel">
-              {/* (unchanged) */}
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
                 <div>
                   <div style={{ fontWeight: 900, opacity: 0.92 }}>Learn</div>
                   <div style={{ fontSize: 12, opacity: 0.75 }}>
-                    Your “how to use Squidley” page — backed by the API (so it can’t drift quietly).
+                    Your "how to use Squidley" page — backed by the API (so it can't drift quietly).
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>

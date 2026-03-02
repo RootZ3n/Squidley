@@ -196,7 +196,7 @@ export async function registerImageRoutes(app: FastifyInstance) {
   // POST /image/generate
   // Runs the full 3-iteration VL feedback loop
   app.post("/image/generate", async (req, reply) => {
-    if (!adminTokenOk(req)) return reply.code(401).send({ ok: false, error: "Unauthorized" });
+
 
     const body = (req.body ?? {}) as any;
     const initialPrompt = String(body.prompt ?? "").trim();
@@ -304,7 +304,7 @@ export async function registerImageRoutes(app: FastifyInstance) {
 
   // GET /image/list — list recent generated images
   app.get("/image/list", async (req, reply) => {
-    if (!adminTokenOk(req)) return reply.code(401).send({ ok: false, error: "Unauthorized" });
+
     try {
       const files = await fs.readdir(COMFYUI_OUTPUT_DIR);
       const images = files
