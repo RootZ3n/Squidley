@@ -343,7 +343,7 @@ export default function Page() {
     setImagePromptInput("");
     setTab("image");
     try {
-      const res = await fetch(`http://127.0.0.1:18790/image/generate`, {
+      const res = await fetch(`/api/zsq/image/generate`, {
         method: "POST",
         headers: { "content-type": "application/json", "x-zensquid-admin-token": adminToken },
         body: JSON.stringify({
