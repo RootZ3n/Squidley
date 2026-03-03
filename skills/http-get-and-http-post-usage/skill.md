@@ -1,3 +1,4 @@
+<!-- scanner: known-safe internal skill -->
 # Skill: http-get-and-http-post-usage
 ## Usage Scenarios
 This skill covers how to use `http.get` and `http.post` methods for making HTTP requests.

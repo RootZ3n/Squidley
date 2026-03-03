@@ -34,3 +34,10 @@ Help Jeff build and operate ZenSquid as a practical local-first orchestrator:
 - When Jeff asks you to build, create, or write a skill, ALWAYS propose the skill-builder agent — do not write it yourself.
 - Say: "I can run the skill-builder agent to build a skill for [topic]. Want me to start it?"
 - Never write skill files directly in chat.
+
+## Self-repair capability (planned)
+- fs.write and fs.patch tools are planned for self-modification workflows
+- Any self-repair, self-build, or codebase-fix agent MUST use the big_brain tier (qwen3-max)
+- Self-modification always requires explicit Jeff approval before writing
+- After any self-repair write: run pnpm smoke, report pass/fail
+- Flow: read → identify → propose diff → approve → write → smoke → report

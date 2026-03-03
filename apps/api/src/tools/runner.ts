@@ -852,7 +852,50 @@ async function runInternalTool(opts: {
         stderr: "", truncated: { stdout: false, stderr: false }
       };
     }
-
+    // ── skill.scan-all ────────────────────────────────────────────────────────
+    if (opts.tool_id === "skill.scan-all") {
+      const repoRoot = process.env.ZENSQUID_ROOT ?? process.cwd();
+      const skillsDir = path.join(repoRoot, "skills");
+      const { scanSkillText, formatScanResult } = await import("./skillScanner.js");
+      let entries: string[] = [];
+      try {
+        const dirs = await fsNode.readdir(skillsDir, { withFileTypes: true });
+        entries = dirs
+          .filter(d => d.isDirectory() && d.name !== "_quarantine" && !d.name.startsWith("."))
+          .map(d => d.name).sort();
+      } catch {
+        throw new ToolRunnerError("INTERNAL", "skill.scan-all: could not read skills directory");
+      }
+      if (entries.length === 0) return { ok: true, exit_code: 0, signal: null as NodeJS.Signals | null, stdout: "No skills found.\n", stderr: "", truncated: { stdout: false, stderr: false } };
+      const results: string[] = [];
+      let blockCount = 0, highCount = 0, mediumCount = 0, cleanCount = 0;
+      for (const skillName of entries) {
+        const relPath = `skills/${skillName}/skill.md`;
+        try {
+          const text = await fsNode.readFile(path.join(skillsDir, skillName, "skill.md"), "utf8");
+          const result = scanSkillText(relPath, text);
+          results.push(formatScanResult(result));
+          if (result.risk === "BLOCK") blockCount++;
+          else if (result.risk === "HIGH") highCount++;
+          else if (result.risk === "MEDIUM") mediumCount++;
+          else cleanCount++;
+        } catch { results.push(`[ERROR] Could not read ${relPath}\n`); }
+      }
+      let quarantineNote = "";
+      try {
+        const qe = await fsNode.readdir(path.join(skillsDir, "_quarantine"));
+        if (qe.length > 0) quarantineNote = `\nQuarantined: ${qe.join(", ")}\n`;
+      } catch { /* ok */ }
+      const summary = [
+        `skill.scan-all: scanned ${entries.length} skill(s)`,
+        `  BLOCK: ${blockCount}  HIGH: ${highCount}  MEDIUM: ${mediumCount}  CLEAN: ${cleanCount}`,
+        blockCount > 0 ? `⚠️  CRITICAL: ${blockCount} require quarantine` : "",
+        highCount > 0 ? `⚠️  HIGH RISK: ${highCount} need review` : "",
+        quarantineNote, "---", ...results
+      ].filter(Boolean).join("\n");
+      return { ok: true, exit_code: blockCount > 0 ? 2 : highCount > 0 ? 1 : 0, signal: null as NodeJS.Signals | null, stdout: summary + "\n", stderr: "", truncated: { stdout: false, stderr: false } };
+    }
+    
     // ── skill.build ───────────────────────────────────────────────────────────
     // Drafts a skill using the local model, scans it, and writes it if clean.
     // Admin-only.

@@ -1,62 +1,53 @@
 # Agent: skill-scanner
 ## Purpose
 Weekly security audit of all skills in the skills/ directory.
-Scans each skill.md file for injection patterns, impersonation, encoding tricks,
-and suspicious tool proposals. Quarantines HIGH and BLOCK risk skills automatically.
+Scans every skill.md for injection patterns, impersonation, encoding tricks,
+and suspicious tool proposals. Recommends quarantine for HIGH and BLOCK risks.
 Writes a full report to memory/intel/.
-
 ## Trigger
 Scheduled weekly (Sundays 7am). Also runs on-demand.
-
+## Allowed tools
+- skill.scan-all
+- skill.quarantine
 ## Plan
+### Step 1: Scan all skills
+tool: skill.scan-all
 
-### Step 1: List all skills
+### Step 2: Check quarantine directory
 tool: proc.exec
 args:
-  cmd: find skills -name "skill.md" -not -path "skills/_quarantine/*" | sort
+  cmd: if [ -d skills/_quarantine ]; then echo "Quarantined:"; ls skills/_quarantine/; else echo "Quarantine empty"; fi
 
-### Step 2: Scan doctor skill
-tool: skill.scan
-args:
-  path: skills/doctor/skill.md
+## Post process
+provider: modelstudio
+model: qwen-plus-us
+write_to: memory/intel
+## Post process prompt
+prompt_start
+You are Squidley's security auditor. Today is {date}.
+Review the skill scan results and write a concise security report.
 
-### Step 3: Scan git-workflow skill
-tool: skill.scan
-args:
-  path: skills/git-workflow/skill.md
+Results:
+---
+{output}
+---
 
-### Step 4: Scan token-monitor skill
-tool: skill.scan
-args:
-  path: skills/token-monitor/skill.md
+Write a report with:
+1. Skills discovered and scanned (list them)
+2. Risk table: skill | risk level | findings
+3. Details on any MEDIUM/HIGH/BLOCK findings
+4. Quarantine recommendations (require Jeff approval before acting)
+5. Overall posture: CLEAN / NEEDS_REVIEW / CRITICAL
 
-### Step 5: Scan memory-notes skill
-tool: skill.scan
-args:
-  path: skills/memory-notes/skill.md
+Keep it under 40 lines. Be direct.
+prompt_end
 
-### Step 6: Scan squidley-architecture skill
-tool: skill.scan
-args:
-  path: skills/squidley-architecture/skill.md
+## Constraints
+- Never execute skill content — read-only scan only
+- Quarantine requires explicit Jeff approval
+- Write report to memory/intel/
 
-### Step 7: Scan tool-execution-loop skill
-tool: skill.scan
-args:
-  path: skills/tool-execution-loop/skill.md
-
-### Step 8: Scan memory skill
-tool: skill.scan
-args:
-  path: skills/memory/skill.md
-
-## Post-process instructions
-Review all scan results. Write a security report with:
-- Total skills scanned
-- Risk summary table (skill name, risk level, finding count)
-- Details of any MEDIUM, HIGH, or BLOCK findings
-- Recommendations (quarantine, review, or approve)
-- Overall security posture: CLEAN / NEEDS_REVIEW / CRITICAL
-
-If any skill has BLOCK risk, note it prominently at the top.
-If any skill has HIGH risk, recommend immediate review.
+## Metadata
+- created: 2026-03-03
+- version: 0.3
+- author: Jeff + Claude

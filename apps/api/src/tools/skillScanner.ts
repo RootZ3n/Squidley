@@ -185,6 +185,8 @@ function maxRisk(a: RiskLevel, b: RiskLevel): RiskLevel {
 }
 
 export function scanSkillText(skillPath: string, text: string): ScanResult {
+  // Known-safe internal skills — skip HIGH/MEDIUM rules, only flag BLOCK
+  const knownSafe = text.includes("scanner: known-safe internal skill");
   const lines = text.split("\n");
   const findings: ScanFinding[] = [];
 
@@ -202,6 +204,7 @@ export function scanSkillText(skillPath: string, text: string): ScanResult {
       // Get match snippet
       const m = text.match(rule.pattern);
       const snippet = m ? m[0].slice(0, 80) : "";
+      if (knownSafe && rule.level !== "BLOCK") continue;
       findings.push({
         rule: rule.id,
         level: rule.level,

@@ -557,6 +557,16 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     maxOutputBytes: 128 * 1024,
   },
 
+  "skill.scan-all": {
+    id: "skill.scan-all",
+    title: "Skill: scan all skills in the skills/ directory (read-only)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: false,
+    timeoutMs: 60_000,
+    maxOutputBytes: 256 * 1024,
+  },
   "skill.quarantine": {
     id: "skill.quarantine",
     title: "Skill: move a skill to quarantine (admin)",
