@@ -21,6 +21,7 @@ import {
 
 import StatusWidget from "./components/StatusWidget";
 import ReceiptsPanel from "./components/ReceiptsPanel";
+import BuildPanel from "./components/BuildPanel";
 
 type Msg = { role: "assistant" | "user"; content: string };
 
@@ -224,7 +225,7 @@ export default function Page() {
 
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  const [tab, setTab] = useState<"chat" | "tools" | "learn" | "image" | "receipts">("chat");
+  const [tab, setTab] = useState<"chat" | "tools" | "learn" | "image" | "receipts" | "build">("chat");
   const [goal, setGoal] = useState<string>("Build web + run Playwright tests");
   const [plan, setPlan] = useState<ToolPlanV1>(() => makePlanFromGoal("Build web + run Playwright tests"));
 
@@ -627,6 +628,13 @@ export default function Page() {
                     >
                       🧾 Receipts
                     </button>
+                    <button
+                      data-testid="tab-build"
+                      style={tabBtn(tab === "build")}
+                      onClick={() => setTab("build")}
+                    >
+                      🔨 Build
+                    </button>
                   </div>
                 </div>
                 <div style={subtitle()}>Twilight • Calm</div>
@@ -857,6 +865,7 @@ export default function Page() {
           )}
           
           {tab === "receipts" && <ReceiptsPanel />}
+          {tab === "build" && <BuildPanel adminToken={adminToken} />}
           
           {/* ── Tool Loop tab ── */}
           {tab === "tools" && (

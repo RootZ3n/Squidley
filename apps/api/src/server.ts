@@ -829,7 +829,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
 
   // ✅ Load tool catalog so Squidley knows what tools she can propose
   const { listTools } = await import("./tools/allowlist.js");
-  const toolList = listTools(false);
+  const toolList = listTools(adminTokenOk(req));
 
   const { system, meta } = await buildChatSystemPrompt({
     input,
