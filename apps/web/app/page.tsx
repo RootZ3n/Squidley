@@ -20,6 +20,7 @@ import {
 } from "@/api/zensquid";
 
 import StatusWidget from "./components/StatusWidget";
+import ReceiptsPanel from "./components/ReceiptsPanel";
 
 type Msg = { role: "assistant" | "user"; content: string };
 
@@ -223,7 +224,7 @@ export default function Page() {
 
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  const [tab, setTab] = useState<"chat" | "tools" | "learn" | "image">("chat");
+  const [tab, setTab] = useState<"chat" | "tools" | "learn" | "image" | "receipts">("chat");
   const [goal, setGoal] = useState<string>("Build web + run Playwright tests");
   const [plan, setPlan] = useState<ToolPlanV1>(() => makePlanFromGoal("Build web + run Playwright tests"));
 
@@ -427,9 +428,14 @@ export default function Page() {
       });
 
       const json = (await res.json().catch(() => ({}))) as ChatResponse & any;
+      const isError = !res.ok || json?.statusCode >= 400;
+      const out = isError
+        ? `⚠️ ${json?.message ?? json?.error ?? `HTTP ${res.status}`}${json?.receipt_id ? `\nReceipt: ${json.receipt_id}` : ""}${json?.tier ? `\nTier: ${json.tier} (${json.provider})` : ""}`
+        : json?.output ?? json?.content ?? JSON.stringify(json, null, 2);
 
-      const out =
-        json?.output ?? json?.content ?? json?.error ?? (res.ok ? JSON.stringify(json, null, 2) : `HTTP ${res.status}`);
+
+
+
 
       setMessages((m) => [...m, { role: "assistant", content: String(out ?? "") }]);
       if (json?.session_id) setSessionId(json.session_id);
@@ -614,6 +620,13 @@ export default function Page() {
                     >
                       {pendingImagePrompt ? "🎨 Image •" : "🎨 Image"}
                     </button>
+                    <button
+                      data-testid="tab-receipts"
+                      style={tabBtn(tab === "receipts")}
+                      onClick={() => setTab("receipts")}
+                    >
+                      🧾 Receipts
+                    </button>
                   </div>
                 </div>
                 <div style={subtitle()}>Twilight • Calm</div>
@@ -630,7 +643,7 @@ export default function Page() {
                   </option>
                 ))}
               </select>
-
+             
               <button style={btnGhost()} onClick={() => alert("Diagnostics later 🙂")} title="Coming soon">
                 Diagnostics
               </button>
@@ -842,7 +855,9 @@ export default function Page() {
               <div style={footer()}>{footerStatus || `API: ${ZENSQUID_API}`}</div>
             </div>
           )}
-
+          
+          {tab === "receipts" && <ReceiptsPanel />}
+          
           {/* ── Tool Loop tab ── */}
           {tab === "tools" && (
             <div style={toolShell()} data-testid="tools-panel">
