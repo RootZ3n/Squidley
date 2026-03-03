@@ -71,7 +71,7 @@ export default function DashboardPage() {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   const fetchReceipts = useCallback(async () => {
-    const apiUrl = (window as any).__SQUIDLEY_API_URL ?? "http://127.0.0.1:18790";
+    const apiUrl = (window as any).__SQUIDLEY_API_URL ?? "/api/zsq";
     try {
       const res = await fetch(`${apiUrl}/receipts?limit=500`);
       const json: ReceiptsResponse = await res.json();

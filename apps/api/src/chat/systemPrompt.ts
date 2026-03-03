@@ -853,6 +853,7 @@ export async function buildChatSystemPrompt(args: {
       "5. After it completes, read its thread and summarize findings for the user.",
       "",
       "RULE: Never run an agent without explicit approval.",
+      "RULE: Agents are for multi-step autonomous work (5+ steps). For a single search, read, or git command — propose the direct tool instead. Never use code-archaeologist just to run rg.search once.",
       "RULE: After agent completes, always read and summarize its thread output.",
       "RULE: Agents communicate through memory/threads/ — always check for new threads after a run.",
       "RULE: You are the orchestrator. Agents work for you. You report to Jeff.",

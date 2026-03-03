@@ -8,6 +8,10 @@ import path from "node:path";
 import { TOOL_ALLOWLIST } from "./allowlist.js";
 import { getWorkspaceRoot, type WorkspaceName } from "./workspaces.js";
 
+const COMFYUI_URL = (process.env.COMFYUI_URL ?? "http://127.0.0.1:8188").replace(/\/+$/, "");
+const COMFYUI_OUTPUT_DIR = process.env.COMFYUI_OUTPUT_DIR ?? "/media/zen/AI/comfyui/output";
+const COMFYUI_CHECKPOINT = process.env.COMFYUI_CHECKPOINT ?? "sd_xl_base_1.0.safetensors";
+
 export type RunToolRequest = {
   workspace: WorkspaceName;
   tool_id: string;
@@ -945,14 +949,14 @@ Rules:
       };
     }
     // ── comfyui.status ────────────────────────────────────────────────────────
-    if (opts.tool_id === "comfyui.status") {
+       if (opts.tool_id === "comfyui.status") {
       try {
-        const resp = await fetch("http://127.0.0.1:8188/system_stats", { signal: AbortSignal.timeout(5_000) });
+        const resp = await fetch(`${COMFYUI_URL}/system_stats`, { signal: AbortSignal.timeout(5_000) });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const data = await resp.json() as any;
         return {
           ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
-          stdout: `ComfyUI: running ✓\nVersion: ${data.system?.comfyui_version}\nPyTorch: ${data.system?.pytorch_version}\nRAM free: ${Math.round((data.system?.ram_free ?? 0) / 1024 / 1024 / 1024 * 10) / 10}GB`,
+          stdout: `ComfyUI: running ✓\nVersion: ${data.system?.comfyui_version}\nPyTorch:     ${data.system?.pytorch_version}\nRAM free: ${Math.round((data.system?.ram_free ?? 0) / 1024 / 1024 / 1024 * 10) / 10}GB`,
           stderr: "", truncated: { stdout: false, stderr: false }
         };
       } catch (e: any) {
@@ -975,7 +979,7 @@ Rules:
         for (let i = 0; i < 15; i++) {
           await new Promise(r => setTimeout(r, 1000));
           try {
-            const resp = await fetch("http://127.0.0.1:8188/system_stats", { signal: AbortSignal.timeout(2_000) });
+            const resp = await fetch(`${COMFYUI_URL}/system_stats`, { signal: AbortSignal.timeout(2_000) });
             if (resp.ok) {
               return {
                 ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
@@ -1031,7 +1035,7 @@ Rules:
 
       // Check ComfyUI is running
       try {
-        const check = await fetch("http://127.0.0.1:8188/system_stats", { signal: AbortSignal.timeout(3_000) });
+        const check = await fetch(`${COMFYUI_URL}/system_stats`, { signal: AbortSignal.timeout(3_000) });
         if (!check.ok) throw new Error("not ready");
       } catch {
         throw new ToolRunnerError("INTERNAL", "comfyui.generate: ComfyUI is not running — use comfyui.start first");
@@ -1039,7 +1043,7 @@ Rules:
 
       // Build SDXL workflow
       const workflow = {
-        "1": { class_type: "CheckpointLoaderSimple", inputs: { ckpt_name: "sd_xl_base_1.0.safetensors" } },
+        "1": { class_type: "CheckpointLoaderSimple", inputs: { ckpt_name: COMFYUI_CHECKPOINT } },
         "2": { class_type: "CLIPTextEncode", inputs: { text: prompt, clip: ["1", 1] } },
         "3": { class_type: "CLIPTextEncode", inputs: { text: negativePrompt, clip: ["1", 1] } },
         "4": { class_type: "EmptyLatentImage", inputs: { width, height, batch_size: 1 } },
@@ -1049,7 +1053,7 @@ Rules:
       };
 
       // Submit prompt
-      const submitResp = await fetch("http://127.0.0.1:8188/prompt", {
+      const submitResp = await fetch(`${COMFYUI_URL}/prompt`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ prompt: workflow }),
@@ -1069,7 +1073,7 @@ Rules:
       while (Date.now() - started < maxWaitMs) {
         await new Promise(r => setTimeout(r, pollInterval));
         try {
-          const histResp = await fetch(`http://127.0.0.1:8188/history/${promptId}`, { signal: AbortSignal.timeout(5_000) });
+          const histResp = await fetch(`${COMFYUI_URL}/history/${promptId}`, { signal: AbortSignal.timeout(5_000) });
           if (!histResp.ok) continue;
           const hist = await histResp.json() as any;
           const entry = hist[promptId];
@@ -1087,7 +1091,7 @@ Rules:
 
       if (!outputFile) throw new ToolRunnerError("INTERNAL", "comfyui.generate: timed out waiting for output");
 
-      const outputPath = `/media/zen/AI/comfyui/output/${outputFile}`;
+      const outputPath = path.join(COMFYUI_OUTPUT_DIR, outputFile);
       const elapsedS = ((Date.now() - started) / 1000).toFixed(1);
 
       return {

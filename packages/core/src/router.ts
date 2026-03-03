@@ -39,6 +39,7 @@ function isCodeTask(input: string): boolean {
     /\bhow (do|would|should) (i|we|you)\b.{0,40}\b(implement|code|build|write|create)\b/i,
     /\b(add|implement)\b.{0,60}\b(feature|functionality|support|handler|middleware)\b/i,
     /\.(ts|js|py|go|rs|tsx|jsx|sh|bash|mjs|cjs)\b/i,
+    /\b(search|grep|rg|ripgrep)\b.{0,40}\b(codebase|code|file|repo|source)\b/i,
   ];
   return codeVerbs.some(p => p.test(s));
 }
@@ -82,9 +83,9 @@ function localBaselineTier(tiers: TierConfig[]): TierConfig {
  */
 function primaryTier(tiers: TierConfig[]): TierConfig {
   return (
+    pickByName(tiers, "local") ??
+    tiers.find((t) => providerIsLocal(t.provider)) ??
     pickByName(tiers, "chat") ??
-    pickByName(tiers, "mini") ??
-    tiers.find((t) => !providerIsLocal(t.provider)) ??
     tiers[0]
   );
 }
@@ -137,10 +138,9 @@ export function chooseTier(cfg: ZenSquidConfig, req: ChatRequest): TierDecision 
   }
 
   if (isCodeTask(req.input)) {
-    // Prefer "build" tier (qwen3-coder:30b), fall back to local baseline
-    const buildTier = pickByName(tiers, "build") ?? localBaseline;
-    return finalize(buildTier, "auto: build tier selected (code task)");
-  }
+  const coderTier = pickByName(tiers, "coder") ?? pickByName(tiers, "build") ?? localBaseline;
+  return finalize(coderTier, "auto: coder tier selected (code task)");
+}
 
   if (isPlanTask(req.input)) {
     const planTier = pickByName(tiers, "plan");

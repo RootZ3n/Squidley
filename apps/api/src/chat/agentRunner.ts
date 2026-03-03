@@ -459,7 +459,7 @@ export async function runAgent(args: {
         });
       } else if (provider === "modelstudio") {
         const apiKey = process.env.DASHSCOPE_API_KEY ?? "";
-        const baseUrl = process.env.MODELSTUDIO_BASE_URL ?? "https://dashscope-us.aliyuncs.com/compatible-mode/v1";
+        const baseUrl = process.env.MODELSTUDIO_BASE_URL ?? "https://dashscope-us.aliyuncs.com/compatible-mode";
         const model = agent.post_process.model ?? "qwen-plus-us";
         resp = await fetch(`${baseUrl}/chat/completions`, {
           method: "POST",

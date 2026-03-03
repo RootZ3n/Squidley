@@ -37,8 +37,8 @@
       "enabled": true,
       "label": "Weekly OpenClaw intelligence — runs Monday 9am",
       "focus": null,
-      "last_run": null,
-      "last_result": null
+      "last_run": "2026-03-02T15:00:00.014Z",
+      "last_result": "pass"
     },
     {
       "id": "repo-inspector-daily",
@@ -57,7 +57,7 @@
       "enabled": true,
       "label": "Weekly pipeline digest — Monday 7am, pushes to Telegram",
       "focus": null,
-      "last_run": "2026-03-01T12:45:45.245Z",
+      "last_run": "2026-03-02T13:00:00.006Z",
       "last_result": "pass"
     },
     {
@@ -67,7 +67,7 @@
       "enabled": true,
       "label": "Proactive watcher — every 30min, 6am-10pm",
       "focus": null,
-      "last_run": "2026-03-02T04:30:00.001Z",
+      "last_run": "2026-03-03T01:30:00.002Z",
       "last_result": "pass"
     },
     {

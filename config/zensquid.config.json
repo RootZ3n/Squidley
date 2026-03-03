@@ -14,9 +14,15 @@
     },
     {
       "name": "chat",
+      "provider": "modelstudio",
+      "model": "qwen3.5-plus",
+      "role": "Tier 1: Chat Mode (default cloud)"
+    },
+    {
+      "name": "chat_fallback",
       "provider": "openai",
       "model": "gpt-5-mini",
-      "role": "Tier 1: Chat Mode (default cloud)"
+      "role": "Tier 1: Fallback: OpenAI if ModelStudio fails"
     },
     {
       "name": "chat_flash",
@@ -27,14 +33,20 @@
     {
       "name": "plan",
       "provider": "modelstudio",
-      "model": "qwen-plus-2025-12-01",
-      "role": "Tier 2: Planning Mode (qwen-plus-2025-12-01)"
+      "model": "qwen3.5-plus",
+      "role": "Tier 2: Planning Mode (qwen3.5-plus)"
     },
     {
       "name": "build",
       "provider": "ollama",
-      "model": "qwen3-coder:30b",
+      "model": "qwen2.5:14b-instruct",
       "role": "Tier 2: Build Mode (local code generation)"
+    },
+    {
+      "name": "coder",
+      "provider": "modelstudio",
+      "model": "qwen3-coder-plus",
+      "role": "Tier 2: Cloud coder (qwen-coder-plus, cheap, strong at code)"
     },
     {
       "name": "big_brain",

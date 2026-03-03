@@ -9,11 +9,11 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
 
-const COMFYUI_URL = "http://127.0.0.1:8188";
-const OLLAMA_URL = process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434";
-const COMFYUI_OUTPUT_DIR = "/media/zen/AI/comfyui/output";
-const CHECKPOINT = "sd_xl_base_1.0.safetensors";
-const VL_MODEL = "qwen3-vl:8b";
+const COMFYUI_URL = (process.env.COMFYUI_URL ?? "http://127.0.0.1:8188").replace(/\/+$/, "");
+const OLLAMA_URL = (process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434").replace(/\/+$/, "");
+const COMFYUI_OUTPUT_DIR = process.env.COMFYUI_OUTPUT_DIR ?? "/media/zen/AI/comfyui/output";
+const CHECKPOINT = process.env.COMFYUI_CHECKPOINT ?? "sd_xl_base_1.0.safetensors";
+const VL_MODEL = process.env.SQUIDLEY_VL_MODEL ?? "qwen3-vl:8b";
 const PROMPT_MODEL = process.env.SQUIDLEY_PROMPT_MODEL ?? "qwen2.5:14b-instruct";
 
 function adminTokenOk(req: any): boolean {
