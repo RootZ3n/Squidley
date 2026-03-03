@@ -192,6 +192,9 @@ const AGENT_PROPOSAL_PATTERNS = [
   /want me to run the [`"]?([\w-]+)[`"]? agent/i,
   /shall i run the [`"]?([\w-]+)[`"]? agent/i,
   /run the [`"]?([\w-]+)[`"]? agent/i,
+  /run the skill-builder/i,
+  /skill-builder agent/i,
+  /i can run.*skill/i,
 ];
 
 export type AgentProposal = {

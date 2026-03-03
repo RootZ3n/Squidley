@@ -83,13 +83,11 @@ function localBaselineTier(tiers: TierConfig[]): TierConfig {
  */
 function primaryTier(tiers: TierConfig[]): TierConfig {
   return (
-    pickByName(tiers, "local") ??
-    tiers.find((t) => providerIsLocal(t.provider)) ??
     pickByName(tiers, "chat") ??
+    pickByName(tiers, "local") ??
     tiers[0]
   );
 }
-
 export function chooseTier(cfg: ZenSquidConfig, req: ChatRequest): TierDecision {
   const tiers = cfg.tiers;
   const localBaseline = localBaselineTier(tiers);

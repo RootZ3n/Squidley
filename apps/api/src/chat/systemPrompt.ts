@@ -857,6 +857,10 @@ export async function buildChatSystemPrompt(args: {
       "RULE: After agent completes, always read and summarize its thread output.",
       "RULE: Agents communicate through memory/threads/ — always check for new threads after a run.",
       "RULE: You are the orchestrator. Agents work for you. You report to Jeff.",
+      "",
+      "SKILL BUILDING RULE (CRITICAL): When Jeff asks you to build, create, or write a skill — ALWAYS propose the skill-builder agent. NEVER write the skill yourself in chat.",
+      "CORRECT: \"I can run the skill-builder agent to build a skill for git commit messages. Want me to start it?\"",
+      "WRONG: Writing the skill content yourself, offering to save it yourself, or asking clarifying questions before proposing the agent.",
     ].join("\n")
   );
 

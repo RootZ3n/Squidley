@@ -5,9 +5,9 @@
       "agent": "news-briefing",
       "cron": "50 4 * * *",
       "enabled": true,
-      "label": "Daily news briefing \u2014 runs at 4:50am, ready for 5am",
+      "label": "Daily news briefing — runs at 4:50am, ready for 5am",
       "focus": null,
-      "last_run": "2026-03-02T10:50:00.003Z",
+      "last_run": "2026-03-03T10:50:00.002Z",
       "last_result": "pass"
     },
     {
@@ -15,9 +15,9 @@
       "agent": "morning-briefing",
       "cron": "0 5 * * *",
       "enabled": true,
-      "label": "Morning briefing \u2014 runs at 5:00am, pushes to Telegram",
+      "label": "Morning briefing — runs at 5:00am, pushes to Telegram",
       "focus": null,
-      "last_run": "2026-03-02T11:00:00.002Z",
+      "last_run": "2026-03-03T11:00:00.003Z",
       "last_result": "pass"
     },
     {
@@ -25,7 +25,7 @@
       "agent": "job-scanner",
       "cron": "0 8 * * *",
       "enabled": false,
-      "label": "Daily job search \u2014 runs at 8am",
+      "label": "Daily job search — runs at 8am",
       "focus": null,
       "last_run": null,
       "last_result": null
@@ -35,7 +35,7 @@
       "agent": "openclaw-watcher",
       "cron": "0 9 * * 1",
       "enabled": true,
-      "label": "Weekly OpenClaw intelligence \u2014 runs Monday 9am",
+      "label": "Weekly OpenClaw intelligence — runs Monday 9am",
       "focus": null,
       "last_run": "2026-03-02T15:00:00.014Z",
       "last_result": "pass"
@@ -45,7 +45,7 @@
       "agent": "repo-inspector",
       "cron": "0 7 * * *",
       "enabled": false,
-      "label": "Daily repo health check \u2014 runs at 7am",
+      "label": "Daily repo health check — runs at 7am",
       "focus": null,
       "last_run": null,
       "last_result": null
@@ -55,7 +55,7 @@
       "agent": "pipeline-tracker",
       "cron": "0 7 * * 1",
       "enabled": true,
-      "label": "Weekly pipeline digest \u2014 Monday 7am, pushes to Telegram",
+      "label": "Weekly pipeline digest — Monday 7am, pushes to Telegram",
       "focus": null,
       "last_run": "2026-03-02T13:00:00.006Z",
       "last_result": "pass"
@@ -65,7 +65,7 @@
       "agent": "proactive-watcher",
       "cron": "0 8,16 * * *",
       "enabled": true,
-      "label": "Proactive watcher \u2014 5am and 4pm daily",
+      "label": "Proactive watcher — 5am and 4pm daily",
       "focus": null,
       "last_run": "2026-03-03T02:00:00.002Z",
       "last_result": "pass"
@@ -75,7 +75,7 @@
       "agent": "resume-builder",
       "cron": "0 6 * * 0",
       "enabled": true,
-      "label": "Weekly resume review \u2014 Sunday 6am",
+      "label": "Weekly resume review — Sunday 6am",
       "focus": null,
       "last_run": "2026-03-01T12:40:27.127Z",
       "last_result": "pass"
