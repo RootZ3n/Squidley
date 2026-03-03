@@ -180,6 +180,86 @@ async function runInternalTool(opts: {
         truncated: { stdout: false, stderr: false }
       };
     }
+    // ── fs.write ──────────────────────────────────────────────────────────────
+    // Writes content to a file inside the repo root. Admin-only.
+    // rawArgs: { path: "apps/api/src/foo.ts", content: "...", backup?: true }
+    if (opts.tool_id === "fs.write") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const relPath = (rawArgsObj?.path as string ?? opts.userArgs[0] ?? "").trim();
+      const content = (rawArgsObj?.content as string ?? opts.userArgs[1] ?? "");
+      const makeBackup = (rawArgsObj?.backup as unknown as boolean) !== false; // default true
+      if (!relPath || relPath.includes("..") || path.isAbsolute(relPath)) {
+        throw new ToolRunnerError("BAD_REQUEST", "fs.write: invalid path");
+      }
+      const repoRoot = process.env.ZENSQUID_ROOT ?? process.cwd();
+      const abs = path.resolve(repoRoot, relPath);
+      if (!abs.startsWith(repoRoot + path.sep)) {
+        throw new ToolRunnerError("FORBIDDEN", "fs.write: path escapes repo root");
+      }
+      // Block writing to dist/ or node_modules/
+      if (relPath.startsWith("apps/") && relPath.includes("/dist/")) {
+        throw new ToolRunnerError("FORBIDDEN", "fs.write: cannot write to dist/ directly — edit source files");
+      }
+      if (relPath.includes("node_modules/")) {
+        throw new ToolRunnerError("FORBIDDEN", "fs.write: cannot write to node_modules/");
+      }
+      // Optional backup
+      if (makeBackup) {
+        try {
+          const existing = await fsNode.readFile(abs, "utf8");
+          const backupPath = abs + ".sqbak";
+          await fsNode.writeFile(backupPath, existing, "utf8");
+        } catch { /* file didn't exist yet — no backup needed */ }
+      }
+      await fsNode.mkdir(path.dirname(abs), { recursive: true });
+      await fsNode.writeFile(abs, content, "utf8");
+      const lines = content.split("\n").length;
+      return {
+        ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+        stdout: `fs.write: wrote ${relPath} (${lines} lines)${makeBackup ? " — backup saved as .sqbak" : ""}\n`,
+        stderr: "", truncated: { stdout: false, stderr: false }
+      };
+    }
+    // ── fs.patch ──────────────────────────────────────────────────────────────
+    // Find-and-replace inside a file. Safer than full rewrite. Admin-only.
+    // rawArgs: { path: "...", old_str: "...", new_str: "...", backup?: true }
+    if (opts.tool_id === "fs.patch") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const relPath = (rawArgsObj?.path as string ?? "").trim();
+      const oldStr = (rawArgsObj?.old_str as string ?? "");
+      const newStr = (rawArgsObj?.new_str as string ?? "");
+      const makeBackup = (rawArgsObj?.backup as unknown as boolean) !== false;
+      if (!relPath || relPath.includes("..") || path.isAbsolute(relPath)) {
+        throw new ToolRunnerError("BAD_REQUEST", "fs.patch: invalid path");
+      }
+      if (!oldStr) throw new ToolRunnerError("BAD_REQUEST", "fs.patch: old_str required");
+      const repoRoot = process.env.ZENSQUID_ROOT ?? process.cwd();
+      const abs = path.resolve(repoRoot, relPath);
+      if (!abs.startsWith(repoRoot + path.sep)) {
+        throw new ToolRunnerError("FORBIDDEN", "fs.patch: path escapes repo root");
+      }
+      if (relPath.startsWith("apps/") && relPath.includes("/dist/")) {
+        throw new ToolRunnerError("FORBIDDEN", "fs.patch: cannot patch dist/ directly");
+      }
+      const original = await fsNode.readFile(abs, "utf8");
+      const occurrences = original.split(oldStr).length - 1;
+      if (occurrences === 0) {
+        throw new ToolRunnerError("BAD_REQUEST", `fs.patch: old_str not found in ${relPath}`);
+      }
+      if (occurrences > 1) {
+        throw new ToolRunnerError("BAD_REQUEST", `fs.patch: old_str matches ${occurrences} times — must be unique`);
+      }
+      if (makeBackup) {
+        await fsNode.writeFile(abs + ".sqbak", original, "utf8");
+      }
+      const patched = original.replace(oldStr, newStr);
+      await fsNode.writeFile(abs, patched, "utf8");
+      return {
+        ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+        stdout: `fs.patch: patched ${relPath}${makeBackup ? " — backup saved as .sqbak" : ""}\nReplaced ${occurrences} occurrence(s)\n`,
+        stderr: "", truncated: { stdout: false, stderr: false }
+      };
+    }
 
     if (opts.tool_id === "web.search") {
       const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;

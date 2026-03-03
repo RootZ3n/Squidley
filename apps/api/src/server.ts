@@ -1257,7 +1257,197 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       pending_image: pendingImagePrompt,
     });
   }
+// ── Anthropic ─────────────────────────────────────────────────────────────
+  if (decision.tier.provider === "anthropic") {
+    const provCfg = (cfg as any)?.providers?.anthropic ?? {};
+    const envKeyName = String(provCfg?.env_key ?? "").trim() || "ANTHROPIC_API_KEY";
+    const apiKey = (process.env[envKeyName] ?? "").trim() || (process.env.ANTHROPIC_API_KEY ?? "").trim();
+    const apiKeyFile =
+      String(process.env.ANTHROPIC_API_KEY_FILE ?? "").trim() ||
+      String(process.env.ZENSQUID_ANTHROPIC_KEY_FILE ?? "").trim() ||
+      "";
 
+    if ((!apiKey || apiKey.length < 10) && !apiKeyFile) {
+      const receipt: any = withKind("chat", {
+        schema: "zensquid.receipt.v1",
+        receipt_id,
+        created_at: new Date().toISOString(),
+        node: cfg.meta.node,
+        request: {
+          input: normalized.input,
+          mode: normalized.mode ?? "auto",
+          force_tier: normalized.force_tier,
+          reason: normalized.reason,
+          selected_skill: selectedSkill
+        },
+        decision: {
+          tier: decision.tier.name,
+          provider: decision.tier.provider,
+          model: decision.tier.model,
+          escalated: true,
+          escalation_reason: `blocked: missing ${envKeyName}`,
+          active_model: decisionActiveModel
+        },
+        context: meta,
+        squid_notes: squid_notes_for_receipt
+      });
+      await writeReceipt(zensquidRoot(), receipt as ReceiptV1);
+      return reply.code(400).send({
+        error: `Missing ${envKeyName} for anthropic provider`,
+        tier: decision.tier.name,
+        provider: decision.tier.provider,
+        model: decision.tier.model,
+        active_model: decisionActiveModel,
+        receipt_id,
+        context: meta
+      });
+    }
+
+    try {
+      const { anthropicChat } = await import("@zensquid/provider-anthropic");
+
+      // Anthropic requires system prompt separate from messages
+      // Extract system message from messages array
+      const systemMsg = messages.find((m: any) => m.role === "system");
+      const nonSystemMessages = messages.filter((m: any) => m.role !== "system");
+
+      const out = await anthropicChat({
+        model: decision.tier.model,
+        system: systemMsg?.content as string | undefined,
+        messages: nonSystemMessages as any,
+        apiKey: apiKey || undefined,
+        apiKeyFile: apiKeyFile || undefined,
+        maxTokens: 8192,
+        temperature: 0.2
+      });
+
+      const receipt: any = withKind("chat", {
+        schema: "zensquid.receipt.v1",
+        receipt_id,
+        created_at: new Date().toISOString(),
+        node: cfg.meta.node,
+        request: {
+          input: normalized.input,
+          mode: normalized.mode ?? "auto",
+          force_tier: normalized.force_tier,
+          reason: normalized.reason,
+          selected_skill: selectedSkill
+        },
+        decision: {
+          tier: decision.tier.name,
+          provider: decision.tier.provider,
+          model: decision.tier.model,
+          escalated: decision.escalated,
+          escalation_reason: decision.escalation_reason,
+          active_model: decisionActiveModel
+        },
+        context: meta,
+        squid_notes: squid_notes_for_receipt,
+        provider_response: (out as any).raw ?? null
+      });
+
+      await writeReceipt(zensquidRoot(), receipt as ReceiptV1);
+
+      const antSessionId = session_id ?? crypto.randomUUID();
+
+      // ✅ Agent proposal detection — FIRST, takes priority over tool/plan
+      let antPendingAgentName: string | null = null;
+      if (isAgentProposal(out.output)) {
+        const agentProposal = extractAgentProposal(out.output, normalized.input);
+        if (agentProposal) {
+          storePendingAgent(antSessionId, agentProposal.agent_name, agentProposal.focus);
+          antPendingAgentName = agentProposal.agent_name;
+        }
+      }
+
+      // ✅ Image request detection — after agent, before plan
+      let antPendingImagePrompt: string | null = null;
+      if (!antPendingAgentName && isImageRequest(out.output)) {
+        const extracted = extractImagePrompt(out.output, normalized.input);
+        if (extracted) {
+          const sid = session_id ?? crypto.randomUUID();
+          storePendingImage(sid, extracted.prompt, extracted.intent, extracted.negative);
+          antPendingImagePrompt = extracted.prompt;
+        }
+      }
+
+      // ✅ Plan proposal detection — only if no agent
+      let antPendingPlanId: string | null = null;
+      if (!antPendingAgentName && isPlanProposal(out.output)) {
+        try {
+          const planGoal = extractPlanGoal(out.output);
+          const adminToken = String((req.headers as any)["x-zensquid-admin-token"] ?? "").trim();
+          const planResp = await app.inject({
+            method: "POST",
+            url: "/autonomy/plan",
+            headers: { "content-type": "application/json", "x-zensquid-admin-token": adminToken },
+            payload: { goal: planGoal, ollama_url: cfg.providers.ollama.base_url, model: decision.tier.model },
+          });
+          const planJson = typeof (planResp as any).json === "function" ? (planResp as any).json() : JSON.parse(planResp.payload);
+          if (planJson?.ok && planJson?.plan_id) {
+            storePendingPlan(antSessionId, planJson.plan_id, planGoal, planJson.steps);
+            antPendingPlanId = planJson.plan_id;
+          }
+        } catch {
+          // best effort — never block response
+        }
+      }
+
+      // ✅ Tool proposal detection — only if no agent and no plan
+      const antProposal = (!antPendingAgentName && !antPendingPlanId)
+        ? extractToolProposal(out.output)
+        : null;
+      if (antProposal) {
+        storePending(antSessionId, antProposal, out.output);
+      }
+
+      addTurn(antSessionId, "assistant", out.output);
+      maybeExtractMemory(normalized.input, out.output).catch(() => {});
+
+      return reply.send({
+        output: out.output,
+        tier: decision.tier.name,
+        provider: decision.tier.provider,
+        model: decision.tier.model,
+        active_model: decisionActiveModel,
+        receipt_id,
+        escalated: decision.escalated,
+        escalation_reason: decision.escalation_reason,
+        context: meta,
+        session_id: antSessionId,
+        pending_tool: antProposal ? antProposal.tool_id : null,
+        pending_plan: antPendingPlanId,
+        pending_agent: antPendingAgentName,
+        pending_image: antPendingImagePrompt,
+      });
+    } catch (e: any) {
+      const errMsg = String(e?.message ?? e ?? "Anthropic provider error");
+      const receipt: any = withKind("chat", {
+        schema: "zensquid.receipt.v1",
+        receipt_id,
+        created_at: new Date().toISOString(),
+        node: cfg.meta.node,
+        request: { input: normalized.input, mode: normalized.mode ?? "auto" },
+        decision: {
+          tier: decision.tier.name,
+          provider: decision.tier.provider,
+          model: decision.tier.model,
+          escalated: true,
+          escalation_reason: `error: ${errMsg}`,
+          active_model: decisionActiveModel
+        },
+        context: meta,
+        error: { message: errMsg }
+      });
+      await writeReceipt(zensquidRoot(), receipt as ReceiptV1);
+      return reply.code(500).send({
+        error: errMsg,
+        tier: decision.tier.name,
+        provider: decision.tier.provider,
+        receipt_id
+      });
+    }
+  }
   // ── OpenAI ────────────────────────────────────────────────────────────────
   if (decision.tier.provider === "openai") {
     const provCfg = (cfg as any)?.providers?.openai ?? {};

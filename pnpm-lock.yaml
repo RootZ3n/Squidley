@@ -23,6 +23,9 @@ importers:
       '@zensquid/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@zensquid/provider-anthropic':
+        specifier: workspace:*
+        version: link:../../packages/providers/anthropic
       '@zensquid/provider-modelstudio':
         specifier: workspace:*
         version: link:../../packages/providers/modelstudio
@@ -95,6 +98,16 @@ importers:
         version: 22.19.13
       typescript:
         specifier: ^5.6.3
+        version: 5.9.3
+
+  packages/providers/anthropic:
+    dependencies:
+      undici:
+        specifier: '*'
+        version: 6.23.0
+    devDependencies:
+      typescript:
+        specifier: '*'
         version: 5.9.3
 
   packages/providers/modelstudio:

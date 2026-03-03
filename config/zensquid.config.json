@@ -48,6 +48,20 @@
       "model": "qwen3-coder-plus",
       "role": "Tier 2: Cloud coder (qwen-coder-plus, cheap, strong at code)"
     },
+   
+    {
+      "name": "claude-sonnet",
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-5",
+      "role": "Tier 2: Claude Sonnet — fast, strong at code"
+    },
+    {
+      "name": "claude-opus",
+      "provider": "anthropic", 
+      "model": "claude-opus-4-5",
+      "role": "Tier 3: Claude Opus — best reasoning, self-repair"
+    },
+
     {
       "name": "big_brain",
       "provider": "modelstudio",
@@ -127,13 +141,16 @@
       ]
     }
   },
-  "providers": {
-    "ollama": {
+    "providers": {
+      "ollama": {
       "base_url": "http://127.0.0.1:11434"
     },
     "modelstudio": {
       "env_key": "DASHSCOPE_API_KEY",
       "base_url": "https://dashscope-us.aliyuncs.com/compatible-mode"
+    },
+    "anthropic": {
+      "env_key": "ANTHROPIC_API_KEY"
     },
     "openai": {
       "env_key": "OPENAI_API_KEY",

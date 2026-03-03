@@ -174,6 +174,17 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     maxOutputBytes: 64 * 1024,
   },
 
+  
+  "fs.patch": {
+    id: "fs.patch",
+    title: "FS: find-and-replace patch a file inside the repo (admin)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    requiresAdmin: true,
+    timeoutMs: 15_000,
+    maxOutputBytes: 64 * 1024,
+  },
   // ── Filesystem expanded (admin-gated) ─────────────────────────────────────
 
   "fs.mkdir": {
