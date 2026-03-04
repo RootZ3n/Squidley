@@ -230,6 +230,15 @@ export default function BuildPanel({ adminToken }: { adminToken: string }) {
 
   useEffect(() => { loadTree(); }, []);
 
+  useEffect(() => {
+    const brief = sessionStorage.getItem("squidley_build_brief");
+    if (brief) {
+      sessionStorage.removeItem("squidley_build_brief");
+      setInput(brief);
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, []);
+
   async function send(overrideText?: string) {
     const text = (overrideText ?? input).trim();
     if (!text || busy) return;

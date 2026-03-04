@@ -201,6 +201,8 @@ export default function Page() {
 
   const [chatInput, setChatInput] = useState("");
   const [chatBusy, setChatBusy] = useState(false);
+  const [buildPreview, setBuildPreview] = useState<string | null>(null);
+  const [buildBriefBusy, setBuildBriefBusy] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [pendingPlanId, setPendingPlanId] = useState<string | null>(null);
   const [pendingAgentName, setPendingAgentName] = useState<string | null>(null);
@@ -230,7 +232,7 @@ export default function Page() {
   const [plan, setPlan] = useState<ToolPlanV1>(() => makePlanFromGoal("Build web + run Playwright tests"));
 
   const [tools, setTools] = useState<ToolListItem[]>([]);
-  const [adminToken, setAdminToken] = useState<string>("");
+  const [adminToken, setAdminToken] = useState<string>(() => typeof window !== "undefined" ? sessionStorage.getItem("squidley_admin_token") ?? "" : "");
   const [stepState, setStepState] = useState<Record<string, StepRunState>>({});
   const [runAllBusy, setRunAllBusy] = useState(false);
 
@@ -372,6 +374,39 @@ export default function Page() {
     } finally {
       setImageBusy(false);
     }
+  }
+
+  async function handleSendToBuild() {
+    if (messages.length < 2 || buildBriefBusy) return;
+    setBuildBriefBusy(true);
+    try {
+      const history = messages.map(m => `${m.role === "user" ? "Jeff" : "Squidley"}: ${m.content}`).join("\n\n");
+      const res = await fetch(`${ZENSQUID_API}/chat`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-zensquid-admin-token": adminToken },
+        body: JSON.stringify({
+          input: `Summarize this conversation into a concise build brief for a developer. Include: what was discussed, what needs to be built, key requirements and constraints. Max 150 words. Plain text, no headers.\n\n${history}`,
+          mode: "force_tier",
+          force_tier: "claude-sonnet",
+          reason: "build handoff summary",
+          session_id: "build-handoff-" + Date.now()
+        })
+      });
+      const json = await res.json();
+      setBuildPreview(json.output ?? "Could not generate brief.");
+    } catch {
+      setBuildPreview("Error generating brief.");
+    } finally {
+      setBuildBriefBusy(false);
+    }
+  }
+
+  function confirmSendToBuild() {
+    if (!buildPreview) return;
+    // BuildPanel will pick this up via localStorage-free approach: tab switch + URL param
+    sessionStorage.setItem("squidley_build_brief", buildPreview);
+    setBuildPreview(null);
+    setTab("build");
   }
 
   async function sendChat() {
@@ -543,7 +578,9 @@ export default function Page() {
     refreshStatus().catch(console.error);
     ensureStepStateInitialized(plan);
 
-    const t = setInterval(() => refreshStatus().catch(() => {}), 4000);
+    const t = setInterval(() => {
+  if (!document.hidden) refreshStatus().catch(() => {});
+}, 4000);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -728,6 +765,20 @@ export default function Page() {
                 >
                   Clear
                 </button>
+                {messages.length > 1 && (
+                  <button
+                    onClick={handleSendToBuild}
+                    disabled={buildBriefBusy}
+                    style={{
+                      ...btnGhost(),
+                      borderColor: "rgba(255,140,80,0.35)",
+                      color: buildBriefBusy ? "rgba(255,255,255,0.4)" : "rgba(255,180,120,0.9)",
+                    }}
+                    title="Summarize conversation and send to Build tab"
+                  >
+                    {buildBriefBusy ? "Preparing…" : "→ Build"}
+                  </button>
+                )}
               </div>
 
               <div style={{ height: 10 }} />
@@ -735,6 +786,44 @@ export default function Page() {
             </div>
           )}
 
+                    {/* ── Send to Build preview modal ── */}
+          {buildPreview && (
+            <div style={{
+              position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)",
+              backdropFilter: "blur(4px)", display: "flex", alignItems: "center",
+              justifyContent: "center", zIndex: 999, padding: 16
+            }}>
+              <div style={{
+                background: "rgba(12,16,28,0.97)", border: "1px solid rgba(255,140,80,0.25)",
+                borderRadius: 18, maxWidth: 560, width: "100%", overflow: "hidden",
+                boxShadow: "0 24px 60px rgba(0,0,0,0.6)"
+              }}>
+                <div style={{ padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+                  <div style={{ fontWeight: 900, fontSize: 15, color: "rgba(255,180,120,0.95)" }}>→ Send to Build</div>
+                  <div style={{ fontSize: 12, opacity: 0.55, marginTop: 3 }}>This brief will be pre-loaded in the Build tab</div>
+                </div>
+                <div style={{ padding: "16px 20px", maxHeight: 300, overflowY: "auto" }}>
+                  <pre style={{
+                    margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word",
+                    fontSize: 13, lineHeight: 1.6, color: "rgba(220,230,255,0.88)",
+                    fontFamily: "inherit"
+                  }}>{buildPreview}</pre>
+                </div>
+                <div style={{
+                  padding: "14px 20px", borderTop: "1px solid rgba(255,255,255,0.07)",
+                  display: "flex", gap: 10, justifyContent: "flex-end"
+                }}>
+                  <button onClick={() => setBuildPreview(null)} style={btnGhost()}>Cancel</button>
+                  <button onClick={confirmSendToBuild} style={{
+                    ...btnPrimary(),
+                    background: "rgba(255,140,80,0.25)",
+                    borderColor: "rgba(255,140,80,0.4)",
+                    color: "rgba(255,200,150,0.95)"
+                  }}>Confirm → Build</button>
+                </div>
+              </div>
+            </div>
+          )}
           {/* ── Image tab ── */}
           {tab === "image" && (
             <div style={chatShell()} data-testid="image-panel">
@@ -900,7 +989,7 @@ export default function Page() {
                 <div style={label()}>Admin token</div>
                 <input
                   value={adminToken}
-                  onChange={(e) => setAdminToken(e.target.value)}
+                  onChange={(e) => { setAdminToken(e.target.value); sessionStorage.setItem("squidley_admin_token", e.target.value); }}
                   placeholder="x-zensquid-admin-token (memory only)"
                   style={goalInput()}
                   type="password"

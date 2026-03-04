@@ -52,13 +52,13 @@
     {
       "name": "claude-sonnet",
       "provider": "anthropic",
-      "model": "claude-sonnet-4-5",
+      "model": "claude-sonnet-4-6",
       "role": "Tier 2: Claude Sonnet — fast, strong at code"
     },
     {
       "name": "claude-opus",
       "provider": "anthropic", 
-      "model": "claude-opus-4-5",
+      "model": "claude-opus-4-6",
       "role": "Tier 3: Claude Opus — best reasoning, self-repair"
     },
 

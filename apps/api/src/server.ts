@@ -676,7 +676,8 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
           const toolId = pending.proposal.tool_id;
 
           if (toolId === "rg.search") {
-            const query = rawArgs.query || "TODO";
+            const query = (rawArgs.query ?? "").trim();
+            if (!query) throw new Error("rg.search: query arg is required");
             finalArgs = [query, "."];
           } else if (toolId === "git.diff") {
             const parts: string[] = [];
@@ -685,6 +686,11 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
             finalArgs = parts;
           } else if (toolId === "git.log") {
             finalArgs = rawArgs.count ? ["-n", rawArgs.count] : [];
+          } else if (toolId === "fs.patch") {
+            const p = rawArgs.path ?? "";
+            const old_str = rawArgs.old_str ?? rawArgs.old ?? "";
+            const new_str = rawArgs.new_str ?? rawArgs.new ?? "";
+            finalArgs = { path: p, old_str, new_str };
           } else if (toolId === "fs.write") {
             const p = rawArgs.path ?? "";
             const content = rawArgs.content ?? "";

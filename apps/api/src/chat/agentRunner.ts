@@ -346,7 +346,7 @@ export async function runAgent(args: {
           args: (() => {
             if (!step.args) return [];
             if (step.tool === "rg.search") {
-              return [String(step.args.query ?? "TODO"), String(step.args.path ?? ".")];
+              return [(() => { const q = String(step.args.query ?? "").trim(); if (!q) throw new Error("rg.search: query arg is required"); return q; })(), String(step.args.path ?? ".")];
             }
             return Object.values(step.args).map(String);
           })(),
