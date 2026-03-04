@@ -230,8 +230,8 @@ export default function BuildPanel({ adminToken }: { adminToken: string }) {
 
   useEffect(() => { loadTree(); }, []);
 
-  async function send() {
-    const text = input.trim();
+  async function send(overrideText?: string) {
+    const text = (overrideText ?? input).trim();
     if (!text || busy) return;
     setInput("");
     setBusy(true);
@@ -349,8 +349,10 @@ export default function BuildPanel({ adminToken }: { adminToken: string }) {
                 <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 12 }}>{selectedFile}</span>
                 <div style={{ display: "flex", gap: 6 }}>
                   <button style={iconBtn()} onClick={() => {
-                    if (fileContent) {
-                      setInput(`Read and understand this file: ${selectedFile}\n\`\`\`\n${fileContent.slice(0, 2000)}\n\`\`\``);
+                    if (selectedFile) {
+                      const msg = `read ${selectedFile}`;
+                      setInput(msg);
+                      setTimeout(() => send(msg), 10);
                     }
                   }} title="Ask about this file">Ask</button>
                   <button style={iconBtn()} onClick={() => { setSelectedFile(null); setFileContent(null); }} title="Close">✕</button>
@@ -413,7 +415,7 @@ export default function BuildPanel({ adminToken }: { adminToken: string }) {
                   : `🔧 Run tool: ${lastMsg.pending_tool}`}
               </span>
               <div style={{ display: "flex", gap: 8 }}>
-                <button style={btnApprove()} onClick={approve}>✓ Approve</button>
+                <button style={btnApprove()} onClick={() => approve()}>✓ Approve</button>
                 <button style={btnDeny()} onClick={() => setMessages(m => [...m, {
                   id: uid(), role: "user", content: "no", ts: Date.now()
                 }])}>✕ Deny</button>
@@ -435,7 +437,7 @@ export default function BuildPanel({ adminToken }: { adminToken: string }) {
               rows={3}
               disabled={busy}
             />
-            <button style={sendBtn(busy)} onClick={send} disabled={busy || !input.trim()}>
+            <button style={sendBtn(busy)} onClick={() => send()} disabled={busy || !input.trim()}>
               {busy ? "…" : "▶"}
             </button>
           </div>
