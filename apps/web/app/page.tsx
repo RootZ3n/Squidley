@@ -213,6 +213,8 @@ export default function Page() {
   const [imageFile, setImageFile] = useState<string | null>(null);
   const [imageIterations, setImageIterations] = useState<ImageIteration[]>([]);
   const [imageBusy, setImageBusy] = useState(false);
+  const [comfyState, setComfyState] = useState<"unknown"|"stopped"|"starting"|"ready"|"stopping">("unknown");
+  const [comfyStateMsg, setComfyStateMsg] = useState<string>("");
   const [imagePromptInput, setImagePromptInput] = useState("");
 
   const [messages, setMessages] = useState<Msg[]>([
@@ -340,9 +342,68 @@ export default function Page() {
   }
 
   // ── Image generation ──────────────────────────────────────────────────────
+  const comfyLockRef = React.useRef(false);
+
+  async function ensureComfyUI(): Promise<boolean> {
+    if (comfyLockRef.current) return false;
+    comfyLockRef.current = true;
+    try {
+      const statusRes = await fetch(`${ZENSQUID_API}/tools/run`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-zensquid-admin-token": "8675309abc123easy" },
+        body: JSON.stringify({ workspace: "squidley", tool_id: "comfyui.status", args: {} })
+      });
+      const statusJson = await statusRes.json();
+      if (statusJson?.ok) { setComfyState("ready"); setComfyStateMsg(""); return true; }
+      setComfyState("starting");
+      setComfyStateMsg("Starting ComfyUI…");
+      await fetch(`${ZENSQUID_API}/tools/run`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-zensquid-admin-token": "8675309abc123easy" },
+        body: JSON.stringify({ workspace: "squidley", tool_id: "comfyui.start", args: {} })
+      });
+      for (let i = 0; i < 30; i++) {
+        await new Promise(r => setTimeout(r, 1000));
+        setComfyStateMsg(`Starting ComfyUI… ${i + 1}s`);
+        const r = await fetch(`${ZENSQUID_API}/tools/run`, {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-zensquid-admin-token": "8675309abc123easy" },
+          body: JSON.stringify({ workspace: "squidley", tool_id: "comfyui.status", args: {} })
+        });
+        const rj = await r.json();
+        if (rj?.ok) { setComfyState("ready"); setComfyStateMsg(""); return true; }
+      }
+      setComfyState("stopped");
+      setComfyStateMsg("ComfyUI failed to start");
+      return false;
+    } finally {
+      comfyLockRef.current = false;
+    }
+  }
+
+  async function stopComfyUI() {
+    if (comfyLockRef.current || comfyState === "stopped" || imageBusy) return;
+    comfyLockRef.current = true;
+    try {
+      setComfyState("stopping");
+      await fetch(`${ZENSQUID_API}/tools/run`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-zensquid-admin-token": "8675309abc123easy" },
+        body: JSON.stringify({ workspace: "squidley", tool_id: "comfyui.stop", args: {} })
+      });
+      setComfyState("stopped");
+    } finally {
+      comfyLockRef.current = false;
+    }
+  }
+
   async function handleImageGenerate(overridePrompt?: string) {
     const prompt = (overridePrompt ?? imagePromptInput).trim() || pendingImagePrompt || "";
     if (!prompt || imageBusy) return;
+    if (comfyState !== "ready") {
+      const ok = await ensureComfyUI();
+      if (!ok) return;
+    }
     setImageBusy(true);
     setImagePromptInput("");
     setTab("image");
@@ -878,34 +939,43 @@ export default function Page() {
                 ) : null}
               </div>
 
-              {/* Iteration history */}
+              {/* ComfyUI state banner */}
+              {(comfyState === "starting" || comfyState === "stopping") && (
+                <div style={{ borderRadius: 10, padding: "8px 14px", marginBottom: 10,
+                  background: "rgba(255,180,80,0.12)", border: "1px solid rgba(255,180,80,0.25)",
+                  fontSize: 13, color: "rgba(255,200,120,0.9)" }}>
+                  ⏳ {comfyStateMsg}
+                </div>
+              )}
+              {comfyState === "stopped" && comfyStateMsg && (
+                <div style={{ borderRadius: 10, padding: "8px 14px", marginBottom: 10,
+                  background: "rgba(255,80,80,0.10)", border: "1px solid rgba(255,80,80,0.20)",
+                  fontSize: 13, color: "rgba(255,140,140,0.9)" }}>
+                  ⚠️ {comfyStateMsg}
+                </div>
+              )}
+              {/* Iteration gallery */}
               {imageIterations.length > 0 && (
-                <div style={{
-                  borderRadius: 12,
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  background: "rgba(0,0,0,0.18)",
-                  padding: "8px 12px",
-                  marginBottom: 10,
-                  fontSize: 11,
-                  opacity: 0.8
-                }}>
-                  <div style={{ fontWeight: 800, marginBottom: 6, opacity: 0.9 }}>
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, opacity: 0.6, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>
                     {imageIterations.length} iteration{imageIterations.length > 1 ? "s" : ""} — {imageIterations[imageIterations.length - 1]?.qc_pass ? "✅ QC passed" : "⚠️ QC partial"}
                   </div>
-                  {imageIterations.map((it) => (
-                    <div key={it.n} style={{ marginBottom: 6, paddingBottom: 6, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                        <span style={{ fontWeight: 800 }}>Iter {it.n}</span>
-                        <span>{it.qc_pass ? "✅" : "⚠️"} {it.qc_notes}</span>
-                        <span style={{ opacity: 0.6 }}>{Math.round(it.elapsed_ms / 1000)}s</span>
-                      </div>
-                      {it.vl_description && (
-                        <div style={{ opacity: 0.65, fontStyle: "italic", marginTop: 2 }}>
-                          {it.vl_description.slice(0, 140)}{it.vl_description.length > 140 ? "…" : ""}
+                  <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8 }}>
+                    {imageIterations.map((it) => (
+                      <div key={it.n} style={{ flexShrink: 0, borderRadius: 10, overflow: "hidden",
+                        border: it.qc_pass ? "2px solid rgba(80,200,120,0.4)" : "2px solid rgba(255,180,80,0.3)",
+                        background: "rgba(0,0,0,0.3)", width: 160, cursor: "pointer" }}
+                        onClick={() => setImageUrl(`/image/output/${it.file}`)}>
+                        <img src={`${ZENSQUID_API}/image/output/${it.file}`} alt={`Iter ${it.n}`}
+                          style={{ width: "100%", display: "block" }} />
+                        <div style={{ padding: "6px 8px", fontSize: 11 }}>
+                          <div style={{ fontWeight: 800 }}>Iter {it.n} {it.qc_pass ? "✅" : "⚠️"}</div>
+                          <div style={{ opacity: 0.6 }}>{Math.round(it.elapsed_ms / 1000)}s</div>
+                          {it.qc_notes && <div style={{ opacity: 0.65, fontStyle: "italic", marginTop: 2 }}>{it.qc_notes.slice(0, 60)}</div>}
                         </div>
-                      )}
-                    </div>
-                  ))}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
