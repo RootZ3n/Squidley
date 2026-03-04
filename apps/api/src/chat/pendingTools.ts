@@ -17,6 +17,7 @@ export type PendingToolSession = {
   session_id: string;
   proposal: ToolProposal;
   original_response: string;
+  original_input?: string;
 
   // Nonce required to approve/deny
   approval_code: string;
@@ -111,7 +112,8 @@ function makeApprovalCode(): string {
 export async function storePending(
   session_id: string,
   proposal: ToolProposal,
-  original_response: string
+  original_response: string,
+  original_input?: string
 ): Promise<PendingToolSession> {
   purge();
   const now = Date.now();
@@ -120,6 +122,7 @@ export async function storePending(
     proposal,
     original_response,
     approval_code: makeApprovalCode(),
+    original_input,
     created_at: now,
     expires_at: now + SESSION_TTL_MS,
   };

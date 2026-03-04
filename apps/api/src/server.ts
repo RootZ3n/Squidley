@@ -664,6 +664,13 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
         const jsTools = new Set(["web.search", "fs.read", "fs.write", "proc.exec", "systemctl.user", "diag.sleep", "browser.visit", "browser.extract", "browser.search", "browser.screenshot", "fs.survey", "fs.organize", "job.detect-form", "job.fill-form"]);
         let finalArgs: string[] | Record<string, string>;
         if (jsTools.has(pending.proposal.tool_id)) {
+          // For fs.read, ensure path is set — fall back to original user input
+          if (pending.proposal.tool_id === "fs.read" && !rawArgs.path) {
+            const originalInput = pending.original_input ?? "";
+            const pathMatch = originalInput.match(/(?:read|open|view|show|cat|load)\s+([a-zA-Z0-9_\-./]+\.[a-zA-Z]{1,6})/i)
+              ?? originalInput.match(/([a-zA-Z0-9_\-./]+\/[a-zA-Z0-9_\-./]+\.[a-zA-Z]{1,6})/);
+            if (pathMatch?.[1]) rawArgs.path = pathMatch[1].trim();
+          }
           finalArgs = rawArgs;
         } else {
           const toolId = pending.proposal.tool_id;
@@ -683,7 +690,14 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
             const content = rawArgs.content ?? "";
             finalArgs = [p, content];
           } else if (toolId === "fs.read") {
-            finalArgs = [rawArgs.path ?? ""];
+            let fsReadPath = rawArgs.path ?? "";
+            if (!fsReadPath) {
+              const originalInput = pending.original_input ?? "";
+              const pathMatch = originalInput.match(/(?:read|open|view|show|cat|load)\s+([a-zA-Z0-9_\-./]+\.[a-zA-Z]{1,6})/i)
+                ?? originalInput.match(/([a-zA-Z0-9_\-./]+\/[a-zA-Z0-9_\-./]+\.[a-zA-Z]{1,6})/);
+              if (pathMatch?.[1]) fsReadPath = pathMatch[1].trim();
+            }
+            finalArgs = [fsReadPath];
           } else {
             finalArgs = Object.values(rawArgs).filter(Boolean) as string[];
           }
@@ -702,12 +716,12 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
         toolOk = false;
       }
 
-      const analysisTools = new Set(["git.status", "git.diff", "git.log", "rg.search"]);
+      const analysisTools = new Set(["git.status", "git.diff", "git.log", "rg.search", "fs.read", "fs.tree", "skill.scan-all", "lint.check"]);
       if (toolOk && analysisTools.has(pending.proposal.tool_id)) {
-        const toolContext = `[Tool: ${pending.proposal.tool_id} output]\n${toolOutput}\n[/Tool output]\n\nAnalyze the above output as my building partner. Be direct and concrete.`;
+        const toolContext = `[Tool: ${pending.proposal.tool_id} output]\n${toolOutput}\n[/Tool output]\n\nYou are a coding partner reviewing ${pending.proposal.tool_id} output. If this is a file, summarize what it does, key functions, and any issues. If a search result, explain findings. Be direct. Propose next steps or a follow-up tool if helpful.`;
         const cfg2 = await loadConfig(process.env.ZENSQUID_CONFIG);
         const { listTools: lt2 } = await import("./tools/allowlist.js");
-        const toolList2 = lt2(false);
+        const toolList2 = lt2(adminTokenOk(req));
         const { system: system2 } = await buildChatSystemPrompt({
           input: toolContext,
           selected_skill: null,
@@ -722,11 +736,31 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
           { role: "system" as const, content: system2 },
           { role: "user" as const, content: toolContext },
         ];
-        const analysisOut = await ollamaChat({
-          baseUrl: cfg2.providers.ollama.base_url,
-          model: (chooseTier(cfg2, { input: toolContext, mode: "auto" })).tier.model,
-          messages: analysisMessages,
-        });
+        // Use force_tier if specified (e.g. claude-sonnet from Build tab)
+        const forcedTierName = body.force_tier ?? null;
+        const forcedTierCfg = forcedTierName ? cfg2.tiers?.find((t: any) => t.name === forcedTierName) : null;
+        let analysisOut: { output: string };
+        if (forcedTierCfg?.provider === "anthropic") {
+          const { anthropicChat } = await import("@zensquid/provider-anthropic");
+          const antKey = (process.env[(cfg2 as any)?.providers?.anthropic?.env_key ?? "ANTHROPIC_API_KEY"] ?? "").trim();
+          const systemMsg2 = analysisMessages.find((m: any) => m.role === "system");
+          const nonSystem2 = analysisMessages.filter((m: any) => m.role !== "system");
+          const antOut = await anthropicChat({
+            model: forcedTierCfg.model,
+            system: systemMsg2?.content as string | undefined,
+            messages: nonSystem2 as any,
+            apiKey: antKey,
+            maxTokens: 8192,
+            temperature: 0.2
+          });
+          analysisOut = { output: antOut.output };
+        } else {
+          analysisOut = await ollamaChat({
+            baseUrl: cfg2.providers.ollama.base_url,
+            model: (chooseTier(cfg2, { input: toolContext, mode: "auto" })).tier.model,
+            messages: analysisMessages,
+          });
+        }
 
         void writeAnalysisThread({
           toolId: pending.proposal.tool_id,
@@ -1070,7 +1104,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       ? extractToolProposal(out.output)
       : null;
     if (ollamaProposal) {
-      storePending(ollamaSessionId, ollamaProposal, out.output);
+      storePending(ollamaSessionId, ollamaProposal, out.output, normalized.input);
     }
 
     // ✅ Memory extraction + session history for Ollama
@@ -1233,7 +1267,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
       ? extractToolProposal(out.content)
       : null;
     if (msProposal) {
-      storePending(msSessionId, msProposal, out.content);
+      storePending(msSessionId, msProposal, out.content, normalized.input);
     }
 
     // ✅ Session history + memory extraction for ModelStudio
@@ -1398,7 +1432,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
         ? extractToolProposal(out.output)
         : null;
       if (antProposal) {
-        storePending(antSessionId, antProposal, out.output);
+        storePending(antSessionId, antProposal, out.output, normalized.input);
       }
 
       addTurn(antSessionId, "assistant", out.output);
@@ -1583,7 +1617,7 @@ app.post<{ Body: ChatRequest & { selected_skill?: string | null } }>("/chat", as
         ? extractToolProposal(out.output)
         : null;
       if (oaiProposal) {
-        storePending(oaiSessionId, oaiProposal, out.output);
+        storePending(oaiSessionId, oaiProposal, out.output, normalized.input);
       }
 
       addTurn(oaiSessionId, "assistant", out.output);

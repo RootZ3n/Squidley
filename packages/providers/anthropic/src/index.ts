@@ -1,5 +1,4 @@
 import { readFile } from "node:fs/promises";
-import { request } from "undici";
 
 export type AnthropicChatMessage = {
   role: "user" | "assistant";
@@ -57,7 +56,7 @@ export async function anthropicChat(args: AnthropicChatArgs): Promise<AnthropicC
     ...(typeof args.temperature === "number" ? { temperature: args.temperature } : {})
   };
 
-  const r = await request("https://api.anthropic.com/v1/messages", {
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
       "x-api-key": apiKey,
@@ -67,14 +66,14 @@ export async function anthropicChat(args: AnthropicChatArgs): Promise<AnthropicC
     body: JSON.stringify(body)
   });
 
-  const raw = await r.body.json().catch(async () => {
-    const t = await r.body.text().catch(() => "");
+  const raw = await r.json().catch(async () => {
+    const t = await r.text().catch(() => "");
     return { _non_json: true, text: t };
   }) as any;
 
-  if (!(r.statusCode >= 200 && r.statusCode < 300)) {
+  if (!r.ok) {
     throw new Error(
-      `Anthropic error ${r.statusCode}: ${typeof raw === "object" ? JSON.stringify(raw) : String(raw)}`
+      `Anthropic error ${r.status}: ${typeof raw === "object" ? JSON.stringify(raw) : String(raw)}`
     );
   }
 
