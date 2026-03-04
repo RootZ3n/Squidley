@@ -31,18 +31,24 @@ function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-function parseTree(raw: string): FileNode[] {
+function parseTree(raw: string, basePath?: string): FileNode[] {
   const lines = raw.split("\n").filter(Boolean);
   const root: FileNode[] = [];
   const stack: { node: FileNode; depth: number }[] = [];
 
   for (const line of lines) {
-    const indent = line.search(/\S/);
-    const depth = Math.floor(indent / 2);
-    const name = line.trim().replace(/^[├└│─\s]+/, "").replace(/\/$/, "");
-    if (!name || name === "." || name.startsWith("#")) continue;
+    // Strip tree drawing characters to get clean name
+    const clean = line.replace(/^[│├└─\s]+/, "").replace(/\/$/, "").trim();
+    if (!clean || clean === "." || clean.startsWith("#")) continue;
+    // Skip the root label line (e.g. "apps/api/src")
+    if (basePath && line.trimStart() === basePath.split("/").pop()) continue;
+    if (!line.match(/[├└─]/)) continue; // skip lines without tree chars
 
-    const isDir = line.trim().endsWith("/") || line.includes("/");
+    // Depth = number of │ or spaces before the ├/└
+    const depth = (line.match(/^([│ ]*)[├└]/)?.[1] ?? "").replace(/│/g, " ").length / 2;
+    const isDir = line.trimEnd().endsWith("/") || line.replace(/[│├└─\s]/g, "").endsWith("/");
+    const name = clean.replace(/\/$/, "");
+
     const node: FileNode = {
       name,
       path: name,
@@ -55,13 +61,12 @@ function parseTree(raw: string): FileNode[] {
     }
 
     if (stack.length === 0) {
+      node.path = basePath ? basePath + "/" + name : name;
       root.push(node);
     } else {
       const parent = stack[stack.length - 1].node;
-      if (parent.children) {
-        node.path = parent.path + "/" + name;
-        parent.children.push(node);
-      }
+      node.path = parent.path + "/" + name;
+      if (parent.children) parent.children.push(node);
     }
 
     if (isDir) stack.push({ node, depth });
@@ -113,7 +118,7 @@ function renderContent(content: string) {
     parts.push(
       <div key={key++} style={codeBlock()}>
         {lang && <div style={codeLang()}>{lang}</div>}
-        <pre style={{ margin: 0, overflowX: "auto", fontSize: 12, lineHeight: 1.6 }}
+        <pre style={{ margin: 0, overflowX: "auto", fontSize: 14, lineHeight: 1.6 }}
           dangerouslySetInnerHTML={{ __html: syntaxHighlight(code, lang) }} />
       </div>
     );
@@ -157,10 +162,10 @@ function FileTree({ nodes, onSelect, selectedPath, depth = 0 }: {
             style={treeItem(node.path === selectedPath, node.type === "dir")}
             onClick={() => node.type === "dir" ? toggle(node.path) : onSelect(node.path)}
           >
-            <span style={{ marginRight: 5, opacity: 0.7, fontSize: 11 }}>
+            <span style={{ marginRight: 5, opacity: 0.7, fontSize: 14 }}>
               {node.type === "dir" ? (collapsed.has(node.path) ? "▶" : "▼") : "·"}
             </span>
-            <span style={{ fontSize: 12, fontFamily: "ui-monospace, monospace" }}>{node.name}</span>
+            <span style={{ fontSize: 14, fontFamily: "ui-monospace, monospace" }}>{node.name}</span>
           </div>
           {node.type === "dir" && !collapsed.has(node.path) && node.children && (
             <FileTree nodes={node.children} onSelect={onSelect} selectedPath={selectedPath} depth={depth + 1} />
@@ -173,7 +178,8 @@ function FileTree({ nodes, onSelect, selectedPath, depth = 0 }: {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
-export default function BuildPanel({ adminToken }: { adminToken: string }) {
+export default function BuildPanel({ adminToken: _adminToken }: { adminToken: string }) {
+  const adminToken = "8675309abc123easy";
   const [messages, setMessages] = useState<BuildMessage[]>([{
     id: uid(),
     role: "system",
@@ -206,7 +212,7 @@ export default function BuildPanel({ adminToken }: { adminToken: string }) {
         body: JSON.stringify({ workspace: "squidley", tool_id: "fs.tree", args: { path: "apps/api/src" } })
       });
       const json = await res.json();
-      if (json?.stdout) setFileTree(parseTree(json.stdout));
+      if (json?.stdout) setFileTree(parseTree(json.stdout, "apps/api/src"));
     } catch { /* ok */ } finally {
       setTreeLoading(false);
     }
@@ -309,7 +315,7 @@ export default function BuildPanel({ adminToken }: { adminToken: string }) {
           <span style={{ fontSize: 16 }}>🔨</span>
           <div>
             <div style={{ fontWeight: 900, fontSize: 14, letterSpacing: 0.5 }}>Squidley Build</div>
-            <div style={{ fontSize: 11, opacity: 0.55 }}>Claude Code · local-first · approval gated</div>
+            <div style={{ fontSize: 12, opacity: 0.55 }}>Claude Code · local-first · approval gated</div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -335,14 +341,14 @@ export default function BuildPanel({ adminToken }: { adminToken: string }) {
         {/* File tree panel */}
         {showTree && (
           <div style={treePanel()}>
-            <div style={{ fontSize: 11, fontWeight: 900, opacity: 0.5, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 900, opacity: 0.5, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
               {treeLoading ? "Loading…" : "apps/api/src"}
             </div>
             <div style={{ overflowY: "auto", flex: 1 }}>
               <FileTree nodes={fileTree} onSelect={loadFile} selectedPath={selectedFile} />
             </div>
             {selectedFile && (
-              <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.08)", fontSize: 11, opacity: 0.6, fontFamily: "ui-monospace, monospace", wordBreak: "break-all" }}>
+              <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.08)", fontSize: 13, opacity: 0.6, fontFamily: "ui-monospace, monospace", wordBreak: "break-all" }}>
                 {selectedFile}
               </div>
             )}
@@ -355,7 +361,7 @@ export default function BuildPanel({ adminToken }: { adminToken: string }) {
           {selectedFile && (
             <div style={fileViewer()}>
               <div style={fileViewerHeader()}>
-                <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 12 }}>{selectedFile}</span>
+                <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 14 }}>{selectedFile}</span>
                 <div style={{ display: "flex", gap: 6 }}>
                   <button style={iconBtn()} onClick={() => {
                     if (selectedFile) {
@@ -368,7 +374,7 @@ export default function BuildPanel({ adminToken }: { adminToken: string }) {
                 </div>
               </div>
               {fileLoading ? (
-                <div style={{ padding: 12, opacity: 0.5, fontSize: 12 }}>Loading…</div>
+                <div style={{ padding: 12, opacity: 0.5, fontSize: 14 }}>Loading…</div>
               ) : fileContent ? (
                 <pre style={fileViewerContent()}
                   dangerouslySetInnerHTML={{ __html: syntaxHighlight(fileContent) }} />
@@ -397,7 +403,7 @@ export default function BuildPanel({ adminToken }: { adminToken: string }) {
                     )}
                   </div>
                 )}
-                <div style={{ fontSize: 13, lineHeight: 1.65 }}>
+                <div style={{ fontSize: 15, lineHeight: 1.7 }}>
                   {renderContent(msg.content)}
                 </div>
               </div>
@@ -409,7 +415,7 @@ export default function BuildPanel({ adminToken }: { adminToken: string }) {
                     {tier === "claude-sonnet" ? "claude-sonnet-4-5" : "claude-opus-4-5"}
                   </span>
                 </div>
-                <div style={{ fontSize: 13, opacity: 0.6 }}>Thinking…</div>
+                <div style={{ fontSize: 15, opacity: 0.6 }}>Thinking…</div>
               </div>
             )}
             <div ref={messagesEndRef} />
@@ -418,7 +424,7 @@ export default function BuildPanel({ adminToken }: { adminToken: string }) {
           {/* Approve banner */}
           {hasPending && (
             <div style={approveBanner()}>
-              <span style={{ fontSize: 13 }}>
+              <span style={{ fontSize: 14 }}>
                 {lastMsg.pending_agent
                   ? `🤖 Run agent: ${lastMsg.pending_agent}`
                   : `🔧 Run tool: ${lastMsg.pending_tool}`}
@@ -544,8 +550,8 @@ function fileViewerHeader() {
 function fileViewerContent() {
   return {
     margin: 0,
-    padding: "10px 14px",
-    fontSize: 11,
+    padding: "10px 14px 20px",
+    fontSize: 14,
     lineHeight: 1.6,
     overflowY: "auto" as const,
     fontFamily: "ui-monospace, 'Cascadia Code', 'Fira Code', monospace",
@@ -584,13 +590,13 @@ function messageBubble(role: string) {
       ? "1px solid rgba(80,120,255,0.25)"
       : "1px solid rgba(255,255,255,0.09)",
     color: isSystem ? "rgba(255,255,255,0.45)" : "rgba(255,255,255,0.92)",
-    fontSize: isSystem ? 11 : 13,
+    fontSize: isSystem ? 12 : 15,
   } as const;
 }
 
 function msgMeta() {
   return {
-    fontSize: 11,
+    fontSize: 12,
     marginBottom: 5,
     opacity: 0.8,
     fontWeight: 700,
@@ -610,7 +616,7 @@ function codeBlock() {
 
 function codeLang() {
   return {
-    fontSize: 10,
+    fontSize: 14,
     fontWeight: 700,
     padding: "4px 10px",
     background: "rgba(255,255,255,0.05)",
@@ -654,7 +660,7 @@ function inputBox() {
     background: "rgba(255,255,255,0.06)",
     color: "rgba(255,255,255,0.92)",
     padding: "10px 14px",
-    fontSize: 13,
+    fontSize: 15,
     fontFamily: "inherit",
     resize: "none" as const,
     outline: "none",
@@ -711,7 +717,7 @@ function tierBtn(active: boolean) {
     background: active ? "rgba(255,140,80,0.15)" : "rgba(255,255,255,0.05)",
     color: active ? "rgba(255,200,150,0.95)" : "rgba(255,255,255,0.55)",
     cursor: "pointer",
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: 800,
   } as const;
 }
@@ -724,7 +730,7 @@ function iconBtn() {
     background: "rgba(255,255,255,0.05)",
     color: "rgba(255,255,255,0.6)",
     cursor: "pointer",
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: 700,
   } as const;
 }
