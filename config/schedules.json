@@ -67,8 +67,8 @@
       "enabled": true,
       "label": "Proactive watcher — 5am and 4pm daily",
       "focus": null,
-      "last_run": "2026-03-06T22:00:00.002Z",
-      "last_result": "pass"
+      "last_run": "2026-03-07T14:00:00.052Z",
+      "last_result": "fail"
     },
     {
       "id": "resume-builder-weekly",

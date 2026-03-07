@@ -186,10 +186,11 @@ async function safeReadText(p: string, maxBytes = 200_000): Promise<string> {
   }
 }
 
-async function loadAgentTexts(): Promise<{ soul: string; identity: string }> {
+async function loadAgentTexts(): Promise<{ soul: string; identity: string; home: string }> {
   const soul = await safeReadText(path.resolve(zensquidRoot(), "SOUL.md"));
+  const home = await safeReadText(path.resolve(zensquidRoot(), "memory", "HOME.md"));
   const identity = await safeReadText(path.resolve(zensquidRoot(), "IDENTITY.md"));
-  return { soul, identity };
+  return { soul, identity, home };
 }
 
 /**
@@ -787,7 +788,7 @@ export async function buildChatSystemPrompt(args: {
   const selected_skill = typeof args?.selected_skill === "string" ? args.selected_skill : null;
   const now = args.now;
 
-  const { soul, identity } = await loadAgentTexts();
+  const { soul, identity, home } = await loadAgentTexts();
   const personality = await loadPersonalityText();
   const projectIndex = await loadProjectIndex();
   const proactive = await buildProactiveContext().catch(() => ({ text: "", sources: [] }));
@@ -897,6 +898,7 @@ export async function buildChatSystemPrompt(args: {
     parts.push("\n---\n" + formatWorkspaceContext(workspaceCtx));
   }
 
+  if (home.trim()) parts.push("\n---\n# HOME MACHINE (Pop Tart)\n" + home.trim());
   if (identity.trim()) parts.push("\n---\n# IDENTITY (agent)\n" + identity.trim());
   if (soul.trim()) parts.push("\n---\n# SOUL (agent)\n" + soul.trim());
 
