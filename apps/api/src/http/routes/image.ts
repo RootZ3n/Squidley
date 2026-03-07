@@ -79,7 +79,11 @@ async function generateImage(prompt: string, negative: string, seed: number, ste
 // ── VL description ────────────────────────────────────────────────────────────
 
 async function describeImage(imagePath: string): Promise<string> {
-  const imageData = await fs.readFile(imagePath);
+  // Fetch image from ComfyUI remote rather than reading local disk
+  const filename = imagePath.split("/").pop()!;
+  const viewResp = await fetch(`${COMFYUI_URL}/view?filename=${encodeURIComponent(filename)}`, { signal: AbortSignal.timeout(15_000) });
+  if (!viewResp.ok) throw new Error(`ComfyUI /view failed: ${viewResp.status}`);
+  const imageData = Buffer.from(await viewResp.arrayBuffer());
   const base64 = imageData.toString("base64");
 
   const resp = await fetch(`${OLLAMA_URL}/api/chat`, {
@@ -236,7 +240,7 @@ export async function registerImageRoutes(app: FastifyInstance) {
         // Step 1: Generate
         const filename = await generateImage(currentPrompt, negative, seed, steps, outputPrefix);
         const filePath = path.join(COMFYUI_OUTPUT_DIR, filename);
-        finalFile = filePath;
+        finalFile = path.basename(filePath);
 
         // Step 2: VL description
         const vlDescription = await describeImage(filePath);
@@ -247,7 +251,7 @@ export async function registerImageRoutes(app: FastifyInstance) {
         iterations.push({
           n,
           prompt: currentPrompt,
-          file: filePath,
+          file: path.basename(filePath),
           vl_description: vlDescription,
           qc_pass: qc.pass,
           qc_notes: qc.notes,
@@ -285,20 +289,21 @@ export async function registerImageRoutes(app: FastifyInstance) {
     });
   });
 
-  // GET /image/output/:filename — serve generated image
+  // GET /image/output/:filename — proxy from ComfyUI remote
   app.get("/image/output/:filename", async (req, reply) => {
     const { filename } = req.params as any;
-    // Sanitize — no path traversal
     const safe = path.basename(filename);
     if (!safe.endsWith(".png") && !safe.endsWith(".jpg") && !safe.endsWith(".webp")) {
       return reply.code(400).send({ ok: false, error: "Invalid filename" });
     }
-    const filePath = path.join(COMFYUI_OUTPUT_DIR, safe);
     try {
-      const data = await fs.readFile(filePath);
-      return reply.type("image/png").send(data);
-    } catch {
-      return reply.code(404).send({ ok: false, error: "Image not found" });
+      const viewResp = await fetch(`${COMFYUI_URL}/view?filename=${encodeURIComponent(safe)}`, { signal: AbortSignal.timeout(15_000) });
+      if (!viewResp.ok) return reply.code(404).send({ ok: false, error: "Image not found on ComfyUI remote" });
+      const contentType = viewResp.headers.get("content-type") ?? "image/png";
+      const data = Buffer.from(await viewResp.arrayBuffer());
+      return reply.type(contentType).send(data);
+    } catch (e: any) {
+      return reply.code(502).send({ ok: false, error: `ComfyUI proxy failed: ${String(e?.message ?? e)}` });
     }
   });
 

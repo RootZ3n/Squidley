@@ -1092,56 +1092,36 @@ Rules:
     }
 
     // ── comfyui.start ─────────────────────────────────────────────────────────
+    // ComfyUI runs on Zenpop (remote). We just verify it is reachable.
     if (opts.tool_id === "comfyui.start") {
-      const { execFile } = await import("node:child_process");
-      const { promisify } = await import("node:util");
-      const execFileAsync = promisify(execFile);
       try {
-        await execFileAsync("systemctl", ["--user", "start", "comfyui"]);
-        // Wait up to 15s for it to be ready
-        for (let i = 0; i < 15; i++) {
-          await new Promise(r => setTimeout(r, 1000));
-          try {
-            const resp = await fetch(`${COMFYUI_URL}/system_stats`, { signal: AbortSignal.timeout(2_000) });
-            if (resp.ok) {
-              return {
-                ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
-                stdout: `ComfyUI started ✓ (ready in ${i + 1}s)`,
-                stderr: "", truncated: { stdout: false, stderr: false }
-              };
-            }
-          } catch {}
-        }
-        throw new Error("timed out waiting for ComfyUI to become ready");
+        const resp = await fetch(`${COMFYUI_URL}/system_stats`, { signal: AbortSignal.timeout(5_000) });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        return {
+          ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+          stdout: `ComfyUI: already running on remote (${COMFYUI_URL}) ✓`,
+          stderr: "", truncated: { stdout: false, stderr: false }
+        };
       } catch (e: any) {
         return {
           ok: false, exit_code: 1, signal: null as NodeJS.Signals | null,
-          stdout: `comfyui.start failed: ${String(e?.message ?? e)}`,
+          stdout: `ComfyUI unreachable at ${COMFYUI_URL}: ${String(e?.message ?? e)}
+Start ComfyUI manually on Zenpop.`,
           stderr: "", truncated: { stdout: false, stderr: false }
         };
       }
     }
 
     // ── comfyui.stop ──────────────────────────────────────────────────────────
+    // ComfyUI runs on Zenpop (remote). Pop Tart does not manage its lifecycle.
     if (opts.tool_id === "comfyui.stop") {
-      const { execFile } = await import("node:child_process");
-      const { promisify } = await import("node:util");
-      const execFileAsync = promisify(execFile);
-      try {
-        await execFileAsync("systemctl", ["--user", "stop", "comfyui"]);
-        return {
-          ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
-          stdout: "ComfyUI stopped ✓",
-          stderr: "", truncated: { stdout: false, stderr: false }
-        };
-      } catch (e: any) {
-        return {
-          ok: false, exit_code: 1, signal: null as NodeJS.Signals | null,
-          stdout: `comfyui.stop failed: ${String(e?.message ?? e)}`,
-          stderr: "", truncated: { stdout: false, stderr: false }
-        };
-      }
+      return {
+        ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+        stdout: `ComfyUI runs on Zenpop (${COMFYUI_URL}) — stop it there if needed.`,
+        stderr: "", truncated: { stdout: false, stderr: false }
+      };
     }
+
 
     // ── comfyui.generate ──────────────────────────────────────────────────────
     if (opts.tool_id === "comfyui.generate") {

@@ -244,7 +244,7 @@ export default function Page() {
   const [plan, setPlan] = useState<ToolPlanV1>(() => makePlanFromGoal("Build web + run Playwright tests"));
 
   const [tools, setTools] = useState<ToolListItem[]>([]);
-  const [adminToken, setAdminToken] = useState<string>(() => typeof window !== "undefined" ? sessionStorage.getItem("squidley_admin_token") ?? "" : "");
+  const [adminToken, setAdminToken] = useState<string>(() => typeof window !== "undefined" ? sessionStorage.getItem("squidley_admin_token") ?? (process.env.NEXT_PUBLIC_SQUIDLEY_ADMIN_TOKEN ?? "") : (process.env.NEXT_PUBLIC_SQUIDLEY_ADMIN_TOKEN ?? ""));
   const [stepState, setStepState] = useState<Record<string, StepRunState>>({});
   const [runAllBusy, setRunAllBusy] = useState(false);
 
@@ -284,7 +284,7 @@ export default function Page() {
   async function fetchTokenStats() {
     try {
       const res = await fetch(`${ZENSQUID_API}/skills/token-monitor/today`, {
-        headers: { "x-zensquid-admin-token": "8675309abc123easy" }
+        headers: { "x-zensquid-admin-token": adminToken }
       });
       const json = await res.json();
       if (json?.ok) {
@@ -380,7 +380,7 @@ export default function Page() {
     try {
       const statusRes = await fetch(`${ZENSQUID_API}/tools/run`, {
         method: "POST",
-        headers: { "content-type": "application/json", "x-zensquid-admin-token": "8675309abc123easy" },
+        headers: { "content-type": "application/json", "x-zensquid-admin-token": adminToken },
         body: JSON.stringify({ workspace: "squidley", tool_id: "comfyui.status", args: {} })
       });
       const statusJson = await statusRes.json();
@@ -389,7 +389,7 @@ export default function Page() {
       setComfyStateMsg("Starting ComfyUI…");
       await fetch(`${ZENSQUID_API}/tools/run`, {
         method: "POST",
-        headers: { "content-type": "application/json", "x-zensquid-admin-token": "8675309abc123easy" },
+        headers: { "content-type": "application/json", "x-zensquid-admin-token": adminToken },
         body: JSON.stringify({ workspace: "squidley", tool_id: "comfyui.start", args: {} })
       });
       for (let i = 0; i < 30; i++) {
@@ -397,7 +397,7 @@ export default function Page() {
         setComfyStateMsg(`Starting ComfyUI… ${i + 1}s`);
         const r = await fetch(`${ZENSQUID_API}/tools/run`, {
           method: "POST",
-          headers: { "content-type": "application/json", "x-zensquid-admin-token": "8675309abc123easy" },
+          headers: { "content-type": "application/json", "x-zensquid-admin-token": adminToken },
           body: JSON.stringify({ workspace: "squidley", tool_id: "comfyui.status", args: {} })
         });
         const rj = await r.json();
@@ -418,7 +418,7 @@ export default function Page() {
       setComfyState("stopping");
       await fetch(`${ZENSQUID_API}/tools/run`, {
         method: "POST",
-        headers: { "content-type": "application/json", "x-zensquid-admin-token": "8675309abc123easy" },
+        headers: { "content-type": "application/json", "x-zensquid-admin-token": adminToken },
         body: JSON.stringify({ workspace: "squidley", tool_id: "comfyui.stop", args: {} })
       });
       setComfyState("stopped");
