@@ -27,6 +27,7 @@ import DiagnosticsPanel from "./components/DiagnosticsPanel";
 type Msg = { role: "assistant" | "user"; content: string };
 
 const SQUIDLEY_SRC = "/squidley.png";
+const BAKED_ADMIN_TOKEN = process.env.NEXT_PUBLIC_SQUIDLEY_ADMIN_TOKEN ?? "";
 
 type ToolPlanStep = {
   step_id: string;
@@ -244,7 +245,7 @@ export default function Page() {
   const [plan, setPlan] = useState<ToolPlanV1>(() => makePlanFromGoal("Build web + run Playwright tests"));
 
   const [tools, setTools] = useState<ToolListItem[]>([]);
-  const [adminToken, setAdminToken] = useState<string>(() => typeof window !== "undefined" ? sessionStorage.getItem("squidley_admin_token") ?? (process.env.NEXT_PUBLIC_SQUIDLEY_ADMIN_TOKEN ?? "") : (process.env.NEXT_PUBLIC_SQUIDLEY_ADMIN_TOKEN ?? ""));
+  const [adminToken, setAdminToken] = useState<string>(() => typeof window !== "undefined" ? (sessionStorage.getItem("squidley_admin_token") || BAKED_ADMIN_TOKEN) : BAKED_ADMIN_TOKEN);
   const [stepState, setStepState] = useState<Record<string, StepRunState>>({});
   const [runAllBusy, setRunAllBusy] = useState(false);
 
@@ -606,23 +607,16 @@ export default function Page() {
     ensureStepStateInitialized(p);
     setTimeout(() => toolLogRef.current?.scrollTo({ top: 0, behavior: "smooth" }), 10);
   }
-
   async function runStep(s: ToolPlanStep): Promise<StepExecOutcome> {
     setStepState((prev) => ({ ...prev, [s.step_id]: { state: "running" } }));
-
-    if (!adminToken.trim()) {
-      const errMsg = "Admin token required to run tools.";
-      setStepState((prev) => ({ ...prev, [s.step_id]: { state: "error", error: errMsg, receipt_id: null } }));
-      return { kind: "error", error: errMsg, receipt_id: null };
-    }
 
     const resp: ToolRunResponse = await runToolApi(
       { workspace: plan.workspace, tool_id: s.tool_id, args: s.args },
       adminToken.trim()
     );
 
-    if ((resp as any)?.ok === true && (resp as any)?.result) {
-      const r = (resp as any).result as ToolRunResult;
+    if ((resp as any)?.ok === true) {
+      const r = ((resp as any).result ?? resp) as ToolRunResult;
       setStepState((prev) => ({ ...prev, [s.step_id]: { state: "done", result: r } }));
       await refreshFooter();
       setTimeout(() => toolLogRef.current?.scrollTo({ top: toolLogRef.current.scrollHeight, behavior: "smooth" }), 50);
@@ -1066,22 +1060,6 @@ export default function Page() {
                 <input value={goal} onChange={(e) => setGoal(e.target.value)} style={goalInput()} />
               </div>
 
-              <div style={{ height: 10 }} />
-
-              <div style={goalRow()}>
-                <div style={label()}>Admin token</div>
-                <input
-                  value={adminToken}
-                  onChange={(e) => { setAdminToken(e.target.value); sessionStorage.setItem("squidley_admin_token", e.target.value); }}
-                  placeholder="x-zensquid-admin-token (memory only)"
-                  style={goalInput()}
-                  type="password"
-                  autoComplete="off"
-                />
-                <button style={btnGhost()} onClick={() => setAdminToken("")}>
-                  Clear
-                </button>
-              </div>
 
               <div style={{ height: 10 }} />
 
@@ -1257,22 +1235,10 @@ export default function Page() {
                     </div>
 
                     <div style={{ height: 10 }} />
-
                     <div style={goalRow()}>
-                      <div style={label()}>Admin token</div>
-                      <input
-                        value={adminToken}
-                        onChange={(e) => setAdminToken(e.target.value)}
-                        placeholder="x-zensquid-admin-token (memory only)"
-                        style={goalInput()}
-                        type="password"
-                        autoComplete="off"
-                      />
                       <button
                         style={btnGhost()}
-                        disabled={!adminToken.trim()}
                         onClick={async () => {
-                          if (!adminToken.trim()) return;
                           await completeOnboarding(adminToken.trim());
                           await refreshOnboarding();
                           await refreshFooter();
@@ -1282,9 +1248,7 @@ export default function Page() {
                       </button>
                       <button
                         style={btnGhost()}
-                        disabled={!adminToken.trim()}
                         onClick={async () => {
-                          if (!adminToken.trim()) return;
                           await resetOnboarding(adminToken.trim());
                           await refreshOnboarding();
                           await refreshFooter();
