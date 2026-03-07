@@ -22,6 +22,7 @@ import {
 import StatusWidget from "./components/StatusWidget";
 import ReceiptsPanel from "./components/ReceiptsPanel";
 import BuildPanel from "./components/BuildPanel";
+import DiagnosticsPanel from "./components/DiagnosticsPanel";
 
 type Msg = { role: "assistant" | "user"; content: string };
 
@@ -226,10 +227,19 @@ export default function Page() {
   ]);
 
   const [footerStatus, setFooterStatus] = useState<string>("");
+  const [tokenStats, setTokenStats] = useState<{
+    active_model: string | null;
+    active_tier: string | null;
+    active_provider: string | null;
+    tokens_in: number;
+    tokens_out: number;
+    cost: number;
+    count: number;
+  } | null>(null);
 
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  const [tab, setTab] = useState<"chat" | "tools" | "learn" | "image" | "receipts" | "build">("chat");
+  const [tab, setTab] = useState<"chat" | "tools" | "learn" | "image" | "receipts" | "build" | "diagnostics">("chat");
   const [goal, setGoal] = useState<string>("Build web + run Playwright tests");
   const [plan, setPlan] = useState<ToolPlanV1>(() => makePlanFromGoal("Build web + run Playwright tests"));
 
@@ -269,6 +279,26 @@ export default function Page() {
     } catch {
       setTools([]);
     }
+  }
+
+  async function fetchTokenStats() {
+    try {
+      const res = await fetch(`${ZENSQUID_API}/skills/token-monitor/today`, {
+        headers: { "x-zensquid-admin-token": "8675309abc123easy" }
+      });
+      const json = await res.json();
+      if (json?.ok) {
+        setTokenStats({
+          active_model: json.active_model,
+          active_tier: json.active_tier,
+          active_provider: json.active_provider,
+          tokens_in: json.totals?.tokens_in ?? 0,
+          tokens_out: json.totals?.tokens_out ?? 0,
+          cost: json.totals?.cost ?? 0,
+          count: json.count ?? 0,
+        });
+      }
+    } catch {}
   }
 
   async function refreshFooter() {
@@ -342,7 +372,7 @@ export default function Page() {
   }
 
   // ── Image generation ──────────────────────────────────────────────────────
-  const comfyLockRef = React.useRef(false);
+  const comfyLockRef = useRef(false);
 
   async function ensureComfyUI(): Promise<boolean> {
     if (comfyLockRef.current) return false;
@@ -559,6 +589,7 @@ export default function Page() {
       }
 
       await refreshFooter();
+      fetchTokenStats().catch(console.error);
       await refreshStatus();
     } catch (e: any) {
       setMessages((m) => [...m, { role: "assistant", content: `⚠️ ${String(e?.message ?? e)}` }]);
@@ -635,6 +666,7 @@ export default function Page() {
     refreshSkills().catch(console.error);
     refreshTools().catch(console.error);
     refreshFooter().catch(console.error);
+    fetchTokenStats().catch(console.error);
     refreshOnboarding().catch(console.error);
     refreshStatus().catch(console.error);
     ensureStepStateInitialized(plan);
@@ -695,45 +727,6 @@ export default function Page() {
                     </select>
                   </div>
 
-                  <div style={tabsWrap()}>
-                    <button data-testid="tab-chat" style={tabBtn(tab === "chat")} onClick={() => setTab("chat")}>
-                      Chat
-                    </button>
-                    <button data-testid="tab-tools" style={tabBtn(tab === "tools")} onClick={() => setTab("tools")}>
-                      Tool Loop
-                    </button>
-                    <button
-                      data-testid="tab-learn"
-                      style={tabBtn(tab === "learn")}
-                      onClick={() => {
-                        setTab("learn");
-                        refreshOnboarding().catch(console.error);
-                      }}
-                    >
-                      Learn
-                    </button>
-                    <button
-                      data-testid="tab-image"
-                      style={tabBtn(tab === "image")}
-                      onClick={() => setTab("image")}
-                    >
-                      {pendingImagePrompt ? "🎨 Image •" : "🎨 Image"}
-                    </button>
-                    <button
-                      data-testid="tab-receipts"
-                      style={tabBtn(tab === "receipts")}
-                      onClick={() => setTab("receipts")}
-                    >
-                      🧾 Receipts
-                    </button>
-                    <button
-                      data-testid="tab-build"
-                      style={tabBtn(tab === "build")}
-                      onClick={() => setTab("build")}
-                    >
-                      🔨 Build
-                    </button>
-                  </div>
                 </div>
                 <div style={subtitle()}>Twilight • Calm</div>
               </div>
@@ -750,10 +743,17 @@ export default function Page() {
                 ))}
               </select>
              
-              <button style={btnGhost()} onClick={() => alert("Diagnostics later 🙂")} title="Coming soon">
-                Diagnostics
-              </button>
+              
             </div>
+          </div>
+          <div style={{ ...tabsWrap(), marginTop: 8 }}>
+            <button data-testid="tab-chat" style={tabBtn(tab === "chat", "100,200,255")} onClick={() => setTab("chat")}>Chat</button>
+            <button data-testid="tab-tools" style={tabBtn(tab === "tools", "160,100,255")} onClick={() => setTab("tools")}>Tool Loop</button>
+            <button data-testid="tab-learn" style={tabBtn(tab === "learn", "80,220,160")} onClick={() => { setTab("learn"); refreshOnboarding().catch(console.error); }}>Learn</button>
+            <button data-testid="tab-image" style={tabBtn(tab === "image", "255,180,60")} onClick={() => setTab("image")}>{pendingImagePrompt ? "🎨 Image •" : "🎨 Image"}</button>
+            <button data-testid="tab-receipts" style={tabBtn(tab === "receipts", "255,100,140")} onClick={() => setTab("receipts")}>🧾 Receipts</button>
+            <button data-testid="tab-build" style={tabBtn(tab === "build", "255,140,40")} onClick={() => setTab("build")}>🔨 Build</button>
+            <button data-testid="tab-diagnostics" style={tabBtn(tab === "diagnostics", "100,220,160")} onClick={() => setTab("diagnostics")}>🩺 Diagnostics</button>
           </div>
 
           <div style={{ height: 10 }} />
@@ -812,6 +812,7 @@ export default function Page() {
                 <button onClick={sendChat} style={btnPrimary()} disabled={chatBusy}>
                   {chatBusy ? "Sending…" : "Send"}
                 </button>
+                
                 <button
                   onClick={() =>
                     setMessages([
@@ -843,7 +844,29 @@ export default function Page() {
               </div>
 
               <div style={{ height: 10 }} />
-              <div style={footer()}>{footerStatus || `API: ${ZENSQUID_API}`}</div>
+              {tokenStats ? (
+                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", fontSize: 12, opacity: 0.85, paddingTop: 2 }}>
+                  <span style={{ color: tokenStats.active_provider === "ollama" ? "rgba(120,255,190,0.9)" : tokenStats.active_provider === "anthropic" ? "rgba(180,140,255,0.9)" : "rgba(255,200,100,0.9)", fontWeight: 700 }}>
+                    {tokenStats.active_model ?? "—"}
+                  </span>
+                  <span style={{ opacity: 0.5 }}>•</span>
+                  <span style={{ opacity: 0.7 }}>Today: {tokenStats.count} calls</span>
+                  <span style={{ opacity: 0.5 }}>•</span>
+                  <span style={{ opacity: 0.7 }}>↑{(tokenStats.tokens_in / 1000).toFixed(1)}k ↓{(tokenStats.tokens_out / 1000).toFixed(1)}k</span>
+                  {tokenStats.cost > 0 && <>
+                    <span style={{ opacity: 0.5 }}>•</span>
+                    <span style={{ color: tokenStats.cost > 1.0 ? "rgba(255,160,100,0.9)" : "rgba(120,220,150,0.9)", fontWeight: 700 }}>
+                      ${tokenStats.cost.toFixed(4)}
+                    </span>
+                  </>}
+                  {footerStatus && <>
+                    <span style={{ opacity: 0.5 }}>•</span>
+                    <span style={{ opacity: 0.6 }}>{footerStatus}</span>
+                  </>}
+                </div>
+              ) : (
+                <div style={footer()}>{footerStatus || `API: ${ZENSQUID_API}`}</div>
+              )}
             </div>
           )}
 
@@ -1025,6 +1048,7 @@ export default function Page() {
           
           {tab === "receipts" && <ReceiptsPanel />}
           {tab === "build" && <BuildPanel adminToken={adminToken} />}
+          {tab === "diagnostics" && <DiagnosticsPanel />}
           
           {/* ── Tool Loop tab ── */}
           {tab === "tools" && (
@@ -1533,8 +1557,8 @@ function contentWrap() {
     width: "min(980px, 92vw)",
     display: "grid",
     justifyItems: "center",
-    gap: 16,
-    padding: "22px 0 26px"
+    gap: 0,
+    padding: "4px 0 26px"
   } as const;
 }
 
@@ -1549,18 +1573,19 @@ function squidAura() {
     height: "min(360px, 46vw)",
     borderRadius: 999,
     background:
-      "radial-gradient(closest-side, rgba(255,120,220,0.16), rgba(120,180,255,0.10), rgba(0,0,0,0) 70%)",
-    filter: "blur(10px)",
-    transform: "translateY(10px)"
+      "radial-gradient(closest-side, rgba(255,160,60,0.30), rgba(255,80,180,0.18), rgba(80,200,255,0.14), rgba(120,255,160,0.08), rgba(0,0,0,0) 70%)",
+    filter: "blur(18px)",
+    transform: "translateY(30px)"
   } as const;
 }
 
 function squidImg() {
   return {
-    width: "min(560px, 74vw)",
+    width: "min(440px, 62vw)",
     height: "auto",
     userSelect: "none",
-    filter: "drop-shadow(0px 18px 45px rgba(0,0,0,0.55))"
+    marginBottom: -40,
+    filter: "drop-shadow(0px 14px 40px rgba(0,0,0,0.6)) drop-shadow(0px 0px 50px rgba(255,160,60,0.28)) drop-shadow(0px 0px 80px rgba(120,220,255,0.15))"
   } as const;
 }
 
@@ -1568,11 +1593,11 @@ function glass() {
   return {
     width: "min(860px, 92vw)",
     borderRadius: 18,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(18, 20, 34, 0.46)",
-    backdropFilter: "blur(10px)",
-    WebkitBackdropFilter: "blur(10px)",
-    boxShadow: "0 30px 80px rgba(0,0,0,0.45)",
+    border: "1px solid rgba(255,160,60,0.35)",
+    background: "rgba(14, 16, 30, 0.82)",
+    backdropFilter: "blur(14px)",
+    WebkitBackdropFilter: "blur(14px)",
+    boxShadow: "0 0 0 1px rgba(255,150,50,0.18), 0 0 30px rgba(255,130,30,0.22), 0 0 80px rgba(255,100,20,0.12), 0 30px 80px rgba(0,0,0,0.60)",
     padding: 14
   } as const;
 }
@@ -1586,8 +1611,8 @@ function statusDot() {
     width: 10,
     height: 10,
     borderRadius: 999,
-    background: "rgba(120, 220, 255, 0.95)",
-    boxShadow: "0 0 18px rgba(120, 220, 255, 0.45)"
+    background: "rgba(100, 240, 180, 0.95)",
+    boxShadow: "0 0 14px rgba(100, 240, 180, 0.55), 0 0 4px rgba(255,200,80,0.3)"
   } as const;
 }
 
@@ -1604,9 +1629,9 @@ function pill() {
     fontSize: 12,
     padding: "5px 10px",
     borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.16)",
-    background: "rgba(255,255,255,0.06)",
-    color: "rgba(255,255,255,0.9)"
+    border: "1px solid rgba(255,160,60,0.30)",
+    background: "rgba(255,140,40,0.12)",
+    color: "rgba(255,200,120,0.95)"
   } as const;
 }
 
@@ -1621,12 +1646,12 @@ function tabsWrap() {
   } as const;
 }
 
-function tabBtn(active: boolean) {
+function tabBtn(active: boolean, accent?: string) {
   return {
     borderRadius: 999,
     padding: "6px 10px",
     border: "1px solid rgba(255,255,255,0.12)",
-    background: active ? "rgba(120, 180, 255, 0.18)" : "rgba(255,255,255,0.06)",
+    background: active ? "rgba(120, 180, 255, 0.20)" : "rgba(255,255,255,0.05)",
     color: "rgba(255,255,255,0.92)",
     cursor: "pointer",
     fontSize: 12,
@@ -1714,13 +1739,13 @@ function bubbleAssistant() {
 function bubbleUser() {
   return {
     ...bubbleAssistant(),
-    background: "rgba(120, 180, 255, 0.12)",
-    border: "1px solid rgba(120, 180, 255, 0.18)"
+    background: "rgba(255,150,50,0.10)",
+    border: "1px solid rgba(255,150,50,0.20)"
   } as const;
 }
 
 function composerRow() {
-  return { display: "flex", gap: 10, alignItems: "center" } as const;
+  return { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" as const } as const;
 }
 
 function composerInput() {
@@ -1728,10 +1753,11 @@ function composerInput() {
     flex: 1,
     borderRadius: 14,
     padding: "12px 12px",
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(0,0,0,0.25)",
+    border: "1px solid rgba(255,160,60,0.22)",
+    background: "rgba(0,0,0,0.32)",
     color: "rgba(255,255,255,0.92)",
-    outline: "none"
+    outline: "none",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)"
   } as const;
 }
 
@@ -1755,11 +1781,12 @@ function btnPrimary() {
   return {
     borderRadius: 14,
     padding: "10px 14px",
-    border: "1px solid rgba(120, 180, 255, 0.30)",
-    background: "rgba(120, 180, 255, 0.18)",
-    color: "rgba(255,255,255,0.92)",
+    border: "1px solid rgba(255,160,60,0.40)",
+    background: "rgba(255,140,40,0.22)",
+    color: "rgba(255,220,160,0.98)",
     cursor: "pointer",
-    fontWeight: 800
+    fontWeight: 800,
+    boxShadow: "0 2px 12px rgba(255,120,30,0.18)"
   } as const;
 }
 

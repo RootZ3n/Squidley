@@ -213,14 +213,35 @@ function extractCleanPath(text: string): string | undefined {
 // Used for skill-builder and similar topic-based agents.
 // Returns the raw topic string (not slugified — caller handles that).
 function extractTopicFocus(text: string): string | undefined {
-  const m = text.match(
-    /(?:about|covering|regarding|documenting|for|called|named|on)\s+(?:a\s+skill\s+(?:about|for|covering)\s+)?([a-zA-Z0-9][a-zA-Z0-9\s._\-]{2,60}?)(?:\s*[,?!]|\s*\.(?:\s|$)|$)/i
-  );
-  if (!m?.[1]) return undefined;
-  const topic = m[1].trim().replace(/\.$/, "");
-  // Reject if it looks like common filler words
-  if (/^(the|a|an|it|this|that|these|those|me|my|our)$/i.test(topic)) return undefined;
-  return topic;
+  // Priority 1: explicit "called <slug>" or "named <slug>" — most reliable
+  const calledMatch = text.match(/(?:called|named)\s+([a-zA-Z0-9][a-zA-Z0-9\-_.]{2,60}?)(?:\s*[,?!.]|\s*$)/i);
+  if (calledMatch?.[1]) {
+    const topic = calledMatch[1].trim();
+    if (!/^(the|a|an|it|this|that|you|me|my|our)$/i.test(topic)) return topic;
+  }
+
+  // Priority 2: "skill for <specific-thing>" — only when "skill" precedes "for"
+  const skillForMatch = text.match(/skill\s+for\s+([a-zA-Z0-9][a-zA-Z0-9\s\-_.]{2,40}?)(?:\s*[,?!.]|\s*$)/i);
+  if (skillForMatch?.[1]) {
+    const topic = skillForMatch[1].trim();
+    const words = topic.split(/\s+/);
+    // Reject if it starts with a pronoun/filler or is too long
+    if (words.length <= 5 && !/^(the|a|an|it|this|that|you|me|my|our|which|what|how)$/i.test(words[0])) {
+      return topic;
+    }
+  }
+
+  // Priority 3: "about <topic>" only when clearly a noun phrase
+  const aboutMatch = text.match(/skill\s+about\s+([a-zA-Z0-9][a-zA-Z0-9\s\-_.]{2,40}?)(?:\s*[,?!.]|\s*$)/i);
+  if (aboutMatch?.[1]) {
+    const topic = aboutMatch[1].trim();
+    const words = topic.split(/\s+/);
+    if (words.length <= 5 && !/^(the|a|an|it|this|that|you|me|my|our)$/i.test(words[0])) {
+      return topic;
+    }
+  }
+
+  return undefined;
 }
 
 /**

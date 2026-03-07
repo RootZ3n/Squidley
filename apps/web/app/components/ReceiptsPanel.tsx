@@ -139,9 +139,9 @@ export default function ReceiptsPanel() {
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: selected ? "1fr 1fr" : "1fr", gap: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: selected && typeof window !== "undefined" && window.innerWidth >= 640 ? "1fr 1fr" : "1fr", gap: 10 }}>
         {/* Receipt list */}
-        <div style={listBox()}>
+        <div style={{ ...listBox(), display: selected && typeof window !== "undefined" && window.innerWidth < 640 ? "none" : "flex", flexDirection: "column" as const, gap: 6 }}>
           {filtered.length === 0 && !loading && (
             <div style={{ opacity: 0.4, fontSize: 12, padding: 12 }}>No receipts found</div>
           )}
@@ -181,7 +181,7 @@ export default function ReceiptsPanel() {
           <div style={detailBox()}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <div style={{ fontWeight: 900, fontSize: 13 }}>Receipt Detail</div>
-              <button style={btnTiny()} onClick={() => setSelected(null)}>✕ Close</button>
+              <button style={btnTiny()} onClick={() => setSelected(null)}>{typeof window !== "undefined" && window.innerWidth < 640 ? "← Back" : "✕ Close"}</button>
             </div>
 
             <Row label="ID" value={selected.receipt_id} mono />

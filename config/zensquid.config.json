@@ -44,24 +44,22 @@
     },
     {
       "name": "coder",
-      "provider": "modelstudio",
-      "model": "qwen3-coder-plus",
-      "role": "Tier 2: Cloud coder (qwen-coder-plus, cheap, strong at code)"
+      "provider": "ollama",
+      "model": "qwen3-coder:30b",
+      "role": "Tier 2: Local coder (qwen-coder:30b, local, strong at code)"
     },
-   
     {
       "name": "claude-sonnet",
       "provider": "anthropic",
       "model": "claude-sonnet-4-6",
-      "role": "Tier 2: Claude Sonnet — fast, strong at code"
+      "role": "Tier 2: Claude Sonnet \u2014 fast, strong at code"
     },
     {
       "name": "claude-opus",
-      "provider": "anthropic", 
+      "provider": "anthropic",
       "model": "claude-opus-4-6",
-      "role": "Tier 3: Claude Opus — best reasoning, self-repair"
+      "role": "Tier 3: Claude Opus \u2014 best reasoning, self-repair"
     },
-
     {
       "name": "big_brain",
       "provider": "modelstudio",
@@ -72,55 +70,55 @@
       "name": "local_small",
       "provider": "ollama",
       "model": "llama3.2:3b",
-      "role": "Tier 0: Tiny local — fast responses, simple tasks"
+      "role": "Tier 0: Tiny local \u2014 fast responses, simple tasks"
     },
     {
       "name": "local_phi",
       "provider": "ollama",
       "model": "phi4-mini-reasoning:3.8b",
-      "role": "Tier 0: Phi4 mini — reasoning-focused small model"
+      "role": "Tier 0: Phi4 mini \u2014 reasoning-focused small model"
     },
     {
       "name": "local_mid",
       "provider": "ollama",
       "model": "ministral-3:14b",
-      "role": "Tier 1: Mistral 14b — local mid-size alternative"
+      "role": "Tier 1: Mistral 14b \u2014 local mid-size alternative"
     },
     {
       "name": "local_deepseek",
       "provider": "ollama",
       "model": "deepseek-coder-v2:16b",
-      "role": "Tier 1: DeepSeek Coder — local code-focused model"
+      "role": "Tier 1: DeepSeek Coder \u2014 local code-focused model"
     },
     {
       "name": "local_gpt_oss",
       "provider": "ollama",
       "model": "gpt-oss:20b",
-      "role": "Tier 2: GPT OSS 20b — local large model"
+      "role": "Tier 2: GPT OSS 20b \u2014 local large model"
     },
     {
       "name": "local_qwen27",
       "provider": "ollama",
       "model": "qwen3.5:27b",
-      "role": "Tier 2: Qwen 27b — local large, good context following"
+      "role": "Tier 2: Qwen 27b \u2014 local large, good context following"
     },
     {
       "name": "local_qwen35",
       "provider": "ollama",
       "model": "qwen3.5:35b",
-      "role": "Tier 2: Qwen 35b — local largest, best local reasoning"
+      "role": "Tier 2: Qwen 35b \u2014 local largest, best local reasoning"
     },
     {
       "name": "local_nemotron",
       "provider": "ollama",
       "model": "nemotron-3-nano:latest",
-      "role": "Tier 2: Nemotron — NVIDIA local model"
+      "role": "Tier 2: Nemotron \u2014 NVIDIA local model"
     },
     {
       "name": "local_glm",
       "provider": "ollama",
       "model": "glm-4.7-flash:latest",
-      "role": "Tier 2: GLM Flash — fast local large model"
+      "role": "Tier 2: GLM Flash \u2014 fast local large model"
     }
   ],
   "budgets": {
@@ -141,8 +139,8 @@
       ]
     }
   },
-    "providers": {
-      "ollama": {
+  "providers": {
+    "ollama": {
       "base_url": "http://127.0.0.1:11434"
     },
     "modelstudio": {
@@ -156,5 +154,14 @@
       "env_key": "OPENAI_API_KEY",
       "base_url": "https://api.openai.com/v1"
     }
+  },
+  "build_pipeline": {
+    "_comment": "Each stage points to a tier name from the tiers array. Change these without touching code.",
+    "plan_tier": "claude-sonnet",
+    "patch_tier": "coder",
+    "review_tier": "claude-sonnet",
+    "plan_fallback": "plan",
+    "patch_fallback": "build",
+    "review_fallback": "chat"
   }
 }

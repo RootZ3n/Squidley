@@ -2288,7 +2288,6 @@ if (!isLocalhost && !isWildcard && !isPrivateishHost(bindHostRaw) && !allowPubli
 const host = bindHostRaw;
 await registerSchedulerRoutes(app);
 await registerTelegramRoutes(app);
-await registerPingRoutes(app);
 await app.listen({ port, host });
 
 await startScheduler(app);

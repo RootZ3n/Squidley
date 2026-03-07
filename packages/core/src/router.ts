@@ -82,9 +82,12 @@ function localBaselineTier(tiers: TierConfig[]): TierConfig {
  * - Otherwise first non-local tier, then tiers[0]
  */
 function primaryTier(tiers: TierConfig[]): TierConfig {
+  // Primary should always be a cloud/capable tier for conversation
+  // Never fall back to local as primary — local is for tools and heartbeat only
   return (
     pickByName(tiers, "chat") ??
-    pickByName(tiers, "local") ??
+    pickByName(tiers, "chat_fallback") ??
+    tiers.find(t => !providerIsLocal(t.provider)) ??
     tiers[0]
   );
 }
@@ -136,9 +139,10 @@ export function chooseTier(cfg: ZenSquidConfig, req: ChatRequest): TierDecision 
   }
 
   if (isCodeTask(req.input)) {
-  const coderTier = pickByName(tiers, "coder") ?? pickByName(tiers, "build") ?? localBaseline;
-  return finalize(coderTier, "auto: coder tier selected (code task)");
-}
+    // Prefer cloud-capable coder; local coder only if explicitly named and available
+    const coderTier = pickByName(tiers, "claude-sonnet") ?? pickByName(tiers, "coder") ?? pickByName(tiers, "build") ?? primary;
+    return finalize(coderTier, "auto: coder tier selected (code task)");
+  }
 
   if (isPlanTask(req.input)) {
     const planTier = pickByName(tiers, "plan");

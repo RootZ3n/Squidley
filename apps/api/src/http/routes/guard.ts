@@ -4,9 +4,12 @@ import { loadConfig, newReceiptId, writeReceipt, type ReceiptV1 } from "@zensqui
 
 export type GuardResult = {
   blocked: boolean;
+  warned?: boolean;
+  tier?: "allow" | "warn" | "block";
   reason?: string;
   score: number;
   signals: string[];
+  signal_count?: number;
   matched_pattern?: string | null;
 };
 
@@ -54,12 +57,12 @@ function scoreSuspiciousIntent(input: string): { score: number; signals: string[
   const exfilPatterns: Array<{ id: string; pts: number; re: RegExp }> = [
     // “internal rules / hidden instructions / list your rules” MUST be treated as exfil, not “maybe”
     { id: "ask_hidden_instructions", pts: 6, re: /\b(hidden|internal|secret|private)\s+(instructions|rules|prompt|policies)\b/i },
-    { id: "ask_system_prompt_generic", pts: 4, re: /\b(system\s+prompt)\b/i },
-    { id: "ask_developer_prompt_generic", pts: 4, re: /\b(developer\s+prompt)\b/i },
+    { id: "ask_system_prompt_generic", pts: 4, re: /\b(system\s+prompt|your\s+system\s+message|the\s+system\s+prompt)\b/i },
+    { id: "ask_developer_prompt_generic", pts: 4, re: /\b(developer\s+prompt|your\s+developer\s+message)\b/i },
     { id: "ask_show_rules", pts: 6, re: /\b(show|list|print|dump|reveal|display)\s+(your|the)\s+(rules|instructions|prompt|policies)\b/i },
     { id: "ask_what_rules_following", pts: 6, re: /\b(what|which)\s+(rules|instructions|policies)\s+(are you|you are)\s+(following|using)\b/i },
     { id: "ask_configuration_dump", pts: 6, re: /\b(dump|print|show|reveal)\s+(config|configuration|settings|env|environment)\b/i },
-    { id: "ask_tokens_keys", pts: 9, re: /\b(api\s*key|token|secret|password|credentials)\b/i }
+    { id: "ask_tokens_keys", pts: 9, re: /\b(api[_\s-]?key|bearer\s+token|auth\s+token|secret\s+key|private\s+key|password|credentials)\b/i }
   ];
 
   for (const p of exfilPatterns) {
@@ -82,6 +85,13 @@ function scoreSuspiciousIntent(input: string): { score: number; signals: string[
   // Benign framing nudges score down a bit (but NEVER un-block hard exfil triggers)
   if (/\b(explain|in general|generally|concept|definition)\b/i.test(s)) add(-2, "benign:general_explanation");
 
+  // Architecture / dev discussion bypass — these are normal dev conversations
+  const devTopics = /\b(architecture|governance|token\s+monitor|token\s+usage|model\s+routing|agent\s+design|planner|pipeline|capability\s+gate|build\s+tab|tool\s+loop|brainstorm|refactor|codebase|squidley|tenticode|receipt|skill[- ]builder)\b/i;
+  if (devTopics.test(s)) add(-4, "benign:dev_architecture_discussion");
+
+  // Coding discussions are normal — mentioning "system" in architecture context
+  if (/\b(operating system|file system|build system|type system|distributed system|event system|routing system|messaging system)\b/i.test(s)) add(-3, "benign:system_noun_context");
+
   if (score < 0) score = 0;
 
   const matchedPattern = signals.length > 0 ? signals[0] : undefined;
@@ -93,7 +103,9 @@ function scoreSuspiciousIntent(input: string): { score: number; signals: string[
  * - Certain signals are ALWAYS blocks (exfil / secrets / config dump).
  * - Otherwise, fall back to score threshold.
  */
-function shouldBlock(signals: string[], score: number): boolean {
+type GuardTier = "allow" | "warn" | "block";
+
+function guardTier(signals: string[], score: number): GuardTier {
   const hardBlockPrefixes = [
     "exfil:ask_hidden_instructions",
     "exfil:ask_show_rules",
@@ -105,10 +117,16 @@ function shouldBlock(signals: string[], score: number): boolean {
   ];
 
   for (const p of hardBlockPrefixes) {
-    if (signals.some((s) => s.startsWith(p))) return true;
+    if (signals.some((s) => s.startsWith(p))) return "block";
   }
 
-  return score >= 6;
+  if (score >= 8) return "block";
+  if (score >= 4) return "warn";
+  return "allow";
+}
+
+function shouldBlock(signals: string[], score: number): boolean {
+  return guardTier(signals, score) === "block";
 }
 
 /**
@@ -132,23 +150,29 @@ export function evaluateGuard(inputRaw: string): GuardResult {
 
   // Layer 2
   const s2 = scoreSuspiciousIntent(input);
-  const blocked = shouldBlock(s2.signals, s2.score);
+  const tier = guardTier(s2.signals, s2.score);
 
-  if (blocked) {
+  if (tier === "block") {
     return {
       blocked: true,
+      warned: false,
+      tier: "block",
       reason: s2.matchedPattern ?? "guard:blocked",
       score: s2.score,
       signals: s2.signals,
+      signal_count: s2.signals.length,
       matched_pattern: s2.matchedPattern ?? null
     };
   }
 
   return {
     blocked: false,
-    reason: undefined,
+    warned: tier === "warn",
+    tier,
+    reason: tier === "warn" ? (s2.matchedPattern ?? "guard:low_confidence") : undefined,
     score: s2.score,
     signals: s2.signals,
+    signal_count: s2.signals.length,
     matched_pattern: s2.matchedPattern ?? null
   };
 }

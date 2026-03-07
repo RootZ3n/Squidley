@@ -4,6 +4,34 @@ import path from "node:path";
 
 import { requireAdmin } from "../admin.js";
 
+const PRICING: Record<string, { input: number; output: number }> = {
+  "claude-sonnet-4-6":          { input: 3.00,  output: 15.00 },
+  "claude-sonnet-4-5":          { input: 3.00,  output: 15.00 },
+  "claude-sonnet-4-5-20250929": { input: 3.00,  output: 15.00 },
+  "claude-opus-4-6":            { input: 5.00,  output: 25.00 },
+  "qwen-plus-us":               { input: 0.40,  output: 1.20 },
+  "qwen-plus":                  { input: 0.40,  output: 1.20 },
+  "qwen-plus-latest":           { input: 0.40,  output: 1.20 },
+  "qwen-plus-2025-12-01":       { input: 0.40,  output: 1.20 },
+  "qwen-plus-2025-12-01-us":    { input: 0.40,  output: 1.20 },
+  "qwen-plus-2025-09-11":       { input: 0.40,  output: 1.20 },
+  "qwen-flash-us":              { input: 0.06,  output: 0.18 },
+  "qwen-flash":                 { input: 0.06,  output: 0.18 },
+  "qwen3-coder-plus":           { input: 0.40,  output: 1.20 },
+  "qwen3-coder-plus-2025-09-23":{ input: 0.40,  output: 1.20 },
+  "qwen3.5-plus":               { input: 0.11,  output: 0.44 },
+  "qwen3-max-2025-09-23":       { input: 1.60,  output: 6.40 },
+  "gpt-5-mini":                 { input: 0.15,  output: 0.60 },
+  "gpt-5-mini-2025-08-07":      { input: 0.15,  output: 0.60 },
+  "qwen2.5:14b-instruct":       { input: 0.00,  output: 0.00 },
+  "qwen3-coder:30b":            { input: 0.00,  output: 0.00 },
+};
+function estimateCost(model: string, tokens_in: number, tokens_out: number): number {
+  const p = PRICING[model];
+  if (!p) return 0;
+  return (tokens_in / 1_000_000) * p.input + (tokens_out / 1_000_000) * p.output;
+}
+
 type TokenStats = {
   tokens_in: number;
   tokens_out: number;
@@ -75,13 +103,18 @@ function extractTokensAndCost(receipt: any): TokenStats {
     toNum(prUsage?.total_tokens) ||
     (tokens_in + tokens_out);
 
-  const cost =
+  let cost =
     toNum(receipt?.cost) ||
     toNum(usage?.cost) ||
     toNum(meta?.cost) ||
     toNum(pr?.cost) ||
     toNum(pr?.raw?.cost) ||
     0;
+
+  if (cost === 0 && (tokens_in > 0 || tokens_out > 0)) {
+    const model = String(receipt?.decision?.model ?? "");
+    cost = estimateCost(model, tokens_in, tokens_out);
+  }
 
   return { tokens_in, tokens_out, tokens_total, cost };
 }
@@ -256,4 +289,33 @@ export async function registerTokenMonitorRoutes(
       });
     }
   );
+  app.get("/skills/token-monitor/today", { preHandler: requireAdmin }, async (req, reply) => {
+    const receiptsDir = deps.receiptsDir();
+    const receipts = await readReceipts(receiptsDir, 500);
+    const today = new Date().toISOString().slice(0, 10);
+    const todayReceipts = receipts.filter((r: any) => String(r?.created_at ?? "").startsWith(today));
+    const totals: TokenStats = { tokens_in: 0, tokens_out: 0, tokens_total: 0, cost: 0 };
+    const by_model: Record<string, any> = {};
+    for (const r of todayReceipts) {
+      const ts = extractTokensAndCost(r);
+      addToAgg(totals, ts);
+      const model = String(r?.decision?.model ?? "unknown");
+      const provider = String(r?.decision?.provider ?? "unknown");
+      const key = provider + "::" + model;
+      by_model[key] ??= { model, provider, tokens_in: 0, tokens_out: 0, tokens_total: 0, cost: 0 };
+      addToAgg(by_model[key], ts);
+    }
+    const models = Object.values(by_model).sort((a: any, b: any) => b.cost - a.cost || b.tokens_total - a.tokens_total);
+    const last = receipts[0];
+    return reply.send({
+      ok: true,
+      date: today,
+      count: todayReceipts.length,
+      totals,
+      models,
+      active_model: last?.decision?.model ?? null,
+      active_provider: last?.decision?.provider ?? null,
+      active_tier: last?.decision?.tier ?? null,
+    });
+  });
 }
