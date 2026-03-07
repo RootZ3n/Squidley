@@ -47,7 +47,6 @@ export async function registerDoctorRoutes(app: FastifyInstance, deps: Deps): Pr
     pass("runtime.safety_zone", `effective=${effZone.effective} (source=${effZone.source})`);
 
     if (effZone.effective === "godmode") warn("runtime.safety_zone.risk", "godmode enabled");
-    else if (effZone.effective === "forge") warn("runtime.safety_zone.risk", "forge enabled");
     else pass("runtime.safety_zone.risk", "zone is conservative");
 
     // Required tiers check
