@@ -61,7 +61,7 @@ export function routeTask(input: string): RouteDecision {
     case "easy":
       return {
         difficulty,
-        modelTier: "local",
+        modelTier: "chat",
         reason: "Simple question or task"
       };
 

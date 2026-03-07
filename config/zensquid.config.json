@@ -2,7 +2,7 @@
   "meta": {
     "name": "Squidley",
     "node": "PopTart",
-    "local_first": true,
+    "local_first": false,
     "safety_zone": "forge"
   },
   "tiers": [

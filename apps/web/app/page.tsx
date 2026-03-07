@@ -548,9 +548,10 @@ export default function Page() {
         pending_agent: pendingAgentName ?? undefined
       };
 
+      // AFTER
       const res = await fetch(`${ZENSQUID_API}/chat`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "x-zensquid-admin-token": adminToken },
         body: JSON.stringify(payload)
       });
 
