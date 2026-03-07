@@ -733,19 +733,7 @@ export default function Page() {
               </div>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <div style={label()}>Skill</div>
-              <select value={selectedSkill} onChange={(e) => setSelectedSkill(e.target.value)} style={select()}>
-                <option>(none)</option>
-                {(skills?.skills ?? []).map((s) => (
-                  <option key={s.name} value={s.name}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-             
-              
-            </div>
+
           </div>
           <div style={{ ...tabsWrap(), marginTop: 8 }}>
             <button data-testid="tab-chat" style={tabBtn(tab === "chat", "100,200,255")} onClick={() => setTab("chat")}>Chat</button>
@@ -1639,9 +1627,10 @@ function pill() {
 function tabsWrap() {
   return {
     display: "flex",
+    flexWrap: "wrap" as const,
     gap: 6,
     padding: 4,
-    borderRadius: 999,
+    borderRadius: 16,
     border: "1px solid rgba(255,255,255,0.12)",
     background: "rgba(0,0,0,0.18)"
   } as const;
