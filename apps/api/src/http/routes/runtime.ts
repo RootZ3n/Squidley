@@ -168,8 +168,8 @@ export async function registerRuntimeRoutes(app: FastifyInstance, deps: Deps): P
     // Conservative “recommended default tier” for initial UI display:
     // prefer tier named "local", else first ollama tier, else first tier.
     const recommended =
-      mappedTiers.find((t: any) => t.name === "local") ??
-      mappedTiers.find((t: any) => String(t.provider).toLowerCase() === "ollama") ??
+      mappedTiers.find((t: any) => t.name === "chat") ??
+      mappedTiers.find((t: any) => String(t.provider).toLowerCase() !== "ollama") ??
       mappedTiers[0] ??
       null;
 

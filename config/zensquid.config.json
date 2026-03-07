@@ -14,9 +14,9 @@
     },
     {
       "name": "chat",
-      "provider": "modelstudio",
-      "model": "qwen3.5-plus",
-      "role": "Tier 1: Chat Mode (qwen3.5-plus default)"
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5-20251001",
+      "role": "Tier 1: Chat Mode (Haiku default)"
     },
     {
       "name": "haiku",
