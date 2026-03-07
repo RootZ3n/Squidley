@@ -1,7 +1,7 @@
 {
   "meta": {
     "name": "Squidley",
-    "node": "PopTart",
+    "node": "ZenPop",
     "local_first": true,
     "safety_zone": "forge"
   },
@@ -15,14 +15,8 @@
     {
       "name": "chat",
       "provider": "modelstudio",
-      "model": "qwen3.5-plus",
-      "role": "Tier 1: Chat Mode (qwen3.5-plus default)"
-    },
-    {
-      "name": "haiku",
-      "provider": "anthropic",
-      "model": "claude-haiku-4-5-20251001",
-      "role": "Tier 1b: Chat compare \u2014 Haiku (fast, cheap, Anthropic)"
+      "model": "qwen-plus-us",
+      "role": "Tier 1: Chat Mode (default cloud)"
     },
     {
       "name": "chat_fallback",
@@ -45,8 +39,8 @@
     {
       "name": "build",
       "provider": "ollama",
-      "model": "qwen3-coder:30b",
-      "role": "Tier 2: Build Mode (qwen3-coder:30b, local)"
+      "model": "qwen2.5:14b-instruct",
+      "role": "Tier 2: Build Mode (local code generation)"
     },
     {
       "name": "coder",
@@ -71,6 +65,60 @@
       "provider": "modelstudio",
       "model": "qwen3-max-2025-09-23",
       "role": "Tier 3: Big Brain (qwen3-max-2025-09-23, approval required)"
+    },
+    {
+      "name": "local_small",
+      "provider": "ollama",
+      "model": "llama3.2:3b",
+      "role": "Tier 0: Tiny local \u2014 fast responses, simple tasks"
+    },
+    {
+      "name": "local_phi",
+      "provider": "ollama",
+      "model": "phi4-mini-reasoning:3.8b",
+      "role": "Tier 0: Phi4 mini \u2014 reasoning-focused small model"
+    },
+    {
+      "name": "local_mid",
+      "provider": "ollama",
+      "model": "ministral-3:14b",
+      "role": "Tier 1: Mistral 14b \u2014 local mid-size alternative"
+    },
+    {
+      "name": "local_deepseek",
+      "provider": "ollama",
+      "model": "deepseek-coder-v2:16b",
+      "role": "Tier 1: DeepSeek Coder \u2014 local code-focused model"
+    },
+    {
+      "name": "local_gpt_oss",
+      "provider": "ollama",
+      "model": "gpt-oss:20b",
+      "role": "Tier 2: GPT OSS 20b \u2014 local large model"
+    },
+    {
+      "name": "local_qwen27",
+      "provider": "ollama",
+      "model": "qwen3.5:27b",
+      "role": "Tier 2: Qwen 27b \u2014 local large, good context following"
+    },
+    {
+      "name": "local_qwen35",
+      "provider": "ollama",
+      "model": "qwen3.5:35b",
+      "role": "Tier 2: Qwen 35b \u2014 local largest, best local reasoning"
+    },
+    {
+      "name": "local_nemotron",
+      "provider": "ollama",
+      "model": "nemotron-3-nano:latest",
+      "role": "Tier 2: Nemotron \u2014 NVIDIA local model"
+    },
+    {
+      "name": "local_glm",
+      "provider": "ollama",
+      "model": "glm-4.7-flash:latest",
+      "role": "Tier 2: GLM Flash \u2014 fast local large model"
     }
   ],
   "budgets": {
@@ -115,7 +163,5 @@
     "plan_fallback": "plan",
     "patch_fallback": "build",
     "review_fallback": "chat"
-  },
-  "workspace_root": "/hogwarts/AI/squidley",
-  "memory_root": "/hogwarts/AI/squidley/memory"
+  }
 }
