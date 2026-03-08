@@ -290,7 +290,11 @@ function extractTopicFocus(text: string): string | undefined {
  * 4. Topic phrase from user input ("about proc.exec best practices")
  * 5. Topic phrase from Squidley's response
  */
-export function extractAgentProposal(text: string, userInput?: string): AgentProposal | null {
+export function extractAgentProposal(
+  text: string,
+  userInput?: string,
+  history?: Array<{ role: string; content: string }>
+): AgentProposal | null {
   for (const pattern of AGENT_PROPOSAL_PATTERNS) {
     const m = text.match(pattern);
     if (m?.[1]) {
@@ -320,6 +324,15 @@ export function extractAgentProposal(text: string, userInput?: string): AgentPro
         focus = extractTopicFocus(text);
       }
 
+      // Priority 6: scan conversation history (user turns, most recent first)
+      // Handles multi-turn cases where topic was stated several turns ago
+      if (!focus && history?.length) {
+        const userTurns = [...history].filter(t => t.role === "user").reverse();
+        for (const turn of userTurns) {
+          const f = extractTopicFocus(turn.content) ?? extractCleanPath(turn.content);
+          if (f) { focus = f; break; }
+        }
+      }
       return { agent_name, focus };
     }
   }

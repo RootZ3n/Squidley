@@ -1450,7 +1450,7 @@ if (!isBuildLikeMode) {
       body.force_tier === "build";
 
     if (!isBuildLikeMode && isAgentProposal(out.output)) {
-      const agentProposal = extractAgentProposal(out.output, normalized.input);
+      const agentProposal = extractAgentProposal(out.output, normalized.input, history);
       if (agentProposal) {
         storePendingAgent(ollamaSessionId, agentProposal.agent_name, agentProposal.focus);
         pendingAgentName = agentProposal.agent_name;
@@ -1612,7 +1612,7 @@ if (!isBuildLikeMode) {
 
     let msPendingAgentName: string | null = null;
     if (isAgentProposal(out.content)) {
-      const agentProposal = extractAgentProposal(out.content, normalized.input);
+      const agentProposal = extractAgentProposal(out.content, normalized.input, history);
       if (agentProposal) {
         storePendingAgent(msSessionId, agentProposal.agent_name, agentProposal.focus);
         msPendingAgentName = agentProposal.agent_name;
@@ -1774,7 +1774,7 @@ if (!isBuildLikeMode) {
 
       let antPendingAgentName: string | null = null;
       if (isAgentProposal(out.output)) {
-        const agentProposal = extractAgentProposal(out.output, normalized.input);
+        const agentProposal = extractAgentProposal(out.output, normalized.input, history);
         if (agentProposal) {
           storePendingAgent(antSessionId, agentProposal.agent_name, agentProposal.focus);
           antPendingAgentName = agentProposal.agent_name;
@@ -2019,7 +2019,7 @@ if (!isBuildLikeMode) {
 
       let oaiPendingAgentName: string | null = null;
       if (isAgentProposal(out.output)) {
-        const agentProposal = extractAgentProposal(out.output, normalized.input);
+        const agentProposal = extractAgentProposal(out.output, normalized.input, history);
         if (agentProposal) {
           storePendingAgent(oaiSessionId, agentProposal.agent_name, agentProposal.focus);
           oaiPendingAgentName = agentProposal.agent_name;
