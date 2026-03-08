@@ -305,7 +305,7 @@ async function stagePlan(run: BuildRun, cfg: any, adminToken: string, zensquidRo
       run.evidence?.search_hits ? `SEARCH HITS:\n${run.evidence.search_hits.slice(0, 800)}` : "",
     ].filter(Boolean).join("\n\n");
 
-    const prompt = `You are a build planner for a Fastify TypeScript API. Analyze the goal and repo evidence, then produce a precise build plan with exact patches.
+    const prompt = `You are a build planner for a Fastify TypeScript API. Analyze the goal and repo evidence, then produce a precise build plan. Do NOT write code in new_str — leave it empty string, code is generated in the patch stage.
 
 GOAL: ${run.goal}
 
@@ -318,7 +318,7 @@ RULES:
 - For server.ts patches, use anchor-based insertion pointing to an EXACT existing import or registration line
 - anchor_position "after" means insert the new line immediately after the anchor line
 - is_new_file: true for files that do not exist yet
-- new_str MUST be complete and never truncated — include the full file content for new files
+- Leave new_str as empty string "" — full code is generated in the dedicated patch stage
 - ANCHOR must be set: use "new file" for new files, or an exact existing line for edits
 
 Return ONLY this JSON:
@@ -339,7 +339,7 @@ Return ONLY this JSON:
         "anchor": "<exact existing line to insert near, e.g. import { registerBuildRoutes }",
         "anchor_position": "after",
         "old_str": "",
-        "new_str": "<exact code to insert>",
+        "new_str": "",
         "reason": "<why>"
       }
     }
@@ -374,18 +374,19 @@ async function stagePatch(run: BuildRun, cfg: any, adminToken: string, zensquidR
   try {
     if (!run.plan?.tasks?.length) throw new Error("No plan to patch from");
 
-    // If no repair notes, patches already come from plan stage — just confirm them
-    if (!repairNotes && run.patches?.length) {
+    // If no repair notes AND all patches have non-empty new_str, pass through
+    const needsCodeGen = run.patches?.some(p => !p.new_str || p.new_str.trim() === "");
+    if (!repairNotes && run.patches?.length && !needsCodeGen) {
       const result: StageResult = {
         stage: "patch", status: "ok", model: "plan-embedded",
-        output: `${run.patches.length} patch(es) from plan (no local model needed)`,
+        output: `${run.patches.length} patch(es) from plan (no codegen needed)`,
         started_at, finished_at: new Date().toISOString(),
       };
       result.receipt_id = await writeStageReceipt(zensquidRoot, run, result, cfg.meta.node);
       return result;
     }
 
-    // Repair mode: use local coder to fix patches based on review feedback
+    // Codegen + repair: generate new_str for each task
     const patches: BuildPatch[] = [];
     for (const task of run.plan.tasks.slice(0, 5)) {
       let fileContent = "";
@@ -406,10 +407,9 @@ async function stagePatch(run: BuildRun, cfg: any, adminToken: string, zensquidR
         } catch {}
       }
 
-      const prompt = `You are a code patcher fixing a previous failed attempt.
-
-TASK: ${task.description}
-FILE: ${task.target_files[0] ?? "unknown"}
+      const isRepair = !!repairNotes;
+      const prompt = `You are a TypeScript code generator for a Fastify API.
+IS NEW FILE: ${task.patch?.is_new_file ? "yes - write the complete file" : "no - write only the code to insert"}
 
 REVIEWER FEEDBACK (fix ALL of these):
 ${repairNotes}
