@@ -66,12 +66,32 @@ const PROPOSAL_INDICATORS = [
   /want me to (write|save|create)/i,
   /i can (write|save|create) a skill/i,
   /want me to save (this|it)/i,
+  // Self-action phrases — Squidley saying she will do something
+  /let me (check|read|look|search|run|scan|inspect|verify|fetch|grab|see)/i,
+  /i['']ll (check|read|look|search|run|scan|inspect|verify|fetch|grab|see)/i,
+  /checking (the|that|this|what|if|whether)/i,
+  /reading (the|that|this)/i,
+  /looking (at|for|up)/i,
+  /fetching (the|that|this)/i,
+  /scanning (the|that|this)/i,
 ];
 
 function extractToolId(text: string): string | null {
   if (/i can (write|save|create) a skill/i.test(text) ||
       /want me to (write|save) (a |this )?skill/i.test(text)) {
     return "fs.write";
+  }
+  // Natural language → tool mapping
+  if (/(?:check|look at|scan|inspect|list|show|see what['']?s? in|tree)\s+(?:the\s+)?(?:skills?|directory|folder|files?)\s*/i.test(text) ||
+      /(?:checking|reading|scanning)\s+(?:the\s+)?(?:skills?|directory|folder)/i.test(text)) {
+    return "fs.tree";
+  }
+  if (/(?:let me|i['']ll)\s+(?:check|read|look at)\s+(?:the\s+)?skill\s+file/i.test(text) ||
+      /(?:reading|checking)\s+(?:the\s+)?skill\.md/i.test(text)) {
+    return "fs.read";
+  }
+  if (/(?:search|look)\s+(?:the\s+)?(?:codebase|repo|files?)\s+for/i.test(text)) {
+    return "rg.search";
   }
   for (const id of ALL_TOOL_IDS) {
     const escaped = id.replace(/\./g, "\\.");

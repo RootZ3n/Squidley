@@ -156,6 +156,12 @@ function parseReadFileIntent(input: string): string | null {
     if (m?.[1]) return m[1].trim();
   }
 
+  // Skill name reference — "read the weather-reporting skill" -> skills/weather-reporting/skill.md
+  const skillMatch = s.match(/(?:read|open|show|view|load|check)\s+(?:the\s+)?([a-zA-Z0-9][a-zA-Z0-9\-_]+?)\s+skill(?:\s+file)?/i);
+  if (skillMatch?.[1]) {
+    const slug = skillMatch[1].trim().toLowerCase().replace(/\s+/g, "-");
+    return `skills/${slug}/skill.md`;
+  }
   return null;
 }
 
@@ -766,13 +772,16 @@ if (!isBuildLikeMode) {
     const pending = getPending(session_id)!;
 
     if (isSafeToolId(pending.proposal.tool_id)) {
-      clearPending(session_id);
+      await clearPending(session_id);
 
       let toolOutput = "";
       let toolOk = false;
 
       try {
-        const rawArgs = pending.proposal.args;
+        const rawArgs =
+          pending.proposal.args && typeof pending.proposal.args === "object"
+            ? pending.proposal.args
+            : ({} as Record<string, string>);
 
         const jsTools = new Set([
           "web.search",
@@ -868,7 +877,7 @@ if (!isBuildLikeMode) {
     }
 
     if (isDenial(input)) {
-      clearPending(session_id);
+      await clearPending(session_id);
       return reply.send({
         output: "Got it — cancelled. What else can I help with?",
         session_id,
@@ -877,13 +886,16 @@ if (!isBuildLikeMode) {
     }
 
     if (isApproval(input)) {
-      clearPending(session_id);
+      await clearPending(session_id);
       let toolOutput = "";
       let toolOk = false;
       try {
         const adminToken = String((req.headers as any)["x-zensquid-admin-token"] ?? "").trim() || undefined;
 
-        const rawArgs = pending.proposal.args;
+        const rawArgs =
+          pending.proposal.args && typeof pending.proposal.args === "object"
+            ? pending.proposal.args
+            : ({} as Record<string, string>);
         const jsTools = new Set([
           "web.search",
           "fs.read",
