@@ -800,6 +800,11 @@ export async function buildChatSystemPrompt(args: {
 
   const parts: string[] = [];
   parts.push(BASE_SYSTEM_PROMPT);
+  // Inject current date/time so model never guesses
+  const _dow = now.toLocaleDateString("en-US", { weekday: "long", timeZone: "America/Chicago" });
+  const _dateStr = now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "America/Chicago" });
+  const _timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZone: "America/Chicago" });
+  parts.push(`\n---\n## CURRENT DATE & TIME\nToday is ${_dateStr}. Current time: ${_timeStr} (America/Chicago). Day of week: ${_dow}. Never guess or infer the date — use this.`);
 
   const mode = typeof args.mode === "string" ? args.mode : null;
   const forceTier = typeof args.force_tier === "string" ? args.force_tier : null;
