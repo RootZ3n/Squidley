@@ -31,3 +31,8 @@ For forecast add: "Today's high is expected around [max]°F."
 - Moore, OK coordinates: 35.3395, -97.4867
 - Timezone: America/Chicago
 - No API key required
+
+## IMPORTANT — Day of week
+NEVER infer or guess the day of week. Always compute it from today's actual date using JavaScript:
+`new Date().toLocaleDateString('en-US', {weekday: 'long', timeZone: 'America/Chicago'})`
+Or simply state the date as "Today, March 8" without guessing the weekday name.
