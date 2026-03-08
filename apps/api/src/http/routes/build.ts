@@ -408,30 +408,29 @@ async function stagePatch(run: BuildRun, cfg: any, adminToken: string, zensquidR
       }
 
       const isRepair = !!repairNotes;
-      const prompt = `You are a TypeScript code generator for a Fastify API.
-IS NEW FILE: ${task.patch?.is_new_file ? "yes - write the complete file" : "no - write only the code to insert"}
-
-REVIEWER FEEDBACK (fix ALL of these):
-${repairNotes}
-
-${fileContent ? `CURRENT FILE CONTEXT:\n${fileContent}` : ""}
-
+      const prompt = `You are a precise TypeScript code generator.
+GOAL: ${run.goal}
+TASK: ${task.description}
+FILE: ${task.target_files[0] ?? "unknown"}
+IS NEW FILE: ${task.patch?.is_new_file ? "yes - write the complete file from scratch" : "no - write only the code to insert"}
+${isRepair ? "REPAIR NOTES (fix ALL of these):\n" + repairNotes : ""}
+${fileContent ? "CURRENT FILE CONTEXT:\n" + fileContent : ""}
 RULES:
-- Route files: export async function registerXxxRoutes(app: FastifyInstance): Promise<void>
-- server.ts: use anchor to insert near an existing import/register line
+- Write ONLY what the goal and task describe. Do not add unrelated functionality.
+- For HTTP route files only: export async function registerXxxRoutes(app: FastifyInstance)
+- For all other files: use whatever exports the task requires
 - Never use default exports
-- anchor must be an EXACT line from the file shown above
-
-Return ONLY this JSON:
+- anchor: use "new file" for new files, or an EXACT existing line for edits
+Return ONLY valid JSON:
 {
   "task_id": "${task.id}",
   "file": "${task.target_files[0] ?? ""}",
-  "is_new_file": false,
-  "anchor": "<exact existing line from file>",
+  "is_new_file": ${task.patch?.is_new_file ? "true" : "false"},
+  "anchor": "${task.patch?.is_new_file ? "new file" : ""}",
   "anchor_position": "after",
   "old_str": "",
-  "new_str": "<code to insert>",
-  "reason": "<why this fixes the reviewer feedback>"
+  "new_str": "<complete code>",
+  "reason": "<why>"
 }`;
 
       try {
