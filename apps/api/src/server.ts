@@ -34,7 +34,6 @@ import {
   loadConfig,
   chooseTier,
   newReceiptId,
-  writeReceipt,
   type ChatRequest,
   type ReceiptV1,
   type ProviderName
@@ -76,6 +75,7 @@ import { startTelegramBot, stopTelegramBot, registerTelegramRoutes } from "./htt
 import { registerImageRoutes } from "./http/routes/image.js";
 import { registerBuildRoutes } from "./http/routes/build.js";
 import { registerPingRoutes } from "./http/routes/ping.js";
+import { writeTypedReceipt } from "./receipts/logger.js";
 import {
   storePendingImage,
   getPendingImage,
@@ -299,6 +299,19 @@ function withKind(kind: RequestKind, base: any) {
       kind
     }
   };
+}
+
+// ── Typed receipt writer ──────────────────────────────────────────────────────
+async function writeReceipt(root: string, receipt: any): Promise<void> {
+  const kind = receipt?.request?.kind ?? receipt?.kind ?? "system";
+  const categoryMap: Record<string, string> = {
+    chat: "chat", tool: "tools", tools: "tools",
+    error: "errors", agent: "agents", build: "build",
+    diagnostics: "diagnostics", image: "image", memory: "memory", system: "system"
+  };
+  const category = (categoryMap[kind] ?? "system") as any;
+  const dataDir = path.join(root, "data");
+  await writeTypedReceipt(dataDir, category, receipt);
 }
 
 async function gateOrDenyTool(args: {

@@ -2,6 +2,7 @@
 import { spawn } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
+import { writeTypedReceipt } from "../receipts/logger.js";
 import * as fsNode from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -56,10 +57,9 @@ function stateDir(): string {
 }
 
 async function writeReceipt(payload: RunToolResult) {
-  const dir = path.join(stateDir(), "receipts");
-  await fs.mkdir(dir, { recursive: true });
-  const fp = path.join(dir, `${payload.receipt_id}.json`);
-  await fs.writeFile(fp, JSON.stringify(payload, null, 2), "utf8");
+  const root = process.env.ZENSQUID_ROOT ?? process.cwd();
+  const dataDir = path.join(root, "data");
+  await writeTypedReceipt(dataDir, "tools", payload as any);
 }
 
 function clampOutput(buf: Buffer, maxBytes: number) {
