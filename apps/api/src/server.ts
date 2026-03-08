@@ -1806,9 +1806,27 @@ if (!isBuildLikeMode) {
         ? extractToolProposal(out.output)
         : null;
 
-      if (antProposal) {
+      // Auto-run safe tools immediately in Forge mode instead of waiting for approval
+      let antAutoToolResult: string | null = null;
+      if (antProposal && isSafeToolId(antProposal.tool_id)) {
+        try {
+          const adminToken = String((req.headers as any)["x-zensquid-admin-token"] ?? "").trim() || undefined;
+          const autoResult = await runTool({
+            workspace: "squidley",
+            tool_id: antProposal.tool_id,
+            args: antProposal.args ?? [],
+            admin_token: adminToken,
+          });
+          antAutoToolResult = autoResult.ok
+            ? `✓ ${antProposal.tool_id}:\n\n${autoResult.stdout || "(no output)"}`
+            : `✗ ${antProposal.tool_id} failed:\n\n${autoResult.stderr || autoResult.stdout || "(no output)"}`;
+        } catch (e: any) {
+          antAutoToolResult = `✗ ${antProposal.tool_id} error: ${String(e?.message ?? e)}`;
+        }
+      } else if (antProposal) {
         storePending(antSessionId, antProposal, out.output, normalized.input);
       }
+
 
       let cleanOutput = out.output;
 
@@ -1847,6 +1865,10 @@ if (!isBuildLikeMode) {
         }
       }
 
+      // Append auto-tool result to output if it ran
+      if (antAutoToolResult) {
+        cleanOutput = antAutoToolResult;
+      }
       addTurn(antSessionId, "assistant", cleanOutput);
       maybeExtractMemory(normalized.input, cleanOutput).catch(() => {});
 
