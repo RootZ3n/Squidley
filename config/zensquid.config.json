@@ -110,10 +110,10 @@
   "build_pipeline": {
     "_comment": "Each stage points to a tier name from the tiers array. Change these without touching code.",
     "plan_tier": "claude-sonnet",
-    "patch_tier": "coder",
+    "patch_tier": "chat",
     "review_tier": "claude-sonnet",
     "plan_fallback": "plan",
-    "patch_fallback": "build",
+    "patch_fallback": "chat",
     "review_fallback": "chat"
   },
   "workspace_root": "/hogwarts/AI/squidley",
