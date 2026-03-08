@@ -3,6 +3,8 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 
+const BAKED_API_BASE = process.env.NEXT_PUBLIC_SQUIDLEY_API_BASE || "/api/zsq";
+
 type ModelClass = {
   provider?: string | null;
   model?: string | null;
@@ -101,7 +103,7 @@ function providerTitle(kind: ProviderKind) {
 }
 
 export default function StatusWidget() {
-  const base = (process.env.NEXT_PUBLIC_SQUIDLEY_API_BASE ?? "").trim() || "/api/zsq";
+  const base = BAKED_API_BASE;
 
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const [latestChat, setLatestChat] = useState<ReceiptLatestResponse | null>(null);
