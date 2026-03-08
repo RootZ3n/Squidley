@@ -435,7 +435,7 @@ Return ONLY valid JSON:
 
       try {
         const raw = await callTier(cfg, tier, fallback, [{ role: "user", content: prompt }],
-          "You are a precise code patcher. Return only valid JSON.", 4096);
+          "You are a precise code patcher. Return only valid JSON. CRITICAL: new_str must be 100% complete, never truncated.", 8192);
         patches.push(extractJson(raw));
       } catch (e: any) {
         console.warn(`[build:patch] task ${task.id} failed:`, e?.message);
@@ -464,7 +464,7 @@ async function stageReview(run: BuildRun, cfg: any, adminToken: string, zensquid
     if (!run.patches?.length) throw new Error("No patches to review");
 
     const patchSummary = run.patches.map(p =>
-      `FILE: ${p.file}${p.is_new_file ? " (NEW FILE)" : ""}\nANCHOR: ${p.anchor ?? "n/a"} (${p.anchor_position ?? "after"})\nNEW CODE:\n${p.new_str?.slice(0, 400)}\nREASON: ${p.reason}`
+      `FILE: ${p.file}${p.is_new_file ? " (NEW FILE)" : ""}\nANCHOR: ${p.anchor ?? "n/a"} (${p.anchor_position ?? "after"})\nNEW CODE:\n${p.new_str ?? ""}\nREASON: ${p.reason}`
     ).join("\n\n---\n\n");
 
     const prompt = `Review these code patches for a Fastify TypeScript API.
