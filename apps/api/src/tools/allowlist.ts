@@ -113,7 +113,7 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     cmd: "__js__",
     argsPrefix: [],
     get cwd() { return getRepoRoot(); },
-    timeoutMs: 30_000,
+    timeoutMs: 90_000,
     maxOutputBytes: 512 * 1024,
   },
 
@@ -250,7 +250,7 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     cmd: "__js__",
     argsPrefix: [],
     get cwd() { return getRepoRoot(); },
-    timeoutMs: 30_000,
+    timeoutMs: 90_000,
     maxOutputBytes: 512 * 1024,
   },
 
@@ -260,7 +260,7 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     cmd: "__js__",
     argsPrefix: [],
     get cwd() { return getRepoRoot(); },
-    timeoutMs: 30_000,
+    timeoutMs: 90_000,
     maxOutputBytes: 512 * 1024,
   },
 
@@ -270,7 +270,7 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     cmd: "__js__",
     argsPrefix: [],
     get cwd() { return getRepoRoot(); },
-    timeoutMs: 30_000,
+    timeoutMs: 90_000,
     maxOutputBytes: 512 * 1024,
   },
 
@@ -280,7 +280,7 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     cmd: "__js__",
     argsPrefix: [],
     get cwd() { return getRepoRoot(); },
-    timeoutMs: 30_000,
+    timeoutMs: 90_000,
     maxOutputBytes: 512 * 1024,
   },
 
@@ -331,7 +331,7 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     argsPrefix: [],
     get cwd() { return getRepoRoot(); },
     requiresAdmin: true,
-    timeoutMs: 30_000,
+    timeoutMs: 90_000,
     maxOutputBytes: DEFAULT_MAX_OUTPUT_BYTES,
   },
 
@@ -394,7 +394,7 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     argsPrefix: [],
     get cwd() { return getRepoRoot(); },
     requiresAdmin: true,
-    timeoutMs: 30_000,
+    timeoutMs: 90_000,
     maxOutputBytes: 512 * 1024,
   },
 
@@ -405,7 +405,7 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     argsPrefix: [],
     get cwd() { return getRepoRoot(); },
     requiresAdmin: true,
-    timeoutMs: 30_000,
+    timeoutMs: 90_000,
     maxOutputBytes: 512 * 1024,
   },
 
@@ -531,7 +531,7 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     argsPrefix: [],
     get cwd() { return getRepoRoot(); },
     requiresAdmin: true,
-    timeoutMs: 30_000,
+    timeoutMs: 90_000,
     maxOutputBytes: 16 * 1024,
   },
   "comfyui.stop": {
@@ -564,7 +564,7 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     argsPrefix: [],
     get cwd() { return getRepoRoot(); },
     requiresAdmin: false,
-    timeoutMs: 30_000,
+    timeoutMs: 90_000,
     maxOutputBytes: 128 * 1024,
   },
 

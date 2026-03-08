@@ -898,7 +898,7 @@ export async function buildChatSystemPrompt(args: {
     parts.push("\n---\n" + formatWorkspaceContext(workspaceCtx));
   }
 
-  if (home.trim()) parts.push("\n---\n# HOME MACHINE (Pop Tart)\n" + home.trim());
+  if (home.trim()) parts.push("\n---\n# HOME MACHINE (ZenPop)\n" + home.trim());
   if (identity.trim()) parts.push("\n---\n# IDENTITY (agent)\n" + identity.trim());
   if (soul.trim()) parts.push("\n---\n# SOUL (agent)\n" + soul.trim());
 

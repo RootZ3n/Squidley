@@ -1091,38 +1091,76 @@ Rules:
       }
     }
 
-    // ── comfyui.start ─────────────────────────────────────────────────────────
-    // ComfyUI runs on Zenpop (remote). We just verify it is reachable.
+    // ── ComfyUI idle auto-stop ────────────────────────────────────────────────────
+let comfyuiIdleTimer: ReturnType<typeof setTimeout> | null = null;
+const COMFYUI_IDLE_MS = 5 * 60 * 1000; // 5 minutes
+function resetComfyUIIdleTimer() {
+  if (comfyuiIdleTimer) clearTimeout(comfyuiIdleTimer);
+  comfyuiIdleTimer = setTimeout(async () => {
+    try {
+      const { execSync } = await import("child_process");
+      execSync("pkill -f 'comfyui/main.py'", { timeout: 5000 });
+      console.log("[comfyui] auto-stopped after 5min idle");
+    } catch {}
+    comfyuiIdleTimer = null;
+  }, COMFYUI_IDLE_MS);
+}
+
+// ── comfyui.start ──────────────────────────────────────────────────────────
+    // ComfyUI runs locally on ZenPop.
     if (opts.tool_id === "comfyui.start") {
+      // Check if already running
       try {
-        const resp = await fetch(`${COMFYUI_URL}/system_stats`, { signal: AbortSignal.timeout(5_000) });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const resp = await fetch(`${COMFYUI_URL}/system_stats`, { signal: AbortSignal.timeout(3_000) });
+        if (resp.ok) { resetComfyUIIdleTimer(); return {
+          ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+          stdout: `ComfyUI: already running at ${COMFYUI_URL} ✓`,
+          stderr: "", truncated: { stdout: false, stderr: false }
+        }; }
+      } catch {}
+      // Start it
+      const { spawn } = await import("child_process");
+      const child = spawn("/media/zen/AI/comfyui/venv/bin/python", ["/media/zen/AI/comfyui/main.py", "--listen", "127.0.0.1", "--port", "8188"], {
+        detached: true, stdio: "ignore",
+        env: { ...process.env, PATH: process.env.PATH ?? "" }
+      });
+      child.unref();
+      // Wait up to 30s for it to come up
+      for (let i = 0; i < 30; i++) {
+        await new Promise(r => setTimeout(r, 1000));
+        try {
+          const resp = await fetch(`${COMFYUI_URL}/system_stats`, { signal: AbortSignal.timeout(2_000) });
+          if (resp.ok) return {
+            ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+            stdout: `ComfyUI started successfully at ${COMFYUI_URL} ✓ (took ${i+1}s) — auto-stop in 5min idle`,
+            stderr: "", truncated: { stdout: false, stderr: false }
+          };
+        } catch {}
+      }
+      return {
+        ok: false, exit_code: 1, signal: null as NodeJS.Signals | null,
+        stdout: `ComfyUI failed to start within 30s at ${COMFYUI_URL}`,
+        stderr: "", truncated: { stdout: false, stderr: false }
+      };
+    }
+    // ── comfyui.stop ──────────────────────────────────────────────────────────
+    if (opts.tool_id === "comfyui.stop") {
+      const { execSync } = await import("child_process");
+      try {
+        execSync("pkill -f 'comfyui/main.py'", { timeout: 5000 });
         return {
           ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
-          stdout: `ComfyUI: already running on remote (${COMFYUI_URL}) ✓`,
+          stdout: "ComfyUI stopped ✓",
           stderr: "", truncated: { stdout: false, stderr: false }
         };
-      } catch (e: any) {
+      } catch {
         return {
-          ok: false, exit_code: 1, signal: null as NodeJS.Signals | null,
-          stdout: `ComfyUI unreachable at ${COMFYUI_URL}: ${String(e?.message ?? e)}
-Start ComfyUI manually on Zenpop.`,
+          ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+          stdout: "ComfyUI was not running.",
           stderr: "", truncated: { stdout: false, stderr: false }
         };
       }
     }
-
-    // ── comfyui.stop ──────────────────────────────────────────────────────────
-    // ComfyUI runs on Zenpop (remote). Pop Tart does not manage its lifecycle.
-    if (opts.tool_id === "comfyui.stop") {
-      return {
-        ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
-        stdout: `ComfyUI runs on Zenpop (${COMFYUI_URL}) — stop it there if needed.`,
-        stderr: "", truncated: { stdout: false, stderr: false }
-      };
-    }
-
-
     // ── comfyui.generate ──────────────────────────────────────────────────────
     if (opts.tool_id === "comfyui.generate") {
       const rawArgs = (Array.isArray(opts.rawArgs) ? {} : (opts.rawArgs ?? {})) as Record<string, string>;
@@ -1135,6 +1173,7 @@ Start ComfyUI manually on Zenpop.`,
       const seed = parseInt(String(rawArgs?.seed ?? String(Math.floor(Math.random() * 2**32))), 10);
 
       if (!prompt) throw new ToolRunnerError("BAD_REQUEST", "comfyui.generate: prompt required");
+      resetComfyUIIdleTimer(); // reset idle timer on every generation
 
       // Check ComfyUI is running
       try {

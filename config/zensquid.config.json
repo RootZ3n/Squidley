@@ -1,7 +1,7 @@
 {
   "meta": {
     "name": "Squidley",
-    "node": "PopTart",
+    "node": "ZenPop",
     "local_first": false,
     "safety_zone": "forge"
   },
@@ -117,5 +117,7 @@
     "review_fallback": "chat"
   },
   "workspace_root": "/hogwarts/AI/squidley",
-  "memory_root": "/hogwarts/AI/squidley/memory"
+  "memory_root": "/hogwarts/AI/squidley/memory",
+  "node": "ZenPop",
+  "comfyui_url": "http://127.0.0.1:8188"
 }
