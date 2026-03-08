@@ -172,7 +172,7 @@ async function callTier(cfg: any, tierName: string, fallbackName: string, messag
     const { anthropicChat } = await import("@zensquid/provider-anthropic");
     const apiKey = getApiKey(cfg, "anthropic");
     if (!apiKey) throw new Error("Missing ANTHROPIC_API_KEY");
-    const out = await anthropicChat({ apiKey, model, system, messages: messages as any, ...(maxTokens ? { max_tokens: maxTokens } : {}) });
+    const out = await anthropicChat({ apiKey, model, system, messages: messages as any, ...(maxTokens ? { maxTokens } : {}) });
     return out.output ?? "";
   }
 
@@ -435,7 +435,7 @@ Return ONLY valid JSON:
 
       try {
         const raw = await callTier(cfg, tier, fallback, [{ role: "user", content: prompt }],
-          "You are a precise code patcher. Return only valid JSON.");
+          "You are a precise code patcher. Return only valid JSON.", 4096);
         patches.push(extractJson(raw));
       } catch (e: any) {
         console.warn(`[build:patch] task ${task.id} failed:`, e?.message);
