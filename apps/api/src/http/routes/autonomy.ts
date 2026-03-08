@@ -96,6 +96,19 @@ function uniq(list: string[]): string[] {
   return Array.from(new Set(list));
 }
 
+function normalizeLoopbackBaseUrl(input: string, fallback: string): string | null {
+  const raw = str(input) || fallback;
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+    const host = u.hostname.toLowerCase();
+    if (host !== "localhost" && host !== "127.0.0.1" && host !== "::1") return null;
+    return `${u.protocol}//${u.host}`.replace(/\/+$/, "");
+  } catch {
+    return null;
+  }
+}
+
 export async function registerAutonomyRoutes(app: FastifyInstance, deps: Deps): Promise<void> {
   const allow = uniq((deps.allowlist ?? []).map((s) => str(s)).filter(Boolean));
 
@@ -125,7 +138,13 @@ export async function registerAutonomyRoutes(app: FastifyInstance, deps: Deps): 
       const goal = str(req.body?.goal);
       if (!goal) return reply.code(400).send({ ok: false, error: "goal required" });
 
-      const ollamaUrl = str(req.body?.ollama_url) || "http://127.0.0.1:11434";
+      const ollamaUrl = normalizeLoopbackBaseUrl(str(req.body?.ollama_url), "http://127.0.0.1:11434");
+      if (!ollamaUrl) {
+        return reply.code(400).send({
+          ok: false,
+          error: "ollama_url must be localhost/loopback (private build restriction)"
+        });
+      }
       const model = str(req.body?.model) || "qwen2.5:14b-instruct";
 
       // Build a planner prompt
@@ -445,13 +464,23 @@ export async function registerAutonomyRoutes(app: FastifyInstance, deps: Deps): 
 
       const focus = String(req.body?.focus ?? "").trim() || undefined;
       const adminToken = String((req.headers as any)["x-zensquid-admin-token"] ?? "").trim();
+      const rawOllamaUrl = str(req.body?.ollama_url);
+      const normalizedAgentOllamaUrl = rawOllamaUrl
+        ? normalizeLoopbackBaseUrl(rawOllamaUrl, "http://127.0.0.1:11434")
+        : null;
+      if (rawOllamaUrl && !normalizedAgentOllamaUrl) {
+        return reply.code(400).send({
+          ok: false,
+          error: "ollama_url must be localhost/loopback (private build restriction)"
+        });
+      }
 
       const result = await runAgent({
         agentName,
         focus,
         app,
         adminToken,
-        ollamaUrl: req.body?.ollama_url,
+        ollamaUrl: normalizedAgentOllamaUrl ?? undefined,
         model: req.body?.model,
       });
 

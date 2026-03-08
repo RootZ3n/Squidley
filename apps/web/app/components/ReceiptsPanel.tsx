@@ -40,7 +40,7 @@ function providerColor(provider?: string): string {
 
 function kindIcon(kind?: string): string {
   if (kind === "heartbeat") return "💓";
-  if (kind === "tool") return "🔧";
+  if (kind === "tool" || kind === "tools") return "🔧";
   if (kind === "system") return "⚙️";
   return "💬";
 }
@@ -98,7 +98,7 @@ export default function ReceiptsPanel() {
   const filtered = receipts.filter(r => {
     if (filter === "all") return true;
     if (filter === "chat") return r.request?.kind === "chat";
-    if (filter === "tool") return r.request?.kind === "tool";
+    if (filter === "tool") return r.request?.kind === "tool" || r.request?.kind === "tools";
     if (filter === "error") return !!r.error || r.tool_event?.allowed === false || r.guard_event?.blocked;
     return true;
   });

@@ -51,18 +51,44 @@ export type ChatResponse = {
 };
 
 export type ReceiptsListResponse = {
+  ok: boolean;
   count: number;
   receipts: Array<{
-    receipt_id: string;
-    created_at: string;
-    kind: string | null;
-    tier: string | null;
-    provider: string | null;
-    model: string | null;
-    escalated: boolean | null;
-    escalation_reason: string | null;
-    tool: { allowed: boolean; capability: string } | null;
-    input_preview: string;
+    schema: string | null;
+    receipt_id: string | null;
+    created_at: string | null;
+    node: string | null;
+    request: {
+      kind: string | null;
+      mode: string | null;
+      force_tier: string | null;
+      selected_skill: string | null;
+    };
+    decision: {
+      tier: string | null;
+      provider: string | null;
+      model: string | null;
+      escalated: boolean | null;
+      escalation_reason: string | null;
+      active_model: {
+        provider: string | null;
+        model: string | null;
+        model_class: string | null;
+        param_b: number | null;
+        class_source: string | null;
+      } | null;
+    };
+    error: { message: string | null } | null;
+    meta: {
+      ms: number | null;
+      toolrun: {
+        tool_id?: string | null;
+        ok?: boolean | null;
+        exit_code?: number | null;
+        timed_out?: boolean | null;
+        statusCode?: number | null;
+      } | null;
+    };
   }>;
 };
 

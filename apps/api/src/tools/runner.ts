@@ -81,9 +81,9 @@ function parseSleepMs(args: string[], defaultMs = 250, maxMs = 60_000): number {
 }
 
 /**
- * Parse a command string into [cmd, ...args] without using a shell.
- * Handles quoted strings: 'find /tmp -name "*.ts"' → ["find", "/tmp", "-name", "*.ts"]
- * Does NOT support shell operators (|, &, ;, $, >, <) — throws if found.
+ * Parse/validate a proc.exec command string.
+ * proc.exec runs with shell:true (admin-gated), but this guard blocks high-risk
+ * operators that materially increase injection risk in this private build.
  */
 function parseCommand(cmdStr: string): string[] {
   // Reject dangerous shell operators (subshell, command injection)
@@ -118,8 +118,8 @@ function parseCommand(cmdStr: string): string[] {
 }
 
 /**
- * Internal tools (no shell, no subprocess).
- * Contract: spec.cmd === "__js__"
+ * Internal tools (spec.cmd === "__js__").
+ * Some are pure JS; some intentionally spawn subprocesses.
  */
 async function runInternalTool(opts: {
   tool_id: string;
@@ -397,37 +397,6 @@ async function runInternalTool(opts: {
       };
     }
 
-    if (opts.tool_id === "fs.write") {
-      // userArgs: [relPath, content] or rawArgs: { path: "...", content: "..." }
-      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
-      const relPath = (rawArgsObj?.path as string ?? opts.userArgs[0] ?? "").trim();
-      if (!relPath || relPath.includes("..") || path.isAbsolute(relPath)) {
-        throw new ToolRunnerError("BAD_REQUEST", "fs.write: invalid path");
-      }
-      // Only allow writing to skills/ and memory/ directories for safety
-      const allowedPrefixes = ["skills/", "memory/"];
-      const isAllowed = allowedPrefixes.some((p) => relPath.startsWith(p));
-      if (!isAllowed) {
-        throw new ToolRunnerError("FORBIDDEN", `fs.write: path must be under skills/ or memory/ (got: ${relPath})`);
-      }
-      const repoRoot = process.env.ZENSQUID_ROOT ?? process.cwd();
-      const abs = path.resolve(repoRoot, relPath);
-      if (!abs.startsWith(repoRoot + path.sep) && abs !== repoRoot) {
-        throw new ToolRunnerError("FORBIDDEN", "fs.write: path escapes repo root");
-      }
-      const content = (rawArgsObj?.content as string ?? opts.userArgs.slice(1).join("\n"));
-      await fsNode.mkdir(path.dirname(abs), { recursive: true });
-      await fsNode.writeFile(abs, content, "utf8");
-      return {
-        ok: true,
-        exit_code: 0,
-        signal: null as NodeJS.Signals | null,
-        stdout: `wrote ${content.length} bytes to ${relPath}\n`,
-        stderr: "",
-        truncated: { stdout: false, stderr: false }
-      };
-    }
-
     // ── fs.mkdir ──────────────────────────────────────────────────────────────
     // Creates a directory (and parents). Admin-only.
     // rawArgs: { path: "memory/new-folder" }
@@ -587,10 +556,10 @@ async function runInternalTool(opts: {
     }
 
     // ── proc.exec ─────────────────────────────────────────────────────────────
-    // Admin-only: runs a command directly without a shell.
+    // Admin-only: runs a command with shell:true (pipes/redirects supported).
     // Accepts rawArgs: { cmd: "find ~/openclaw -type f ..." }
     // or userArgs[0] as the full command string.
-    // No shell operators allowed. No shell spawned.
+    // Validation blocks high-risk operators (; ` $ &) before execution.
     if (opts.tool_id === "proc.exec") {
       // Require admin token
       const expectedToken = (process.env.ZENSQUID_ADMIN_TOKEN ?? "").trim();
@@ -611,13 +580,12 @@ async function runInternalTool(opts: {
       // Expand ~ to home directory
       const expandedCmd = cmdStr.replace(/^~(?=\/|$)/, os.homedir()).replace(/(?<=\s)~(?=\/)/g, os.homedir());
 
-      const tokens = parseCommand(expandedCmd);
-      const [cmd, ...cmdArgs] = tokens;
+      parseCommand(expandedCmd);
 
       // Resolve working directory — use ZENSQUID_ROOT as cwd for relative paths
       const cwd = process.env.ZENSQUID_ROOT ?? process.cwd();
 
-      const stdout = await new Promise<string>((resolve, reject) => {
+      const execResult = await new Promise<{ code: number | null; stdout: string; stderr: string }>((resolve, reject) => {
         const stdoutChunks: Buffer[] = [];
         const stderrChunks: Buffer[] = [];
 
@@ -641,12 +609,7 @@ async function runInternalTool(opts: {
           clearTimeout(timer);
           const out = Buffer.concat(stdoutChunks).toString("utf8");
           const err = Buffer.concat(stderrChunks).toString("utf8");
-          if (code !== 0) {
-            // Non-zero exit — return stderr as part of output so agent can see what failed
-            resolve(out + (err ? `\nSTDERR:\n${err}` : ""));
-          } else {
-            resolve(out);
-          }
+          resolve({ code, stdout: out, stderr: err });
         });
 
         child.on("error", (e) => {
@@ -655,12 +618,20 @@ async function runInternalTool(opts: {
         });
       });
 
+      const ok = execResult.code === 0;
+      const stderr = ok
+        ? ""
+        : (execResult.stderr.trim() || `proc.exec: command exited with code ${String(execResult.code)}`);
+      const stdout = ok
+        ? execResult.stdout
+        : execResult.stdout + (execResult.stderr ? `\nSTDERR:\n${execResult.stderr}` : "");
+
       return {
-        ok: true,
-        exit_code: 0,
+        ok,
+        exit_code: execResult.code,
         signal: null as NodeJS.Signals | null,
         stdout,
-        stderr: "",
+        stderr,
         truncated: { stdout: false, stderr: false }
       };
     }
@@ -1272,16 +1243,16 @@ export async function runTool(req: RunToolRequest): Promise<RunToolResult> {
   const workspaceRoot = getWorkspaceRoot(req.workspace);
   const cwd = workspaceRoot;
 
-  // harden: never allow args that try to smuggle shell operators; we don't use a shell,
-  // but this also prevents weird accidental garbage.
+  // Harden subprocess tools: reject obvious shell operator smuggling in argv.
+  // Internal __js__ tools run their own validation rules.
   // Normalize args: accept string[] or Record<string, ...> (for internal JS tools)
   const rawReqArgs = req.args ?? [];
   const userArgs: string[] = Array.isArray(rawReqArgs)
     ? rawReqArgs.filter(Boolean).map(String)
     : Object.values(rawReqArgs).flat().filter(Boolean).map(String);
 
-  // Skip injection guard for internal JS tools (fs.read, fs.write, diag.sleep, proc.exec)
-  // They handle their own validation and never spawn a shell
+  // Skip this generic guard for internal JS tools (fs.read, fs.write, diag.sleep, proc.exec);
+  // they enforce tool-specific validation and execution rules.
   if (spec.cmd !== "__js__") {
     for (const a of userArgs) {
       if (/[;&|`$<>]/.test(a)) {
@@ -1348,10 +1319,13 @@ export async function runTool(req: RunToolRequest): Promise<RunToolResult> {
       };
       await writeReceipt(result);
       if (!r.ok) {
-        return await failWithReceipt("INTERNAL", r.stderr || "Internal tool failed");
+        throw new ToolRunnerError("INTERNAL", r.stderr || "Internal tool failed", receipt_id);
       }
       return result;
     } catch (e: any) {
+      if (e instanceof ToolRunnerError && e.receipt_id === receipt_id) {
+        throw e;
+      }
       const msg = String(e?.message ?? e ?? "Internal tool failed");
       const code: ToolRunnerErrorCode = (e?.code as ToolRunnerErrorCode) || "INTERNAL";
       return await failWithReceipt(code, msg);
@@ -1421,11 +1395,12 @@ export async function runTool(req: RunToolRequest): Promise<RunToolResult> {
   await writeReceipt(result);
 
   if (!ok) {
-    return await failWithReceipt(
+    throw new ToolRunnerError(
       "INTERNAL",
       killedByTimeout
         ? `Command timed out after ${spec.timeoutMs}ms`
-        : errClamped.text || `Exit code ${exitCode}`
+        : errClamped.text || `Exit code ${exitCode}`,
+      receipt_id
     );
   }
 

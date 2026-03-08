@@ -4,6 +4,9 @@
 import { useEffect, useRef, useState } from "react";
 import { ZENSQUID_API } from "@/api/zensquid";
 
+// PRIVATE-BUILD ONLY:
+// Hardcoded admin token is intentionally allowed for local convenience in this branch.
+// MUST be removed before any public/Pop Tart branch or shared deployment.
 const ADMIN_TOKEN = "8675309abc123easy";
 
 type CheckStatus = "pass" | "warn" | "fail";

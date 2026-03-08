@@ -1,7 +1,8 @@
 // apps/api/src/tools/allowlist.ts
 //
 // Single source of truth for all allowlisted tools.
-// Every tool here is spawned with shell: false by runner.ts.
+// Non-__js__ tools are spawned with shell: false by runner.ts.
+// __js__ tools may implement custom behavior, including controlled shell use.
 // To add a new tool: add an entry here, handle it in runner.ts.
 
 export type AllowlistedTool = {
@@ -313,7 +314,7 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
 
   "proc.exec": {
     id: "proc.exec",
-    title: "Exec: run command (admin, no shell)",
+    title: "Exec: run shell command (admin-gated)",
     cmd: "__js__",
     argsPrefix: [],
     get cwd() { return getRepoRoot(); },
