@@ -241,6 +241,21 @@ function extractTopicFocus(text: string): string | undefined {
     }
   }
 
+  // Priority 4: "a <topic> skill that..." — extract noun phrase before "skill"
+  const nounBeforeSkill = text.match(/\ba\s+([a-zA-Z0-9][a-zA-Z0-9\s\-_.]{2,40}?)\s+skill\b/i);
+  if (nounBeforeSkill?.[1]) {
+    const topic = nounBeforeSkill[1].trim();
+    const words = topic.split(/\s+/);
+    if (words.length <= 5 && !/^(the|a|an|it|this|that|you|me|my|our)$/i.test(words[0])) {
+      return topic;
+    }
+  }
+  // Priority 5: "skill that <does X>" — extract description after "skill that"
+  const skillThatMatch = text.match(/skill\s+that\s+([a-zA-Z0-9][a-zA-Z0-9\s\-_.]{2,40}?)(?:\s*[,?!.]|\s*$)/i);
+  if (skillThatMatch?.[1]) {
+    const topic = skillThatMatch[1].trim();
+    return topic;
+  }
   return undefined;
 }
 
