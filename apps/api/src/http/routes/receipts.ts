@@ -14,6 +14,8 @@ function safeNum(v: any, d: number) {
 }
 
 function getKind(r: ReceiptAny): string | null {
+  if (r?.category) return r.category as string;
+  if (r?.tool_id) return "tools";
   return (r?.request?.kind ?? r?.request?.mode ?? null) as string | null;
 }
 
@@ -66,6 +68,19 @@ function sanitizeReceipt(r0: ReceiptAny) {
   // IMPORTANT: this is the only shape the public UI sees.
   // No provider_response, no tool stdout, no injected context bodies, etc.
 
+  // Tool receipts have a different schema
+  if ((r0 as any)?.tool_id || (r0 as any)?.category === "tools") {
+    return {
+      schema: "zensquid.toolreceipt.v1",
+      receipt_id: (r0 as any)?.receipt_id ?? null,
+      created_at: (r0 as any)?.started_at ?? (r0 as any)?.created_at ?? null,
+      node: null,
+      request: { kind: "tools", mode: null, force_tier: null, selected_skill: null },
+      decision: { tier: "tool", provider: null, model: null, escalated: false, escalation_reason: null, active_model: null },
+      error: (r0 as any)?.ok === false ? { message: (r0 as any)?.stderr || (r0 as any)?.stdout || "tool failed" } : null,
+      meta: { ms: (r0 as any)?.duration_ms ?? null, toolrun: pick(r0, ["tool_id", "ok", "exit_code"]) },
+    };
+  }
   const r = normalizeReceiptForPublic(r0);
 
   // very small, safe toolrun summary (only if present after normalization)
@@ -104,24 +119,28 @@ function sanitizeReceipt(r0: ReceiptAny) {
 }
 
 async function listReceiptFilesSorted(dir: string): Promise<string[]> {
-  const files = await readdir(dir).catch(() => []);
-  const jsons = files.filter((f) => f.endsWith(".json"));
+  // Collect from flat dir + all category subdirs
+  const entries = await readdir(dir, { withFileTypes: true }).catch(() => []);
+  const allFiles: { p: string; t: number }[] = [];
 
-  // Sort newest first using mtime
-  const withTime = await Promise.all(
-    jsons.map(async (f) => {
-      const p = path.resolve(dir, f);
-      try {
-        const st = await stat(p);
-        return { f, t: st.mtimeMs || 0 };
-      } catch {
-        return { f, t: 0 };
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      const subdir = path.join(dir, entry.name);
+      const subfiles = await readdir(subdir).catch(() => []);
+      for (const f of subfiles.filter((f: string) => f.endsWith(".json"))) {
+        const p = path.join(subdir, f);
+        try { const st = await stat(p); allFiles.push({ p, t: st.mtimeMs || 0 }); }
+        catch { allFiles.push({ p, t: 0 }); }
       }
-    })
-  );
+    } else if (entry.name.endsWith(".json")) {
+      const p = path.join(dir, entry.name);
+      try { const st = await stat(p); allFiles.push({ p, t: st.mtimeMs || 0 }); }
+      catch { allFiles.push({ p, t: 0 }); }
+    }
+  }
 
-  withTime.sort((a, b) => b.t - a.t);
-  return withTime.map((x) => x.f);
+  allFiles.sort((a, b) => b.t - a.t);
+  return allFiles.map(x => x.p);
 }
 
 async function readReceiptJson(p: string): Promise<ReceiptAny | null> {
@@ -160,8 +179,7 @@ export async function registerReceiptsRoutes(
     for (const f of files) {
       if (receipts.length >= limit) break;
 
-      const p = path.resolve(dir, f);
-      const r = await readReceiptJson(p);
+      const r = await readReceiptJson(f);
       if (!r) continue;
 
       const k = getKind(normalizeReceiptForPublic(r));
@@ -187,8 +205,7 @@ export async function registerReceiptsRoutes(
     const files = await listReceiptFilesSorted(dir);
 
     for (const f of files) {
-      const p = path.resolve(dir, f);
-      const r = await readReceiptJson(p);
+      const r = await readReceiptJson(f);
       if (!r) continue;
 
       const k = getKind(normalizeReceiptForPublic(r));
@@ -222,8 +239,7 @@ export async function registerReceiptsRoutes(
     for (const f of files) {
       if (receipts.length >= limit) break;
 
-      const p = path.resolve(dir, f);
-      const r = await readReceiptJson(p);
+      const r = await readReceiptJson(f);
       if (!r) continue;
 
       const k = getKind(normalizeReceiptForPublic(r));

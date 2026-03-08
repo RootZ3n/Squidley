@@ -62,6 +62,15 @@ const PROVIDER_ICONS: Record<string, string> = {
   ollama: "⬡",
   openai: "◎",
   modelstudio: "◈",
+  anthropic: "◆",
+};
+const PROVIDER_COLORS: Record<string, string> = {
+  ollama:      "#4ade80",   // green  — local
+  anthropic:   "#f97316",   // orange — Claude
+  modelstudio: "#60a5fa",   // blue   — Qwen/ModelStudio
+  openai:      "#facc15",   // yellow — OpenAI
+  tool:        "#e879f9",   // magenta — tools
+  unknown:     "#6b7280",   // grey
 };
 
 export default function DashboardPage() {
@@ -209,43 +218,51 @@ export default function DashboardPage() {
               ))}
             </div>
 
-            {/* Local vs Cloud split */}
+            {/* Provider Usage */}
             <div style={{
               background: "#0d1117", border: "1px solid #1a2332",
               borderRadius: "10px", padding: "24px", marginBottom: "24px",
             }}>
               <div style={{ fontSize: "12px", color: "#6b7280", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "16px" }}>
-                Local vs Cloud Split
+                Provider Usage
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "12px" }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{
-                    height: "28px", borderRadius: "6px", background: "#1a2332",
-                    overflow: "hidden", display: "flex",
-                  }}>
-                    <div style={{
-                      width: `${localPct}%`, background: "linear-gradient(90deg, #166534, #4ade80)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: "11px", fontWeight: 700, color: "#fff",
-                      transition: "width 0.5s ease",
-                    }}>
-                      {localPct > 10 ? `${localPct}%` : ""}
+              {(() => {
+                const provCounts: Record<string, number> = {};
+                for (const r of receipts) {
+                  const p = r.decision?.provider ?? r.request?.kind === "tools" ? "tool" : "unknown";
+                  provCounts[p] = (provCounts[p] ?? 0) + 1;
+                }
+                const total = receipts.length || 1;
+                const order = ["anthropic", "modelstudio", "openai", "ollama", "tool", "unknown"];
+                const sorted = [...new Set([...order, ...Object.keys(provCounts)])].filter(p => provCounts[p]);
+                return (
+                  <>
+                    <div style={{ height: "28px", borderRadius: "6px", background: "#1a2332", overflow: "hidden", display: "flex", marginBottom: "16px" }}>
+                      {sorted.map(p => {
+                        const pct = Math.round((provCounts[p] / total) * 100);
+                        return (
+                          <div key={p} style={{
+                            width: `${pct}%`, background: PROVIDER_COLORS[p] ?? "#6b7280",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            fontSize: "11px", fontWeight: 700, color: "#000",
+                            transition: "width 0.5s ease", minWidth: pct > 5 ? undefined : 0,
+                          }}>
+                            {pct > 8 ? `${pct}%` : ""}
+                          </div>
+                        );
+                      })}
                     </div>
-                    <div style={{
-                      width: `${cloudPct}%`, background: "linear-gradient(90deg, #1e3a5f, #60a5fa)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: "11px", fontWeight: 700, color: "#fff",
-                      transition: "width 0.5s ease",
-                    }}>
-                      {cloudPct > 10 ? `${cloudPct}%` : ""}
+                    <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", fontSize: "13px" }}>
+                      {sorted.map(p => (
+                        <span key={p} style={{ color: PROVIDER_COLORS[p] ?? "#6b7280" }}>
+                          {PROVIDER_ICONS[p] ?? "○"} {p} — {provCounts[p]} req ({Math.round((provCounts[p]/total)*100)}%)
+                          {p !== "ollama" && p !== "tool" ? ` · $${estimateCost(receipts.filter(r => (r.decision?.provider ?? "unknown") === p)).toFixed(4)}` : " · $0.00"}
+                        </span>
+                      ))}
                     </div>
-                  </div>
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: "24px", fontSize: "13px" }}>
-                <span><span style={{ color: "#4ade80" }}>⬡ Local (ollama)</span> — {localCount} requests · $0.00</span>
-                <span><span style={{ color: "#60a5fa" }}>◎ Cloud (openai + modelstudio)</span> — {cloudCount} requests · ${estimateCost(receipts.filter(r => r.decision?.provider !== "ollama")).toFixed(4)}</span>
-              </div>
+                  </>
+                );
+              })()}
             </div>
 
             {/* Tier breakdown + Provider breakdown */}
@@ -332,10 +349,10 @@ export default function DashboardPage() {
                     }}>
                       {r.decision?.tier ?? "?"}
                     </span>
-                    <span style={{ color: "#6b7280" }}>
+                    <span style={{ color: PROVIDER_COLORS[r.decision?.provider ?? (r.request?.kind === "tools" ? "tool" : "unknown")] ?? "#6b7280" }}>
                       {PROVIDER_ICONS[r.decision?.provider] ?? "○"} {r.decision?.provider ?? "?"}
                     </span>
-                    <span style={{ color: "#8b949e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <span style={{ color: PROVIDER_COLORS[r.decision?.provider ?? "unknown"] ?? "#8b949e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {r.decision?.model ?? "unknown"}
                       {r.decision?.escalated && r.decision?.provider !== "ollama" && (
                         <span style={{ color: "#f59e0b", marginLeft: "8px", fontSize: "10px" }}>↑ cloud</span>
