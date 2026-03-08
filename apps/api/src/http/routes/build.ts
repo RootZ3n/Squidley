@@ -153,7 +153,7 @@ function getApiKey(cfg: any, provider: string): string {
   return "";
 }
 
-async function callTier(cfg: any, tierName: string, fallbackName: string, messages: { role: string; content: string }[], system?: string): Promise<string> {
+async function callTier(cfg: any, tierName: string, fallbackName: string, messages: { role: string; content: string }[], system?: string, maxTokens?: number): Promise<string> {
   const tier = resolveTier(cfg, tierName, fallbackName);
   const { provider, model } = tier;
 
@@ -172,7 +172,7 @@ async function callTier(cfg: any, tierName: string, fallbackName: string, messag
     const { anthropicChat } = await import("@zensquid/provider-anthropic");
     const apiKey = getApiKey(cfg, "anthropic");
     if (!apiKey) throw new Error("Missing ANTHROPIC_API_KEY");
-    const out = await anthropicChat({ apiKey, model, system, messages: messages as any });
+    const out = await anthropicChat({ apiKey, model, system, messages: messages as any, ...(maxTokens ? { max_tokens: maxTokens } : {}) });
     return out.output ?? "";
   }
 
@@ -318,6 +318,8 @@ RULES:
 - For server.ts patches, use anchor-based insertion pointing to an EXACT existing import or registration line
 - anchor_position "after" means insert the new line immediately after the anchor line
 - is_new_file: true for files that do not exist yet
+- new_str MUST be complete and never truncated — include the full file content for new files
+- ANCHOR must be set: use "new file" for new files, or an exact existing line for edits
 
 Return ONLY this JSON:
 {
@@ -345,7 +347,7 @@ Return ONLY this JSON:
 }`;
 
     const raw = await callTier(cfg, tier, fallback, [{ role: "user", content: prompt }],
-      "You are a precise build planner. Return only valid JSON, no markdown, no explanation.");
+      "You are a precise build planner. Return only valid JSON, no markdown, no explanation.", 4096);
     const plan: BuildPlan = extractJson(raw);
 
     // Extract patches from tasks
