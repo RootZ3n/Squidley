@@ -702,7 +702,7 @@ function buildToolCatalogBlock(args: { available_tools: string[]; tools?: ToolLi
   lines.push("# HOW TO USE TOOLS");
   lines.push("1) Only propose tools listed in available_tools. Never propose unknown tool ids.");
   lines.push("2) Safe read-only tools run automatically — do NOT ask permission for them.");
-  lines.push("   Examples: rg.search, fs.read, fs.tree, git.status/git.diff/git.log, browser.search/visit/extract/screenshot.");
+  lines.push("   Examples: rg.search, fs.read, fs.tree, git.status/git.diff/git.log, web.search, http.get.");
   lines.push("3) Ask for approval ONLY before state-changing tools.");
   lines.push("   Examples: fs.write, fs.patch, proc.exec, systemctl.user, fs.organize, job.fill-form.");
   lines.push("4) When approval is needed: ONE short sentence, ONE yes/no question, then stop.");
