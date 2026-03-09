@@ -23,6 +23,9 @@ const PRICING: Record<string, { input: number; output: number }> = {
   "qwen3-max-2025-09-23":       { input: 1.60,  output: 6.40 },
   "gpt-5-mini":                 { input: 0.15,  output: 0.60 },
   "gpt-5-mini-2025-08-07":      { input: 0.15,  output: 0.60 },
+  "claude-haiku-4-5-20251001":   { input: 0.80,  output: 4.00 },
+  "claude-haiku-4-5":            { input: 0.80,  output: 4.00 },
+  "claude-haiku-3-5":            { input: 0.80,  output: 4.00 },
   "qwen2.5:14b-instruct":       { input: 0.00,  output: 0.00 },
   "qwen3-coder:30b":            { input: 0.00,  output: 0.00 },
 };
@@ -120,8 +123,19 @@ function extractTokensAndCost(receipt: any): TokenStats {
 }
 
 async function listReceiptFiles(receiptsDir: string): Promise<string[]> {
-  const files = await readdir(receiptsDir).catch(() => []);
-  return files.filter((f) => f.endsWith(".json"));
+  const allFiles: string[] = [];
+  const entries = await readdir(receiptsDir, { withFileTypes: true }).catch(() => []);
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      const subFiles = await readdir(path.join(receiptsDir, entry.name)).catch(() => []);
+      for (const f of subFiles) {
+        if (f.endsWith(".json")) allFiles.push(path.join(receiptsDir, entry.name, f));
+      }
+    } else if (entry.name.endsWith(".json")) {
+      allFiles.push(path.join(receiptsDir, entry.name));
+    }
+  }
+  return allFiles;
 }
 
 async function readReceipts(receiptsDir: string, limit: number): Promise<any[]> {
@@ -131,7 +145,7 @@ async function readReceipts(receiptsDir: string, limit: number): Promise<any[]> 
   // Read newest-first by filename sort is not guaranteed; we’ll sort by created_at after parse
   for (const f of files) {
     try {
-      const raw = await readFile(path.resolve(receiptsDir, f), "utf-8");
+      const raw = await readFile(f, "utf-8");
       parsed.push(JSON.parse(raw));
     } catch {
       // ignore bad files
@@ -292,8 +306,13 @@ export async function registerTokenMonitorRoutes(
   app.get("/skills/token-monitor/today", { preHandler: requireAdmin }, async (req, reply) => {
     const receiptsDir = deps.receiptsDir();
     const receipts = await readReceipts(receiptsDir, 500);
-    const today = new Date().toISOString().slice(0, 10);
-    const todayReceipts = receipts.filter((r: any) => String(r?.created_at ?? "").startsWith(today));
+    // Rolling 24-hour window instead of calendar day
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    const todayReceipts = receipts.filter((r: any) => {
+      const created = String(r?.created_at ?? "");
+      if (!created) return false;
+      return new Date(created).getTime() >= cutoff;
+    });
     const totals: TokenStats = { tokens_in: 0, tokens_out: 0, tokens_total: 0, cost: 0 };
     const by_model: Record<string, any> = {};
     for (const r of todayReceipts) {
@@ -309,7 +328,7 @@ export async function registerTokenMonitorRoutes(
     const last = receipts[0];
     return reply.send({
       ok: true,
-      date: today,
+      date: new Date().toISOString().slice(0, 10),
       count: todayReceipts.length,
       totals,
       models,
