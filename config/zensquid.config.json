@@ -14,15 +14,9 @@
     },
     {
       "name": "chat",
-      "provider": "anthropic",
-      "model": "claude-haiku-4-5-20251001",
-      "role": "Tier 1: Chat Mode (Haiku default)"
-    },
-    {
-      "name": "haiku",
-      "provider": "anthropic",
-      "model": "claude-haiku-4-5-20251001",
-      "role": "Tier 1b: Chat compare \u2014 Haiku (fast, cheap, Anthropic)"
+      "provider": "modelstudio",
+      "model": "qwen3.5-plus",
+      "role": "Tier 1: Chat Mode (Qwen3.5)"
     },
     {
       "name": "chat_fallback",
@@ -31,16 +25,10 @@
       "role": "Tier 1: Fallback: OpenAI if ModelStudio fails"
     },
     {
-      "name": "chat_flash",
-      "provider": "modelstudio",
-      "model": "qwen-flash-us",
-      "role": "Tier 1: Chat Mode (Flash compare)"
-    },
-    {
       "name": "plan",
-      "provider": "modelstudio",
-      "model": "qwen3.5-plus",
-      "role": "Tier 2: Planning Mode (qwen3.5-plus)"
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5-20251001",
+      "role": "Tier 2: Planning Mode (haiku)"
     },
     {
       "name": "build",
@@ -110,11 +98,11 @@
   "build_pipeline": {
     "_comment": "Each stage points to a tier name from the tiers array. Change these without touching code.",
     "plan_tier": "claude-sonnet",
-    "patch_tier": "chat",
+    "patch_tier": "plan",
     "review_tier": "claude-sonnet",
-    "plan_fallback": "plan",
-    "patch_fallback": "chat",
-    "review_fallback": "chat"
+    "plan_fallback": "chat",
+    "patch_fallback": "plan",
+    "review_fallback": "plan"
   },
   "workspace_root": "/hogwarts/AI/squidley",
   "memory_root": "/hogwarts/AI/squidley/memory",

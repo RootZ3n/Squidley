@@ -8,6 +8,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
+import { newReceiptId } from "@zensquid/core/dist/receipts.js";
 
 function zensquidRoot(): string {
   return process.env.ZENSQUID_ROOT ?? process.cwd();
@@ -415,6 +416,8 @@ export async function runAgent(args: {
   // ── Post-process ──────────────────────────────────────────────────────────
   let modelOutput = "";
   let writtenFiles: string[] = [];
+  let postProcessTokensIn = 0;
+  let postProcessTokensOut = 0;
 
   console.log("DEBUG agent post_process:", !!agent.post_process, "results with stdout:", results.filter(r => r.ok && r.stdout).length);
   if (agent.post_process && results.some((r) => r.ok && r.stdout)) {
@@ -498,6 +501,9 @@ export async function runAgent(args: {
         modelOutput = String(
           data?.choices?.[0]?.message?.content ?? data?.response ?? ""
         ).trim();
+        // Capture post-process token usage for receipt
+        postProcessTokensIn = data?.usage?.prompt_tokens ?? data?.usage?.input_tokens ?? 0;
+        postProcessTokensOut = data?.usage?.completion_tokens ?? data?.usage?.output_tokens ?? 0;
         console.log("DEBUG modelOutput length:", modelOutput.length, "write_to:", agent.post_process.write_to);
 
         if (agent.post_process.write_to && modelOutput) {
@@ -572,6 +578,60 @@ export async function runAgent(args: {
       summary,
       error: `Failed to write thread: ${String(e?.message ?? e)}`,
     };
+  }
+
+  // Write agent receipt so Squidvision and token monitor can track it
+  try {
+    const receipt_id = newReceiptId();
+    const agentReceipt = {
+      schema: "zensquid.receipt.v1",
+      receipt_id,
+      created_at: new Date().toISOString(),
+      node: process.env.ZENSQUID_NODE ?? "ZenPop",
+      component: "agent",
+      component_name: agentName,
+      request: {
+        input: `[agent:${agentName}] ${focus ?? "default"}`,
+        kind: "agent"
+      },
+      decision: {
+        tier: "agent",
+        provider: agent.post_process?.provider ?? "local",
+        model: agent.post_process?.model ?? "none",
+        escalated: false,
+        escalation_reason: null
+      },
+      provider_response: {
+        usage: {
+          prompt_tokens: postProcessTokensIn,
+          completion_tokens: postProcessTokensOut,
+          total_tokens: postProcessTokensIn + postProcessTokensOut
+        }
+      },
+      agent_run: {
+        run_id,
+        agent: agentName,
+        focus: focus ?? "default",
+        steps_ran: results.length,
+        pass,
+        fail,
+        written_files: writtenFiles,
+        model_processed: Boolean(modelOutput && !modelOutput.startsWith("Post-process error")),
+        surfaced_to_user: true
+      },
+      status: fail === 0 ? "completed" : "failed",
+      surfaced_to_user: true,
+      category: "agents"
+    };
+    const agentReceiptsDir = path.resolve(zensquidRoot(), "data", "receipts", "agents");
+    await fs.mkdir(agentReceiptsDir, { recursive: true });
+    await fs.writeFile(
+      path.resolve(agentReceiptsDir, `${receipt_id}.json`),
+      JSON.stringify(agentReceipt, null, 2),
+      "utf-8"
+    );
+  } catch (receiptErr: any) {
+    console.warn("[agentRunner] receipt write failed:", receiptErr?.message ?? receiptErr);
   }
 
   return {

@@ -28,7 +28,7 @@ Avoid: pure call center, tier 1 only, sales-disguised-as-support, unpaid interns
 5. browser.visit(https://www.linkedin.com/jobs/search/?keywords=tier+2+IT+support&location=Oklahoma+City%2C+OK)
 
 ## Post process
-model: qwen2.5:14b-instruct
+model: qwen3.5-plus
 write_to: memory/jobs
 prompt_start
 Today's date is {date}. Use this date for all Date fields.

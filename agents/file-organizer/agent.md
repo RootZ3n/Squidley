@@ -20,8 +20,8 @@ Survey the target directory and produce a categorized organization plan.
 4. proc.exec(du -sh ~/Downloads ~/Documents ~/Desktop 2>/dev/null)
 
 ## Post process
-provider: ollama
-model: qwen2.5:14b-instruct
+provider: anthropic
+model: claude-sonnet-4-6
 write_to: memory/intel
 
 ## Post process prompt

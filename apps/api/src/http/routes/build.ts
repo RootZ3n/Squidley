@@ -120,7 +120,7 @@ async function writeStageReceipt(root: string, run: BuildRun, stage: StageResult
     receipt_id,
     created_at: stage.started_at,
     node,
-    request: { input: `[build:${stage.stage}] ${run.goal}`, kind: "tool" },
+    request: { input: `[build:${stage.stage}] ${run.goal}`, kind: "build" },
     decision: { tier: "build", provider: "pipeline", model: stage.model ?? "pipeline", escalated: false, escalation_reason: null },
     build_event: { run_id: run.run_id, stage: stage.stage, status: stage.status, error: stage.error ?? null }
   };

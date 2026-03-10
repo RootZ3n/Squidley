@@ -23,6 +23,7 @@ import StatusWidget from "./components/StatusWidget";
 import ReceiptsPanel from "./components/ReceiptsPanel";
 import BuildPanel from "./components/BuildPanel";
 import DiagnosticsPanel from "./components/DiagnosticsPanel";
+import SquidVisionPanel from "../src/components/SquidVisionPanel";
 
 type Msg = { role: "assistant" | "user"; content: string };
 
@@ -240,7 +241,7 @@ export default function Page() {
 
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  const [tab, setTab] = useState<"chat" | "tools" | "learn" | "image" | "receipts" | "build" | "diagnostics">("chat");
+  const [tab, setTab] = useState<"chat" | "tools" | "learn" | "image" | "receipts" | "build" | "diagnostics" | "squidvision">("chat");
   const [goal, setGoal] = useState<string>("Build web + run Playwright tests");
   const [plan, setPlan] = useState<ToolPlanV1>(() => makePlanFromGoal("Build web + run Playwright tests"));
 
@@ -535,7 +536,7 @@ export default function Page() {
       const forcedTier = forced ? tierByName(forced) : null;
       const mode = forced ? "force_tier" : "auto";
       const force_tier = forced ? forced : undefined;
-      const isNonLocal = forcedTier ? forcedTier.provider !== "ollama" : false;
+      const isNonLocal = forcedTier ? forcedTier.provider !== "ollama" : true;
       const reason = isNonLocal ? "User selected tier in UI" : undefined;
 
       const payload: any = {
@@ -736,6 +737,7 @@ export default function Page() {
             <button data-testid="tab-image" style={tabBtn(tab === "image", "255,180,60")} onClick={() => setTab("image")}>{pendingImagePrompt ? "🎨 Image •" : "🎨 Image"}</button>
             <button data-testid="tab-receipts" style={tabBtn(tab === "receipts", "255,100,140")} onClick={() => setTab("receipts")}>🧾 Receipts</button>
             <button data-testid="tab-build" style={tabBtn(tab === "build", "255,140,40")} onClick={() => setTab("build")}>🔨 Build</button>
+            <button data-testid="tab-squidvision" style={tabBtn(tab === "squidvision", "180,100,255")} onClick={() => setTab("squidvision")}>👁 Squidvision</button>
             <button data-testid="tab-diagnostics" style={tabBtn(tab === "diagnostics", "100,220,160")} onClick={() => setTab("diagnostics")}>🩺 Diagnostics</button>
           </div>
 
@@ -1032,6 +1034,7 @@ export default function Page() {
           {tab === "receipts" && <ReceiptsPanel />}
           {tab === "build" && <BuildPanel adminToken={adminToken} />}
           {tab === "diagnostics" && <DiagnosticsPanel />}
+          {tab === "squidvision" && <SquidVisionPanel adminToken={adminToken} />}
           
           {/* ── Tool Loop tab ── */}
           {tab === "tools" && (

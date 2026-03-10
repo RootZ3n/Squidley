@@ -85,3 +85,6 @@ memory/outreach/
 memory/pipeline/
 memory/responses/
 memory/resumes/
+
+# local backup archives
+*.zip

@@ -286,9 +286,10 @@ function extractTopicFocus(text: string): string | undefined {
  * Focus priority:
  * 1. Clean path from user input (~/ or /absolute) — most reliable
  * 2. Clean path from Squidley's response
- * 3. Named target from user input ("on the openclaw repo")
- * 4. Topic phrase from user input ("about proc.exec best practices")
+ * 3. Topic phrase from user input ("called repo-summary", "about proc.exec")
+ * 4. Named target from user input ("on the openclaw repo")
  * 5. Topic phrase from Squidley's response
+ * 6. Scan conversation history for topic (multi-turn fallback)
  */
 export function extractAgentProposal(
   text: string,
@@ -306,17 +307,17 @@ export function extractAgentProposal(
       // Priority 2: clean path from Squidley's response
       if (!focus) focus = extractCleanPath(text);
 
-      // Priority 3: named target from user input e.g. "on the openclaw repo"
+      // Priority 3: topic phrase from user input (includes "called X" / "named X")
+      if (!focus && userInput) {
+        focus = extractTopicFocus(userInput);
+      }
+
+      // Priority 4: named target from user input e.g. "on the openclaw repo"
       if (!focus && userInput) {
         const km = userInput.match(
           /(?:on|at|in|for|inspect|analyze|survey|check)\s+(?:the\s+)?([a-zA-Z0-9_\-]+(?:\s+[a-zA-Z0-9_\-]+)?)\s*(?:repo|dir|directory|folder|codebase|project)?/i
         );
         if (km?.[1]) focus = km[1].trim();
-      }
-
-      // Priority 4: topic phrase from user input e.g. "about proc.exec best practices"
-      if (!focus && userInput) {
-        focus = extractTopicFocus(userInput);
       }
 
       // Priority 5: topic phrase from Squidley's response
@@ -396,4 +397,3 @@ export function extractImagePrompt(text: string, userInput?: string): ImagePromp
   if (!prompt) return null;
   return { prompt, intent, negative };
 }
-

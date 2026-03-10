@@ -325,16 +325,25 @@ export async function registerTokenMonitorRoutes(
       addToAgg(by_model[key], ts);
     }
     const models = Object.values(by_model).sort((a: any, b: any) => b.cost - a.cost || b.tokens_total - a.tokens_total);
-    const last = receipts[0];
+    // Use last CHAT receipt for active model — tool/heartbeat receipts pollute this display
+    const lastChatReceipt = receipts.find((r: any) => {
+      const kind = r?.request?.kind ?? r?.kind ?? null;
+      const tier = r?.decision?.tier ?? null;
+      return kind === "chat" && tier !== "local" && tier !== "heartbeat" && tier !== "tool";
+    }) ?? receipts.find((r: any) => {
+      const kind = r?.request?.kind ?? r?.kind ?? null;
+      return kind === "chat";
+    }) ?? receipts[0];
+
     return reply.send({
       ok: true,
       date: new Date().toISOString().slice(0, 10),
       count: todayReceipts.length,
       totals,
       models,
-      active_model: last?.decision?.model ?? null,
-      active_provider: last?.decision?.provider ?? null,
-      active_tier: last?.decision?.tier ?? null,
+      active_model: lastChatReceipt?.decision?.model ?? null,
+      active_provider: lastChatReceipt?.decision?.provider ?? null,
+      active_tier: lastChatReceipt?.decision?.tier ?? null,
     });
   });
 }

@@ -22,8 +22,8 @@ Produce a structured report showing what happened AND how different outlets fram
 8. web.search(NPR top stories today)
 
 ## Post process
-provider: ollama
-model: qwen2.5:14b-instruct
+provider: openai
+model: gpt-5-mini
 write_to: memory/intel
 
 ## Post process prompt

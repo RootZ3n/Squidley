@@ -66,13 +66,12 @@ export async function getEffectivePolicy(cfg: any) {
 }
 
 export function effectiveSafetyZone(cfg: any): { effective: SafetyZone; source: "runtime" | "config" } {
-  // Forge is the only zone on ZenPop
+  // ZenPop is always forge — no other zones exist
   return { effective: "forge", source: "config" };
 }
 
 export type StrictSource = "runtime" | "config" | "default";
 export async function effectiveStrictLocal(cfg: any): Promise<{ effective: boolean; source: StrictSource }> {
-  const fromCfg = (cfg as any)?.meta?.safety_zone;
-  const localFirst = Boolean((cfg as any)?.meta?.local_first);
-  return { effective: localFirst, source: "config" };
+  // strict_local_only is permanently OFF — local model is for heartbeat and tools only
+  return { effective: false, source: "config" };
 }

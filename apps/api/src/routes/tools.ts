@@ -79,7 +79,7 @@ export const toolsRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
       const result = await runTool({
         workspace: "squidley",
         tool_id: "fs.write",
-        args: { path: body?.path ?? body?.rel ?? "", text: body?.text ?? body?.content ?? "" },
+        args: { path: body?.path ?? body?.rel ?? "", content: body?.content ?? body?.text ?? "" },
         admin_token,
       });
       return reply.send({ ok: result.ok, path: body?.path, receipt_id: result.receipt_id });

@@ -75,6 +75,7 @@ import { startTelegramBot, stopTelegramBot, registerTelegramRoutes } from "./htt
 import { registerImageRoutes } from "./http/routes/image.js";
 import { registerBuildRoutes } from "./http/routes/build.js";
 import { registerPingRoutes } from "./http/routes/ping.js";
+import { registerSquidvisionRoutes } from "./http/routes/squidvision.js";
 import { writeTypedReceipt } from "./receipts/logger.js";
 import {
   storePendingImage,
@@ -249,15 +250,8 @@ async function effectiveStrictLocal(cfg: any): Promise<{ effective: boolean; sou
 }
 
 function effectiveSafetyZone(cfg: any): { effective: SafetyZone; source: "runtime" | "config" } {
-  if (isSafetyZone(runtimeState.safety_zone)) {
-    return { effective: runtimeState.safety_zone, source: "runtime" };
-  }
-
-  const fromCfg = (cfg as any)?.meta?.safety_zone;
-  if (isSafetyZone(fromCfg)) return { effective: fromCfg, source: "config" };
-
-  const localFirst = Boolean((cfg as any)?.meta?.local_first);
-  return { effective: localFirst ? "workspace" : "diagnostics", source: "config" };
+  // ZenPop is always forge — no other zones
+  return { effective: "forge", source: "config" };
 }
 
 function preview(s: unknown, n = 100): string {
@@ -1007,17 +1001,18 @@ if (!isBuildLikeMode) {
           { role: "user" as const, content: toolContext },
         ];
 
-        const forcedTierName = body.force_tier ?? null;
-        const forcedTierCfg = forcedTierName ? cfg2.tiers?.find((t: any) => t.name === forcedTierName) : null;
+        // Post-tool analysis always uses the chat tier — never auto-route to local model
+        const chatTierCfg = cfg2.tiers?.find((t: any) => t.name === "chat");
+        const analysisTierCfg = chatTierCfg ?? cfg2.tiers?.[0];
         let analysisOut: { output: string };
 
-        if (forcedTierCfg?.provider === "anthropic") {
+        if (analysisTierCfg?.provider === "anthropic") {
           const { anthropicChat } = await import("@zensquid/provider-anthropic");
           const antKey = (process.env[(cfg2 as any)?.providers?.anthropic?.env_key ?? "ANTHROPIC_API_KEY"] ?? "").trim();
           const systemMsg2 = analysisMessages.find((m: any) => m.role === "system");
           const nonSystem2 = analysisMessages.filter((m: any) => m.role !== "system");
           const antOut = await anthropicChat({
-            model: forcedTierCfg.model,
+            model: analysisTierCfg.model,
             system: systemMsg2?.content as string | undefined,
             messages: nonSystem2 as any,
             apiKey: antKey,
@@ -1025,10 +1020,21 @@ if (!isBuildLikeMode) {
             temperature: 0.2
           });
           analysisOut = { output: antOut.output };
+        } else if (analysisTierCfg?.provider === "modelstudio" || analysisTierCfg?.provider === "openai") {
+          const msKey = (process.env[(cfg2 as any)?.providers?.[analysisTierCfg.provider]?.env_key ?? ""] ?? "").trim();
+          const provCfg = (cfg2.providers as any)?.[analysisTierCfg.provider] ?? {};
+          const msOut = await modelstudioChat({
+            apiKey: msKey,
+            baseUrl: provCfg.base_url,
+            model: analysisTierCfg.model,
+            messages: analysisMessages as any,
+          });
+          analysisOut = { output: msOut.content };
         } else {
+          // ollama fallback
           analysisOut = await ollamaChat({
             baseUrl: cfg2.providers.ollama.base_url,
-            model: (chooseTier(cfg2, { input: toolContext, mode: "auto" })).tier.model,
+            model: analysisTierCfg?.model ?? "qwen2.5:14b-instruct",
             messages: analysisMessages,
           });
         }
@@ -1236,7 +1242,7 @@ if (!isBuildLikeMode) {
     }
   }
 
-  const needsReason = ["big_brain", "plan"].includes(decision.tier.name);
+  const needsReason = ["big_brain"].includes(decision.tier.name);
   const hasReason = typeof normalized.reason === "string" && normalized.reason.trim().length > 0;
 
   if (needsReason && (cfg as any)?.budgets?.escalation_requires_reason && !hasReason) {
@@ -2336,6 +2342,7 @@ const host = bindHostRaw;
 await registerSchedulerRoutes(app);
 await registerTelegramRoutes(app);
 await registerPingRoutes(app);
+await registerSquidvisionRoutes(app, { zensquidRoot, receiptsDir });
 await app.listen({ port, host });
 
 await startScheduler(app);

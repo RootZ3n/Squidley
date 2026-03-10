@@ -62,13 +62,16 @@ export default function ZsqHeader() {
   const [pendingTool, setPendingTool] = useState<string | null>(null);
 
   const [chatInput, setChatInput] = useState("");
-  const [chatMode, setChatMode] = useState<"auto" | "force_local" | "force_tier">("auto");
+  const [chatMode, setChatMode] = useState<"auto" | "force_tier">("auto");
   const [forceTier, setForceTier] = useState<string>("");
   const [reason, setReason] = useState<string>("");
   const [chatOut, setChatOut] = useState<string>("");
-  const [chatMeta, setChatMeta] = useState<{ tier?: string; provider?: string; model?: string; escalation_reason?: string }>(
-    {}
-  );
+  const [chatMeta, setChatMeta] = useState<{
+    tier?: string;
+    provider?: string;
+    model?: string;
+    escalation_reason?: string;
+  }>({});
 
   const tiers = snapshot?.tiers ?? [];
   const tierNames = useMemo(() => tiers.map((t) => t.name), [tiers]);
@@ -95,40 +98,6 @@ export default function ZsqHeader() {
     return () => clearInterval(id);
   }, []);
 
-  const strictLabel = runtime
-    ? `${String(runtime.effective.strict_local_only)} (source=${runtime.effective.strict_local_only_source})`
-    : "?";
-
-  const safetyLabel = runtime
-    ? `${runtime.effective.safety_zone} (source=${runtime.effective.safety_zone_source})`
-    : "unknown";
-
-  async function setStrict(value: boolean | null) {
-    setBusy("strict");
-    setErr(null);
-    try {
-      await zpost("/budgets/strict_local_only", { value });
-      await refresh();
-    } catch (e: any) {
-      setErr(String(e?.message ?? e));
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function setSafetyZone(value: string | null) {
-    setBusy("zone");
-    setErr(null);
-    try {
-      await zpost("/runtime/safety_zone", { value });
-      await refresh();
-    } catch (e: any) {
-      setErr(String(e?.message ?? e));
-    } finally {
-      setBusy(null);
-    }
-  }
-
   async function sendChat() {
     const input = chatInput.trim();
     if (!input) return;
@@ -139,10 +108,14 @@ export default function ZsqHeader() {
     setChatMeta({});
 
     try {
-      const payload: any = { input, mode: chatMode, session_id: sessionId ?? undefined };
+      const payload: any = {
+        input,
+        mode: chatMode,
+        session_id: sessionId ?? undefined,
+        reason: "User selected tier in UI"
+      };
 
       if (chatMode === "force_tier") payload.force_tier = (forceTier || "").trim() || undefined;
-      if ((reason || "").trim()) payload.reason = reason.trim();
 
       const r = await zpost<any>("/chat", payload);
       setChatOut(String(r?.output ?? ""));
@@ -161,6 +134,10 @@ export default function ZsqHeader() {
     }
   }
 
+  const doctorLabel = doctor?.summary
+    ? `pass=${doctor.summary.pass} warn=${doctor.summary.warn} fail=${doctor.summary.fail}`
+    : `ok=${String(doctor?.ok ?? "?")}`;
+
   return (
     <section
       style={{
@@ -175,46 +152,14 @@ export default function ZsqHeader() {
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
           <Chip label="API" value="/api/zsq → 18790" />
           <Chip label="Node" value={snapshot?.node ?? "?"} />
-          <Chip label="Strict" value={strictLabel} />
-          <Chip label="Zone" value={safetyLabel} />
-          <Chip
-            label="Doctor"
-            value={
-              doctor?.summary
-                ? `ok=${String(doctor.ok)} pass=${doctor.summary.pass} warn=${doctor.summary.warn} fail=${doctor.summary.fail}`
-                : `ok=${String(doctor?.ok ?? "?")}`
-            }
-          />
+          <Chip label="Zone" value="forge" />
+          <Chip label="Doctor" value={doctorLabel} />
         </div>
 
-        <div style={{ marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
           <button disabled={!!busy} onClick={() => refresh()} style={btn()}>
             Refresh
           </button>
-
-          <button disabled={busy === "strict"} onClick={() => setStrict(true)} style={btn()}>
-            Local ON
-          </button>
-          <button disabled={busy === "strict"} onClick={() => setStrict(false)} style={btn()}>
-            Local OFF
-          </button>
-          <button disabled={busy === "strict"} onClick={() => setStrict(null)} style={btn()}>
-            Local CLEAR
-          </button>
-
-          <select
-            disabled={busy === "zone"}
-            value={runtime?.runtime?.safety_zone ?? ""}
-            onChange={(e) => setSafetyZone(e.target.value ? e.target.value : null)}
-            style={{
-              ...btn(),
-              paddingRight: 28
-            }}
-          >
-            <option value="">Zone: (no override)</option>
-            <option value="workspace">workspace</option>
-            <option value="forge">forge</option>
-          </select>
         </div>
       </div>
 
@@ -230,7 +175,7 @@ export default function ZsqHeader() {
           <textarea
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
-            placeholder="Ask ZenSquid… (infra/tooling → local; code/diffs → coder; otherwise router decides)"
+            placeholder="Ask ZenSquid…"
             rows={3}
             style={{
               width: "100%",
@@ -245,7 +190,6 @@ export default function ZsqHeader() {
             <label style={{ fontSize: 12, opacity: 0.8 }}>Mode</label>
             <select value={chatMode} onChange={(e) => setChatMode(e.target.value as any)} style={btn()}>
               <option value="auto">auto</option>
-              <option value="force_local">force_local</option>
               <option value="force_tier">force_tier</option>
             </select>
 
@@ -264,35 +208,21 @@ export default function ZsqHeader() {
               ))}
             </select>
 
-            <label style={{ fontSize: 12, opacity: 0.8 }}>Reason</label>
-            <input
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Required for cloud escalation"
-              style={{
-                ...btn(),
-                width: 260,
-                cursor: "text"
-              }}
-            />
-
             <button disabled={busy === "chat"} onClick={sendChat} style={btn(true)}>
               Send
             </button>
           </div>
 
           {(chatMeta?.tier || chatOut) && (
-            <div
-              style={{
-                border: "1px solid rgba(0,0,0,0.12)",
-                borderRadius: 12,
-                padding: 12
-              }}
-            >
+            <div style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", fontSize: 12, opacity: 0.85 }}>
                 {chatMeta?.tier && <span><b>tier</b>={chatMeta.tier}</span>}
                 {chatMeta?.provider && <span><b>provider</b>={chatMeta.provider}</span>}
-                {chatMeta?.model && <span><b>model</b>={<span style={{ fontFamily: "monospace" }}>{chatMeta.model}</span>}</span>}
+                {chatMeta?.model && (
+                  <span>
+                    <b>model</b>=<span style={{ fontFamily: "monospace" }}>{chatMeta.model}</span>
+                  </span>
+                )}
                 {chatMeta?.escalation_reason && <span><b>why</b>={chatMeta.escalation_reason}</span>}
               </div>
 

@@ -16,8 +16,8 @@ Survey existing skills first, then draft and write the skill, then verify it.
 3. skill.scan(skills/{focus_slug}/skill.md)
 4. fs.read(skills/{focus_slug}/skill.md)
 ## Post process
-provider: ollama
-model: qwen2.5:14b-instruct
+provider: anthropic
+model: claude-haiku-4-5-20251001
 write_to: memory/intel
 ## Post process prompt
 prompt_start

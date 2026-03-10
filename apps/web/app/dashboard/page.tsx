@@ -229,7 +229,7 @@ export default function DashboardPage() {
               {(() => {
                 const provCounts: Record<string, number> = {};
                 for (const r of receipts) {
-                  const p = r.decision?.provider ?? r.request?.kind === "tools" ? "tool" : "unknown";
+                  const p = r.decision?.provider ?? (r.request?.kind === "tools" ? "tool" : "unknown");
                   provCounts[p] = (provCounts[p] ?? 0) + 1;
                 }
                 const total = receipts.length || 1;
