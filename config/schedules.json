@@ -7,7 +7,7 @@
       "enabled": true,
       "label": "Daily news briefing — runs at 4:50am, ready for 5am",
       "focus": null,
-      "last_run": "2026-03-10T09:50:00.003Z",
+      "last_run": "2026-03-11T09:50:00.001Z",
       "last_result": "pass"
     },
     {
@@ -17,7 +17,7 @@
       "enabled": true,
       "label": "Morning briefing — runs at 5:00am, pushes to Telegram",
       "focus": null,
-      "last_run": "2026-03-10T10:00:00.002Z",
+      "last_run": "2026-03-11T10:00:00.002Z",
       "last_result": "pass"
     },
     {
@@ -67,7 +67,7 @@
       "enabled": true,
       "label": "Proactive watcher — 5am and 4pm daily",
       "focus": null,
-      "last_run": "2026-03-10T21:00:00.000Z",
+      "last_run": "2026-03-11T21:00:00.002Z",
       "last_result": "pass"
     },
     {

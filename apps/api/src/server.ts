@@ -76,6 +76,8 @@ import { registerImageRoutes } from "./http/routes/image.js";
 import { registerBuildRoutes } from "./http/routes/build.js";
 import { registerPingRoutes } from "./http/routes/ping.js";
 import { registerSquidvisionRoutes } from "./http/routes/squidvision.js";
+import { registerMoreInputRoutes } from "./http/routes/moreinput.js";
+import { registerArchivumRoutes } from "./http/routes/archivum.js";
 import { writeTypedReceipt } from "./receipts/logger.js";
 import {
   storePendingImage,
@@ -86,7 +88,7 @@ import {
 
 type RequestKind = "chat" | "heartbeat" | "tool" | "system";
 
-const app = Fastify({ logger: true });
+const app = Fastify({ logger: true, bodyLimit: 52428800 }); // 50MB
 await app.register(corsPkg, { origin: true });
 
 app.get("/health", async () => ({ ok: true, name: "Squidley API" }));
@@ -2343,6 +2345,8 @@ await registerSchedulerRoutes(app);
 await registerTelegramRoutes(app);
 await registerPingRoutes(app);
 await registerSquidvisionRoutes(app, { zensquidRoot, receiptsDir });
+  await registerMoreInputRoutes(app, { zensquidRoot: zensquidRoot() });
+  await registerArchivumRoutes(app, { zensquidRoot: zensquidRoot() });
 await app.listen({ port, host });
 
 await startScheduler(app);

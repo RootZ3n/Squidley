@@ -24,6 +24,8 @@ import ReceiptsPanel from "./components/ReceiptsPanel";
 import BuildPanel from "./components/BuildPanel";
 import DiagnosticsPanel from "./components/DiagnosticsPanel";
 import SquidVisionPanel from "../src/components/SquidVisionPanel";
+import MoreInputPanel from "../src/components/MoreInputPanel";
+import ArchivumPanel from "../src/components/ArchivumPanel";
 
 type Msg = { role: "assistant" | "user"; content: string };
 
@@ -241,7 +243,7 @@ export default function Page() {
 
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  const [tab, setTab] = useState<"chat" | "tools" | "learn" | "image" | "receipts" | "build" | "diagnostics" | "squidvision">("chat");
+  const [tab, setTab] = useState<"chat" | "tools" | "learn" | "image" | "moreinput" | "archivum" | "receipts" | "build" | "diagnostics" | "squidvision">("chat");
   const [goal, setGoal] = useState<string>("Build web + run Playwright tests");
   const [plan, setPlan] = useState<ToolPlanV1>(() => makePlanFromGoal("Build web + run Playwright tests"));
 
@@ -561,7 +563,7 @@ export default function Page() {
       const isError = !res.ok || json?.statusCode >= 400;
       const out = isError
         ? `⚠️ ${json?.message ?? json?.error ?? `HTTP ${res.status}`}${json?.receipt_id ? `\nReceipt: ${json.receipt_id}` : ""}${json?.tier ? `\nTier: ${json.tier} (${json.provider})` : ""}`
-        : json?.output ?? json?.content ?? JSON.stringify(json, null, 2);
+        : json?.output ?? json?.response ?? json?.content ?? JSON.stringify(json, null, 2);
 
 
 
@@ -735,6 +737,8 @@ export default function Page() {
             <button data-testid="tab-tools" style={tabBtn(tab === "tools", "160,100,255")} onClick={() => setTab("tools")}>Tool Loop</button>
             <button data-testid="tab-learn" style={tabBtn(tab === "learn", "80,220,160")} onClick={() => { setTab("learn"); refreshOnboarding().catch(console.error); }}>Learn</button>
             <button data-testid="tab-image" style={tabBtn(tab === "image", "255,180,60")} onClick={() => setTab("image")}>{pendingImagePrompt ? "🎨 Image •" : "🎨 Image"}</button>
+            <button data-testid="tab-moreinput" style={tabBtn(tab === "moreinput", "100,220,255")} onClick={() => setTab("moreinput")}>📥 More Input</button>
+            <button data-testid="tab-archivum" style={tabBtn(tab === "archivum", "255,200,80")} onClick={() => setTab("archivum")}>📚 Archivum</button>
             <button data-testid="tab-receipts" style={tabBtn(tab === "receipts", "255,100,140")} onClick={() => setTab("receipts")}>🧾 Receipts</button>
             <button data-testid="tab-build" style={tabBtn(tab === "build", "255,140,40")} onClick={() => setTab("build")}>🔨 Build</button>
             <button data-testid="tab-squidvision" style={tabBtn(tab === "squidvision", "180,100,255")} onClick={() => setTab("squidvision")}>👁 Squidvision</button>
@@ -1035,6 +1039,8 @@ export default function Page() {
           {tab === "build" && <BuildPanel adminToken={adminToken} />}
           {tab === "diagnostics" && <DiagnosticsPanel />}
           {tab === "squidvision" && <SquidVisionPanel adminToken={adminToken} />}
+          {tab === "moreinput" && <MoreInputPanel />}
+          {tab === "archivum" && <ArchivumPanel />}
           
           {/* ── Tool Loop tab ── */}
           {tab === "tools" && (

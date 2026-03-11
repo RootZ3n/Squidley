@@ -118,10 +118,26 @@ export async function buildOrganizerPlan(
       }
     }
 
-    if (!entry.category) {
+    // Skip intentional-looking files: ALL CAPS names or no extension at root level
+    const nameNoExt = path.basename(entry.path, entry.ext);
+    const isIntentional = !entry.ext && nameNoExt === nameNoExt.toUpperCase() && nameNoExt.length > 3;
+    if (isIntentional) {
+      needsReview.push({ path: entry.path, reason: "Looks intentional (all-caps, no extension) — skipping" });
+    } else if (!entry.category) {
       needsReview.push({ path: entry.path, reason: `Unknown extension: ${entry.ext}` });
     } else if (entry.category === "__review__") {
       needsReview.push({ path: entry.path, reason: `Code file — needs manual review` });
+    } else if (entry.category === "Screenshots") {
+      // Sort screenshots into dated subfolders like Screenshots/2026-03-11/
+      const dateStr = entry.modified.toISOString().slice(0, 10);
+      const dest = path.join(baseDir, "Screenshots", dateStr, entry.name);
+      if (dest !== entry.path) {
+        moves.push({
+          from: entry.path,
+          to: dest,
+          reason: `screenshot → Screenshots/${dateStr}/`,
+        });
+      }
     } else {
       const dest = path.join(baseDir, entry.category, entry.name);
       if (dest !== entry.path) {
