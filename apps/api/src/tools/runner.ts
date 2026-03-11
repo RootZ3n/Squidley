@@ -861,6 +861,284 @@ async function runInternalTool(opts: {
     // Scans a skill file for injection patterns, impersonation, encoding tricks.
     // Read-only — never executes skill content.
     // rawArgs: { path: "skills/my-skill/skill.md" }
+    // ── fs.exists ─────────────────────────────────────────────────────────────
+    if (opts.tool_id === "fs.exists") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const target = (rawArgsObj?.path as string ?? opts.userArgs[0] ?? "").trim();
+      if (!target) throw new ToolRunnerError("BAD_REQUEST", "fs.exists: path required");
+      const repoRoot = process.env.ZENSQUID_ROOT ?? process.cwd();
+      const abs = path.isAbsolute(target) ? target : path.resolve(repoRoot, target);
+      let exists = false;
+      let kind = "none";
+      try {
+        const s = await fsNode.stat(abs);
+        exists = true;
+        kind = s.isDirectory() ? "directory" : "file";
+      } catch {}
+      return {
+        ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+        stdout: `${exists ? "exists" : "not_found"} ${kind} ${abs}
+`,
+        stderr: "", truncated: { stdout: false, stderr: false }
+      };
+    }
+
+    // ── fs.stat ───────────────────────────────────────────────────────────────
+    if (opts.tool_id === "fs.stat") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const target = (rawArgsObj?.path as string ?? opts.userArgs[0] ?? "").trim();
+      if (!target) throw new ToolRunnerError("BAD_REQUEST", "fs.stat: path required");
+      const repoRoot = process.env.ZENSQUID_ROOT ?? process.cwd();
+      const abs = path.isAbsolute(target) ? target : path.resolve(repoRoot, target);
+      try {
+        const s = await fsNode.stat(abs);
+        const info = {
+          path: abs,
+          type: s.isDirectory() ? "directory" : "file",
+          size_bytes: s.size,
+          modified: s.mtime.toISOString(),
+          created: s.birthtime.toISOString(),
+        };
+        return {
+          ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+          stdout: JSON.stringify(info, null, 2) + "\n",
+          stderr: "", truncated: { stdout: false, stderr: false }
+        };
+      } catch {
+        throw new ToolRunnerError("BAD_REQUEST", `fs.stat: path not found: ${abs}`);
+      }
+    }
+
+    // ── fs.glob ───────────────────────────────────────────────────────────────
+    if (opts.tool_id === "fs.glob") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const pattern = (rawArgsObj?.pattern as string ?? opts.userArgs[0] ?? "").trim();
+      const baseDir = (rawArgsObj?.dir as string ?? opts.userArgs[1] ?? "").trim();
+      if (!pattern) throw new ToolRunnerError("BAD_REQUEST", "fs.glob: pattern required");
+      const repoRoot = process.env.ZENSQUID_ROOT ?? process.cwd();
+      const abs = baseDir ? (path.isAbsolute(baseDir) ? baseDir : path.resolve(repoRoot, baseDir)) : repoRoot;
+      const results: string[] = [];
+      const maxResults = 200;
+      const regexStr = pattern
+        .replace(/\./g, "\.")
+        .replace(/\*\*\//g, "(.+/)?")
+        .replace(/\*\*/g, ".*")
+        .replace(/\*/g, "[^/]*");
+      const rx = new RegExp(regexStr + "$");
+      async function globWalk(dir: string, depth = 0): Promise<void> {
+        if (depth > 6 || results.length >= maxResults) return;
+        try {
+          const entries = await fsNode.readdir(dir);
+          for (const entry of entries) {
+            if (entry.startsWith(".") || entry === "node_modules" || entry === "dist") continue;
+            const full = path.join(dir, entry);
+            const rel = path.relative(abs, full);
+            try {
+              const s = await fsNode.stat(full);
+              if (rx.test(rel) || rx.test(entry)) results.push(full);
+              if (s.isDirectory()) await globWalk(full, depth + 1);
+            } catch {}
+          }
+        } catch {}
+      }
+      await globWalk(abs);
+      return {
+        ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+        stdout: results.join("\n") + `\n\n${results.length} match(es)\n`,
+        stderr: "", truncated: { stdout: false, stderr: false }
+      };
+    }
+
+    // ── http.healthcheck ──────────────────────────────────────────────────────
+    if (opts.tool_id === "http.healthcheck") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const url = (rawArgsObj?.url as string ?? opts.userArgs[0] ?? "").trim();
+      if (!url) throw new ToolRunnerError("BAD_REQUEST", "http.healthcheck: url required");
+      const startHc = Date.now();
+      try {
+        const res = await fetch(url, { method: "GET", signal: AbortSignal.timeout(8_000) });
+        const ms = Date.now() - startHc;
+        return {
+          ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+          stdout: `ok status=${res.status} duration_ms=${ms} url=${url}\n`,
+          stderr: "", truncated: { stdout: false, stderr: false }
+        };
+      } catch (e: any) {
+        const ms = Date.now() - startHc;
+        return {
+          ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+          stdout: `fail error=${e?.message ?? "unreachable"} duration_ms=${ms} url=${url}\n`,
+          stderr: "", truncated: { stdout: false, stderr: false }
+        };
+      }
+    }
+
+    // ── agent.list ────────────────────────────────────────────────────────────
+    if (opts.tool_id === "agent.list") {
+      const repoRoot = process.env.ZENSQUID_ROOT ?? process.cwd();
+      const agentsDir = path.join(repoRoot, "agents");
+      try {
+        const entries = await fsNode.readdir(agentsDir);
+        const agents: string[] = [];
+        for (const entry of entries) {
+          try {
+            const s = await fsNode.stat(path.join(agentsDir, entry));
+            if (s.isDirectory()) agents.push(entry);
+          } catch {}
+        }
+        agents.sort();
+        return {
+          ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+          stdout: agents.join("\n") + `\n\n${agents.length} agent(s)\n`,
+          stderr: "", truncated: { stdout: false, stderr: false }
+        };
+      } catch {
+        throw new ToolRunnerError("BAD_REQUEST", "agent.list: agents directory not found");
+      }
+    }
+
+    // ── skill.list ────────────────────────────────────────────────────────────
+    if (opts.tool_id === "skill.list") {
+      const repoRoot = process.env.ZENSQUID_ROOT ?? process.cwd();
+      const skillsDir = path.join(repoRoot, "skills");
+      try {
+        const entries = await fsNode.readdir(skillsDir);
+        const skills: string[] = [];
+        for (const entry of entries) {
+          if (entry.endsWith(".md") || entry.endsWith(".yaml") || entry.endsWith(".json")) {
+            skills.push(entry);
+          } else {
+            try {
+              const s = await fsNode.stat(path.join(skillsDir, entry));
+              if (s.isDirectory()) skills.push(entry + "/");
+            } catch {}
+          }
+        }
+        skills.sort();
+        return {
+          ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+          stdout: skills.join("\n") + `\n\n${skills.length} skill(s)\n`,
+          stderr: "", truncated: { stdout: false, stderr: false }
+        };
+      } catch {
+        throw new ToolRunnerError("BAD_REQUEST", "skill.list: skills directory not found");
+      }
+    }
+
+    // ── json.read ─────────────────────────────────────────────────────────────
+    if (opts.tool_id === "json.read") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const target = (rawArgsObj?.path as string ?? opts.userArgs[0] ?? "").trim();
+      if (!target) throw new ToolRunnerError("BAD_REQUEST", "json.read: path required");
+      const repoRoot = process.env.ZENSQUID_ROOT ?? process.cwd();
+      const abs = path.isAbsolute(target) ? target : path.resolve(repoRoot, target);
+      if (!abs.startsWith(repoRoot)) throw new ToolRunnerError("FORBIDDEN", "json.read: path escapes repo root");
+      try {
+        const raw = await fsNode.readFile(abs, "utf8");
+        const parsed = JSON.parse(raw);
+        return {
+          ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+          stdout: JSON.stringify(parsed, null, 2) + "\n",
+          stderr: "", truncated: { stdout: false, stderr: false }
+        };
+      } catch (e: any) {
+        throw new ToolRunnerError("BAD_REQUEST", `json.read: ${e.message}`);
+      }
+    }
+
+    // ── json.query ────────────────────────────────────────────────────────────
+    if (opts.tool_id === "json.query") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const target = (rawArgsObj?.path as string ?? opts.userArgs[0] ?? "").trim();
+      const queryKey = (rawArgsObj?.key as string ?? opts.userArgs[1] ?? "").trim();
+      if (!target) throw new ToolRunnerError("BAD_REQUEST", "json.query: path required");
+      if (!queryKey) throw new ToolRunnerError("BAD_REQUEST", "json.query: key required");
+      const repoRoot = process.env.ZENSQUID_ROOT ?? process.cwd();
+      const abs = path.isAbsolute(target) ? target : path.resolve(repoRoot, target);
+      if (!abs.startsWith(repoRoot)) throw new ToolRunnerError("FORBIDDEN", "json.query: path escapes repo root");
+      try {
+        const raw = await fsNode.readFile(abs, "utf8");
+        const parsed = JSON.parse(raw);
+        const parts = queryKey.split(".");
+        let val: any = parsed;
+        for (const p of parts) { if (val == null) break; val = val[p]; }
+        return {
+          ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+          stdout: JSON.stringify(val, null, 2) + "\n",
+          stderr: "", truncated: { stdout: false, stderr: false }
+        };
+      } catch (e: any) {
+        throw new ToolRunnerError("BAD_REQUEST", `json.query: ${e.message}`);
+      }
+    }
+
+    // ── receipt.latest ────────────────────────────────────────────────────────
+    if (opts.tool_id === "receipt.latest") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const category = (rawArgsObj?.category as string ?? opts.userArgs[0] ?? "chat").trim();
+      const repoRoot = process.env.ZENSQUID_ROOT ?? process.cwd();
+      const receiptsDir = path.join(repoRoot, "data", "receipts", category);
+      try {
+        const files = await fsNode.readdir(receiptsDir);
+        const jsonFiles = files.filter((f: string) => f.endsWith(".json"));
+        if (jsonFiles.length === 0) return {
+          ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+          stdout: `no receipts found in ${category}\n`,
+          stderr: "", truncated: { stdout: false, stderr: false }
+        };
+        const withMtime = await Promise.all(jsonFiles.map(async (f: string) => {
+          const s = await fsNode.stat(path.join(receiptsDir, f));
+          return { f, mtime: s.mtimeMs };
+        }));
+        withMtime.sort((a: any, b: any) => b.mtime - a.mtime);
+        const latest = await fsNode.readFile(path.join(receiptsDir, withMtime[0].f), "utf8");
+        return {
+          ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+          stdout: latest + "\n",
+          stderr: "", truncated: { stdout: false, stderr: false }
+        };
+      } catch {
+        throw new ToolRunnerError("BAD_REQUEST", `receipt.latest: category not found: ${category}`);
+      }
+    }
+
+    // ── agent.last_run ────────────────────────────────────────────────────────
+    if (opts.tool_id === "agent.last_run") {
+      const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
+      const agentName = (rawArgsObj?.agent as string ?? opts.userArgs[0] ?? "").trim();
+      const repoRoot = process.env.ZENSQUID_ROOT ?? process.cwd();
+      const receiptsDir = path.join(repoRoot, "data", "receipts", "agents");
+      try {
+        const files = await fsNode.readdir(receiptsDir);
+        const jsonFiles = files.filter((f: string) => f.endsWith(".json"));
+        const withMtime = await Promise.all(jsonFiles.map(async (f: string) => {
+          const s = await fsNode.stat(path.join(receiptsDir, f));
+          return { f, mtime: s.mtimeMs };
+        }));
+        withMtime.sort((a: any, b: any) => b.mtime - a.mtime);
+        for (const { f } of withMtime) {
+          const raw = await fsNode.readFile(path.join(receiptsDir, f), "utf8");
+          try {
+            const receipt = JSON.parse(raw);
+            if (!agentName || receipt.component_name === agentName) {
+              return {
+                ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+                stdout: raw + "\n",
+                stderr: "", truncated: { stdout: false, stderr: false }
+              };
+            }
+          } catch {}
+        }
+        return {
+          ok: true, exit_code: 0, signal: null as NodeJS.Signals | null,
+          stdout: `no receipt found for agent: ${agentName || "any"}\n`,
+          stderr: "", truncated: { stdout: false, stderr: false }
+        };
+      } catch {
+        throw new ToolRunnerError("BAD_REQUEST", "agent.last_run: receipts/agents directory not found");
+      }
+    }
+
     if (opts.tool_id === "skill.scan") {
       const rawArgsObj = opts.rawArgs && !Array.isArray(opts.rawArgs) ? opts.rawArgs : null;
       const relPath = (rawArgsObj?.path as string ?? opts.userArgs[0] ?? "").trim();
@@ -1332,7 +1610,8 @@ export async function runTool(req: RunToolRequest): Promise<RunToolResult> {
     }
   }
 
-  // Subprocess tool path (spawn)
+
+    // Subprocess tool path (spawn)
   const fullArgs = [...spec.argsPrefix, ...userArgs];
   let stdoutChunks: Buffer[] = [];
   let stderrChunks: Buffer[] = [];

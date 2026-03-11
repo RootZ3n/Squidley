@@ -600,6 +600,109 @@ export const TOOL_ALLOWLIST: ToolAllowlist = {
     timeoutMs: 60_000,
     maxOutputBytes: 128 * 1024,
   },
+  // ── Local Tool Pack — Tier 1 ─────────────────────────────────────────────
+
+  "fs.exists": {
+    id: "fs.exists",
+    title: "FS: check if a path exists",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    timeoutMs: 5_000,
+    maxOutputBytes: 16 * 1024,
+  },
+
+  "fs.stat": {
+    id: "fs.stat",
+    title: "FS: get file/directory metadata (size, modified, type)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    timeoutMs: 5_000,
+    maxOutputBytes: 16 * 1024,
+  },
+
+  "fs.glob": {
+    id: "fs.glob",
+    title: "FS: find files matching a glob pattern",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    timeoutMs: 15_000,
+    maxOutputBytes: 64 * 1024,
+  },
+
+  "http.healthcheck": {
+    id: "http.healthcheck",
+    title: "HTTP: check if a URL is reachable (ok/fail, no model needed)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    timeoutMs: 10_000,
+    maxOutputBytes: 16 * 1024,
+  },
+
+  "agent.list": {
+    id: "agent.list",
+    title: "Agents: list all available agents",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    timeoutMs: 5_000,
+    maxOutputBytes: 32 * 1024,
+  },
+
+  "skill.list": {
+    id: "skill.list",
+    title: "Skills: list all available skills",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    timeoutMs: 5_000,
+    maxOutputBytes: 32 * 1024,
+  },
+
+  "json.read": {
+    id: "json.read",
+    title: "JSON: read and pretty-print a JSON file",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    timeoutMs: 5_000,
+    maxOutputBytes: 64 * 1024,
+  },
+
+  "json.query": {
+    id: "json.query",
+    title: "JSON: query a JSON file with a dot-path (e.g. meta.title)",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    timeoutMs: 5_000,
+    maxOutputBytes: 32 * 1024,
+  },
+
+  "receipt.latest": {
+    id: "receipt.latest",
+    title: "Receipts: get the most recent receipt by category",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    timeoutMs: 5_000,
+    maxOutputBytes: 32 * 1024,
+  },
+
+  "agent.last_run": {
+    id: "agent.last_run",
+    title: "Agents: get the last run receipt for a named agent",
+    cmd: "__js__",
+    argsPrefix: [],
+    get cwd() { return getRepoRoot(); },
+    timeoutMs: 5_000,
+    maxOutputBytes: 32 * 1024,
+  },
+
+
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
