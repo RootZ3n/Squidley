@@ -1043,6 +1043,7 @@ export default function Page() {
           {tab === "squidvision" && <SquidVisionPanel adminToken={adminToken} />}
           {tab === "moreinput" && <MoreInputPanel />}
           {tab === "archivum" && <ArchivumPanel />}
+              {tab === "threads" && <ThreadsPanel />}
           
           {/* ── Tool Loop tab ── */}
           {tab === "tools" && (

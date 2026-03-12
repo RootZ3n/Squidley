@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 
 const API = typeof window !== "undefined"
   ? `${window.location.protocol}//${window.location.hostname}:18790`
@@ -51,7 +51,7 @@ export default function ThreadsPanel() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
-  const load = useCallback(async () => {
+  async function load() {
     setLoading(true);
     try {
       const r = await fetch(`${API}/threads`);
@@ -59,13 +59,13 @@ export default function ThreadsPanel() {
       if (j.ok) {
         setThreads(j.threads);
         setActiveId(j.active_id);
-        if (selected) {
-          const updated = j.threads.find((t: Thread) => t.thread_id === selected.thread_id);
-          if (updated) setSelected(updated);
-        }
+        setSelected((prev: Thread|null) => {
+          if (!prev) return prev;
+          return j.threads.find((t: Thread) => t.thread_id === prev.thread_id) ?? prev;
+        });
       }
     } finally { setLoading(false); }
-  }, [selected]);
+  }
 
   useEffect(() => { load(); }, []);
 
