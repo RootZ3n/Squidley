@@ -774,6 +774,43 @@ function buildToolCatalogBlock(args: { available_tools: string[]; tools?: ToolLi
 /**
  * Exported function server.ts can import
  */
+
+// ── Archivum context injection ────────────────────────────────────────────────
+async function searchArchivumForChat(input: string, maxItems = 3): Promise<string> {
+  try {
+    const root = process.env.ZENSQUID_ROOT ?? process.cwd();
+    const archivumDir = path.resolve(root, "memory", "archivum");
+    const fsNode2 = await import("node:fs/promises");
+    const entries = await fsNode2.readdir(archivumDir).catch(() => [] as string[]);
+    if (entries.length === 0) return "";
+    const metas: Array<{ title: string; category: string; analysis: string; tags: string[]; mtime: number }> = [];
+    for (const entry of entries) {
+      try {
+        const metaPath = path.resolve(archivumDir, entry, "meta.json");
+        const s = await fsNode2.stat(metaPath);
+        const meta = JSON.parse(await fsNode2.readFile(metaPath, "utf8"));
+        metas.push({ title: meta.title ?? entry, category: meta.category ?? "unknown", analysis: meta.analysis ?? "", tags: meta.tags ?? [], mtime: s.mtimeMs });
+      } catch {}
+    }
+    if (metas.length === 0) return "";
+    const inputLower = input.toLowerCase();
+    const words = inputLower.split(/\s+/).filter((w: string) => w.length > 3);
+    const scored = metas.map(m => {
+      const searchable = `${m.title} ${m.tags.join(" ")} ${m.analysis}`.toLowerCase();
+      const score = words.reduce((acc: number, w: string) => acc + (searchable.includes(w) ? 1 : 0), 0);
+      return { ...m, score };
+    }).sort((a, b) => b.score - a.score || b.mtime - a.mtime);
+    const items = scored.filter(m => m.score > 0).slice(0, maxItems);
+    const use = items.length > 0 ? items : scored.slice(0, 2);
+    return use.map(m => {
+      const lines = [`[${m.category}] ${m.title}`];
+      if (m.tags.length) lines.push(`  tags: ${m.tags.join(", ")}`);
+      if (m.analysis) lines.push(`  ${m.analysis.slice(0, 180).replace(/\n/g, " ")}`);
+      return lines.join("\n");
+    }).join("\n\n");
+  } catch { return ""; }
+}
+
 export async function buildChatSystemPrompt(args: {
   input: string;
   selected_skill?: string | null;
@@ -794,6 +831,7 @@ export async function buildChatSystemPrompt(args: {
   const proactive = await buildProactiveContext().catch(() => ({ text: "", sources: [] }));
 
   const squid = await buildSquidNotes({ input });
+  const archivumCtx = await searchArchivumForChat(input, 3).catch(() => "");
   const memHits = await searchMemoryForChat(input, 5);
   const skill = selected_skill ? await loadSkillDoc(selected_skill) : "";
   const workspaceCtx = await buildWorkspaceContext().catch(() => null);
@@ -931,6 +969,9 @@ export async function buildChatSystemPrompt(args: {
   if (memHits.length > 0) {
     const formatted = memHits.map((h, idx) => `(${idx + 1}) ${h.rel}\n${h.snippet}`).join("\n\n");
     parts.push("\n---\n# RELEVANT MEMORY (snippets)\n" + formatted);
+  }
+  if (archivumCtx.trim()) {
+    parts.push("\n---\n# ARCHIVUM (relevant knowledge vault entries)\n" + archivumCtx.trim());
   }
 
   if (!isBuildLikeMode) {
