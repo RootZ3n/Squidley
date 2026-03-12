@@ -79,6 +79,7 @@ import { registerSquidvisionRoutes } from "./http/routes/squidvision.js";
 import { registerMoreInputRoutes } from "./http/routes/moreinput.js";
 import { registerArchivumRoutes } from "./http/routes/archivum.js";
 import { registerThreadsRoutes } from "./http/routes/threads.js";
+import { registerPlannerRoutes } from "./http/routes/planner.js";
 import { writeTypedReceipt } from "./receipts/logger.js";
 import {
   storePendingImage,
@@ -2349,6 +2350,7 @@ await registerSquidvisionRoutes(app, { zensquidRoot, receiptsDir });
   await registerMoreInputRoutes(app, { zensquidRoot: zensquidRoot() });
   await registerArchivumRoutes(app, { zensquidRoot: zensquidRoot() });
   await registerThreadsRoutes(app, { zensquidRoot: zensquidRoot() });
+  await registerPlannerRoutes(app, { adminTokenOk, zensquidRoot });
 await app.listen({ port, host });
 
 await startScheduler(app);

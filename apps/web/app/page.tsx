@@ -27,6 +27,7 @@ import SquidVisionPanel from "../src/components/SquidVisionPanel";
 import MoreInputPanel from "../src/components/MoreInputPanel";
 import ArchivumPanel from "../src/components/ArchivumPanel";
 import ThreadsPanel from "../src/components/ThreadsPanel";
+import PlannerPanel from "../src/components/PlannerPanel";
 
 type Msg = { role: "assistant" | "user"; content: string };
 
@@ -244,7 +245,7 @@ export default function Page() {
 
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  const [tab, setTab] = useState<"chat" | "tools" | "learn" | "image" | "moreinput" | "archivum" | "threads" | "receipts" | "build" | "diagnostics" | "squidvision">("chat");
+  const [tab, setTab] = useState<"chat" | "tools" | "learn" | "image" | "moreinput" | "archivum" | "threads" | "planner" | "receipts" | "build" | "diagnostics" | "squidvision">("chat");
   const [goal, setGoal] = useState<string>("Build web + run Playwright tests");
   const [plan, setPlan] = useState<ToolPlanV1>(() => makePlanFromGoal("Build web + run Playwright tests"));
 
@@ -741,6 +742,7 @@ export default function Page() {
             <button data-testid="tab-moreinput" style={tabBtn(tab === "moreinput", "100,220,255")} onClick={() => setTab("moreinput")}>📥 More Input</button>
             <button data-testid="tab-archivum" style={tabBtn(tab === "archivum", "255,200,80")} onClick={() => setTab("archivum")}>📚 Archivum</button>
                 <button data-testid="tab-threads" style={tabBtn(tab === "threads", "180,140,255")} onClick={() => setTab("threads")}>🧵 Threads</button>
+                <button data-testid="tab-planner" style={tabBtn(tab === "planner", "255,160,60")} onClick={() => setTab("planner")}>📋 Planner</button>
             <button data-testid="tab-receipts" style={tabBtn(tab === "receipts", "255,100,140")} onClick={() => setTab("receipts")}>🧾 Receipts</button>
             <button data-testid="tab-build" style={tabBtn(tab === "build", "255,140,40")} onClick={() => setTab("build")}>🔨 Build</button>
             <button data-testid="tab-squidvision" style={tabBtn(tab === "squidvision", "180,100,255")} onClick={() => setTab("squidvision")}>👁 Squidvision</button>
@@ -1043,7 +1045,8 @@ export default function Page() {
           {tab === "squidvision" && <SquidVisionPanel adminToken={adminToken} />}
           {tab === "moreinput" && <MoreInputPanel />}
           {tab === "archivum" && <ArchivumPanel />}
-              {tab === "threads" && <ThreadsPanel />}
+          {tab === "threads" && <ThreadsPanel />}
+          {tab === "planner" && <PlannerPanel adminToken={adminToken} pendingPlanId={pendingPlanId} onPlanApproved={() => setPendingPlanId(null)} onPlanDenied={() => setPendingPlanId(null)} />}
           
           {/* ── Tool Loop tab ── */}
           {tab === "tools" && (
