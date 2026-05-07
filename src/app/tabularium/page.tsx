@@ -29,6 +29,7 @@ import { findReceiptByQueryId } from "@/lib/tabularium/gatewayReceipts";
 import { tabulariumLocalReceiptsDecision } from "@/lib/ratio";
 import { isCapabilityDecisionReceipt, isCloudConsentDecisionReceipt, isCloudEscalationOfferReceipt, isGatewayPolicyDecisionReceipt, isPromptInjectionAssessmentReceipt, receiptToTransparencyBadgeView } from "@/lib/capabilities/badges";
 import { CapabilityBadge } from "@/components/capabilities/CapabilityBadge";
+import { buildReceiptChains, type TabulariumReceiptChain, type TabulariumReceiptChainStep } from "@/lib/tabularium/receiptChains";
 
 const MODULE_FILTERS: TabulariumModuleFilter[] = ["all", "colloquium", "velum", "archivum", "oculus", "fabrica", "nous", "settings", "system"];
 const STATUS_FILTERS: TabulariumStatusFilter[] = ["all", "succeeded", "failed", "interrupted", "info"];
@@ -41,6 +42,7 @@ export default function TabulariumPage() {
   const [modelFilter, setModelFilter] = useState<TabulariumModelFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [linkedReceiptNote, setLinkedReceiptNote] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"receipts" | "chains">("receipts");
   const [tourActive, setTourActive] = useState(false);
   const [tourRunId, setTourRunId] = useState(0);
   const [activeTarget, setActiveTarget] = useState<string | null>(null);
@@ -76,6 +78,7 @@ export default function TabulariumPage() {
     }),
     [modelFilter, moduleFilter, query, receipts, statusFilter],
   );
+  const chains = useMemo(() => buildReceiptChains(filtered), [filtered]);
   const selected = receipts.find((receipt) => receipt.id === selectedId) ?? filtered[0] ?? null;
 
   function handleRestartTour() {
@@ -180,53 +183,100 @@ export default function TabulariumPage() {
             </div>
           </TourHighlight>
 
-          <TourHighlight target="tabularium-list" active={activeTarget} className="mt-4 rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="font-serif text-xl font-semibold text-ink-900 dark:text-ink-50">
-                Local receipts
-              </h2>
-              <span className="text-xs text-ink-400">{filtered.length} shown</span>
-            </div>
-            {receipts.length === 0 ? (
-              <p className="mt-4 rounded-lg border border-dashed border-ink-200 bg-ink-50/70 px-3 py-4 text-center text-sm text-ink-500 dark:border-ink-700 dark:bg-ink-900/40 dark:text-ink-300">
-                No receipts yet. Squidley will add local receipts as you chat, review text, save entries, or change local settings.
+          <div className="mt-4 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setViewMode("receipts")}
+              className={`rounded-lg border px-3 py-1.5 text-xs font-medium shadow-sm ${viewMode === "receipts" ? "border-iris-300 bg-iris-50 text-iris-800 dark:border-iris-600 dark:bg-iris-900/30 dark:text-iris-100" : "border-ink-200 bg-white text-ink-700 hover:bg-ink-50 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-100"}`}
+            >
+              Receipts
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("chains")}
+              className={`rounded-lg border px-3 py-1.5 text-xs font-medium shadow-sm ${viewMode === "chains" ? "border-iris-300 bg-iris-50 text-iris-800 dark:border-iris-600 dark:bg-iris-900/30 dark:text-iris-100" : "border-ink-200 bg-white text-ink-700 hover:bg-ink-50 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-100"}`}
+            >
+              Trust chains
+            </button>
+          </div>
+
+          {viewMode === "chains" ? (
+            <TourHighlight target="tabularium-list" active={activeTarget} className="mt-4 rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="font-serif text-xl font-semibold text-ink-900 dark:text-ink-50">
+                  Receipt chains
+                </h2>
+                <span className="text-xs text-ink-400">{chains.length} {chains.length === 1 ? "chain" : "chains"}</span>
+              </div>
+              <p className="mt-1 text-xs text-ink-500 dark:text-ink-300">
+                Related receipts grouped into readable trust stories. Each chain shows what was assessed, decided, and consented.
               </p>
-            ) : filtered.length === 0 ? (
-              <p className="mt-4 rounded-lg border border-dashed border-ink-200 bg-ink-50/70 px-3 py-4 text-center text-sm text-ink-500 dark:border-ink-700 dark:bg-ink-900/40 dark:text-ink-300">
-                No receipts match that search or filter.
-              </p>
-            ) : (
-              <ul className="mt-4 space-y-3">
-                {filtered.map((receipt) => (
-                  <li
-                    key={receipt.id}
-                    className={`rounded-lg border bg-ink-50/70 p-3 dark:bg-ink-900/40 ${
-                      receipt.id === selectedId
-                        ? "border-iris-300 ring-2 ring-iris-200 dark:border-iris-600 dark:ring-iris-900/40"
-                        : "border-ink-100 dark:border-ink-700/60"
-                    }`}
-                  >
-                    <button type="button" onClick={() => setSelectedId(receipt.id)} className="block w-full text-left">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <h3 className="font-medium text-ink-800 dark:text-ink-100">{receipt.title}</h3>
-                        <span className={statusClass(receipt.status)}>{receipt.status}</span>
-                      </div>
-                      <p className="mt-1 text-xs text-ink-500 dark:text-ink-300">{receipt.summary}</p>
-                      <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-wide text-ink-400">
-                        <span>{receipt.module}</span>
-                        <span>{receipt.modelUsed ? "model used" : "no model"}</span>
-                        <span>No cloud used</span>
-                        {(isCapabilityDecisionReceipt(receipt) || isCloudEscalationOfferReceipt(receipt) || isCloudConsentDecisionReceipt(receipt) || isPromptInjectionAssessmentReceipt(receipt) || isGatewayPolicyDecisionReceipt(receipt)) && (() => {
-                          const badgeView = receiptToTransparencyBadgeView(receipt);
-                          return badgeView ? <CapabilityBadge view={badgeView} showDetail={false} /> : null;
-                        })()}
-                      </div>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </TourHighlight>
+              {chains.length === 0 ? (
+                <p className="mt-4 rounded-lg border border-dashed border-ink-200 bg-ink-50/70 px-3 py-4 text-center text-sm text-ink-500 dark:border-ink-700 dark:bg-ink-900/40 dark:text-ink-300">
+                  No receipt chains to display.
+                </p>
+              ) : (
+                <ul className="mt-4 space-y-4">
+                  {chains.map((chain) => (
+                    <ReceiptChainCard
+                      key={chain.id}
+                      chain={chain}
+                      selectedId={selectedId}
+                      onSelectReceipt={setSelectedId}
+                    />
+                  ))}
+                </ul>
+              )}
+            </TourHighlight>
+          ) : (
+            <TourHighlight target="tabularium-list" active={activeTarget} className="mt-4 rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="font-serif text-xl font-semibold text-ink-900 dark:text-ink-50">
+                  Local receipts
+                </h2>
+                <span className="text-xs text-ink-400">{filtered.length} shown</span>
+              </div>
+              {receipts.length === 0 ? (
+                <p className="mt-4 rounded-lg border border-dashed border-ink-200 bg-ink-50/70 px-3 py-4 text-center text-sm text-ink-500 dark:border-ink-700 dark:bg-ink-900/40 dark:text-ink-300">
+                  No receipts yet. Squidley will add local receipts as you chat, review text, save entries, or change local settings.
+                </p>
+              ) : filtered.length === 0 ? (
+                <p className="mt-4 rounded-lg border border-dashed border-ink-200 bg-ink-50/70 px-3 py-4 text-center text-sm text-ink-500 dark:border-ink-700 dark:bg-ink-900/40 dark:text-ink-300">
+                  No receipts match that search or filter.
+                </p>
+              ) : (
+                <ul className="mt-4 space-y-3">
+                  {filtered.map((receipt) => (
+                    <li
+                      key={receipt.id}
+                      className={`rounded-lg border bg-ink-50/70 p-3 dark:bg-ink-900/40 ${
+                        receipt.id === selectedId
+                          ? "border-iris-300 ring-2 ring-iris-200 dark:border-iris-600 dark:ring-iris-900/40"
+                          : "border-ink-100 dark:border-ink-700/60"
+                      }`}
+                    >
+                      <button type="button" onClick={() => setSelectedId(receipt.id)} className="block w-full text-left">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <h3 className="font-medium text-ink-800 dark:text-ink-100">{receipt.title}</h3>
+                          <span className={statusClass(receipt.status)}>{receipt.status}</span>
+                        </div>
+                        <p className="mt-1 text-xs text-ink-500 dark:text-ink-300">{receipt.summary}</p>
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-wide text-ink-400">
+                          <span>{receipt.module}</span>
+                          <span>{receipt.modelUsed ? "model used" : "no model"}</span>
+                          <span>No cloud used</span>
+                          {(isCapabilityDecisionReceipt(receipt) || isCloudEscalationOfferReceipt(receipt) || isCloudConsentDecisionReceipt(receipt) || isPromptInjectionAssessmentReceipt(receipt) || isGatewayPolicyDecisionReceipt(receipt)) && (() => {
+                            const badgeView = receiptToTransparencyBadgeView(receipt);
+                            return badgeView ? <CapabilityBadge view={badgeView} showDetail={false} /> : null;
+                          })()}
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </TourHighlight>
+          )}
         </div>
 
         <aside>
@@ -275,6 +325,90 @@ export default function TabulariumPage() {
         />
       )}
     </div>
+  );
+}
+
+const CHAIN_KIND_LABELS: Record<string, string> = {
+  "cloud-consent-flow": "Cloud consent",
+  "gateway-security-flow": "Gateway security",
+  "capability-decision": "Capability",
+  standalone: "Standalone",
+  unknown: "Unknown",
+};
+
+function chainKindClass(kind: string): string {
+  if (kind === "cloud-consent-flow") return "rounded-full border border-iris-200 bg-iris-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-iris-800 dark:border-iris-700/60 dark:bg-iris-900/20 dark:text-iris-100";
+  if (kind === "gateway-security-flow") return "rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-800 dark:border-amber-700/60 dark:bg-amber-900/20 dark:text-amber-100";
+  if (kind === "capability-decision") return "rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-800 dark:border-emerald-700/60 dark:bg-emerald-900/20 dark:text-emerald-100";
+  return "rounded-full border border-ink-200 bg-ink-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-600 dark:border-ink-700/60 dark:bg-ink-800/40 dark:text-ink-200";
+}
+
+function ReceiptChainCard({
+  chain,
+  selectedId,
+  onSelectReceipt,
+}: {
+  chain: TabulariumReceiptChain;
+  selectedId: string | null;
+  onSelectReceipt: (id: string) => void;
+}) {
+  return (
+    <li className="rounded-lg border border-ink-200 bg-ink-50/70 p-3 dark:border-ink-700/60 dark:bg-ink-900/40">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="font-medium text-ink-800 dark:text-ink-100">{chain.title}</h3>
+        <span className={chainKindClass(chain.kind)}>{CHAIN_KIND_LABELS[chain.kind] ?? chain.kind}</span>
+      </div>
+      <p className="mt-1 text-xs text-ink-600 dark:text-ink-300">{chain.summary}</p>
+      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-wide text-ink-400">
+        <span>{chain.steps.length} {chain.steps.length === 1 ? "step" : "steps"}</span>
+        {chain.nothingSentYet && <span>Nothing sent by these receipts</span>}
+        {chain.cloudUsed && <span className="text-rose-600 dark:text-rose-300">Cloud used</span>}
+      </div>
+      <ol className="mt-3 space-y-2 border-l-2 border-ink-200 pl-3 dark:border-ink-700">
+        {chain.steps.map((step, i) => (
+          <ChainStepItem
+            key={step.receiptId}
+            step={step}
+            index={i}
+            isSelected={step.receiptId === selectedId}
+            onSelect={() => onSelectReceipt(step.receiptId)}
+          />
+        ))}
+      </ol>
+    </li>
+  );
+}
+
+function ChainStepItem({
+  step,
+  index,
+  isSelected,
+  onSelect,
+}: {
+  step: TabulariumReceiptChainStep;
+  index: number;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <li className="relative">
+      <span className="absolute -left-[calc(0.75rem+1px)] top-1.5 h-2 w-2 rounded-full border border-ink-300 bg-white dark:border-ink-600 dark:bg-ink-800" />
+      <button
+        type="button"
+        onClick={onSelect}
+        className={`block w-full rounded-md p-2 text-left ${isSelected ? "bg-iris-50 ring-1 ring-iris-200 dark:bg-iris-900/20 dark:ring-iris-700/40" : "hover:bg-ink-100/60 dark:hover:bg-ink-800/60"}`}
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-400">{index + 1}</span>
+          <span className="text-xs font-medium text-ink-800 dark:text-ink-100">{step.title}</span>
+        </div>
+        <p className="mt-0.5 text-[11px] text-ink-500 dark:text-ink-300">{step.summary}</p>
+        <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-ink-400">
+          <span>{new Date(step.createdAt).toLocaleTimeString()}</span>
+          {step.badgeView && <CapabilityBadge view={step.badgeView} showDetail={false} />}
+        </div>
+      </button>
+    </li>
   );
 }
 
