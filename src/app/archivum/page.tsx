@@ -53,6 +53,10 @@ import {
   saveMoreInputToVelumHandoff,
 } from "@/lib/velum/handoff";
 import { archivumFutureSummarizeDecision, archivumLocalStorageDecision } from "@/lib/ratio";
+import {
+  recordArchivumLocalStorageCapabilityReceipt,
+  recordMoreInputLocalStorageCapabilityReceipt,
+} from "@/lib/archivum/capabilityReceipts";
 
 const ENTRY_TYPES: ArchivumEntryType[] = ["note", "log", "article", "code", "other"];
 
@@ -197,6 +201,7 @@ export default function ArchivumPage() {
     });
     setDoc((prev) => upsertArchivumEntry(prev, entry));
     logTabulariumReceipt(window.localStorage, buildArchivumEntryCreatedReceipt(entry));
+    recordMoreInputLocalStorageCapabilityReceipt(window.localStorage);
     setSelectedId(entry.id);
     setNotice(velumReviewed ? "Saved to Archivum with Velum review." : "Saved without Velum review.");
     clearDraft();
@@ -247,6 +252,7 @@ export default function ArchivumPage() {
       entryId: editing.id,
       reviewReset: result.reviewReset,
     }));
+    recordArchivumLocalStorageCapabilityReceipt(window.localStorage);
     setSelectedId(editing.id);
     setNotice(
       result.reviewReset
@@ -331,6 +337,7 @@ export default function ArchivumPage() {
     setImportError(null);
     setNotice(`Imported ${result.importedCount} entries. Imported entries were not automatically reviewed by Velum.`);
     logTabulariumReceipt(window.localStorage, buildArchivumBundleImportedReceipt(result.importedCount));
+    recordArchivumLocalStorageCapabilityReceipt(window.localStorage);
   }
 
   return (

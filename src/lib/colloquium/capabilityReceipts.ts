@@ -3,7 +3,7 @@
  *
  * Pure preflight: when the local chat submit path is about to invoke the
  * local model, this records *what Squidley decided* about the chat
- * capability — not the user's prompt or the assistant's reply. The existing
+ * capability -- not the user's prompt or the assistant's reply. The existing
  * `buildColloquiumChatSentReceipt` covers the conversational receipt row.
  *
  * Hard constraints:
@@ -13,21 +13,17 @@
  *   - Receipt metadata never carries prompt text, message text, drafts,
  *     histories, or any user/assistant content. The capability adapter only
  *     copies decision metadata.
+ *
+ * Delegates to the shared preflight helper while preserving all public exports.
  */
 
 import {
-  capabilityDecisionToTabulariumReceiptInput,
-  type CapabilityTabulariumAdapterOptions,
-} from "@/lib/capabilities/tabularium-adapter";
-import { createCapabilityDecisionReceipt } from "@/lib/capabilities/receipts";
-import {
-  resolveCapabilityRuntimeForId,
-  type CapabilityRuntimeInput,
-} from "@/lib/capabilities/runtime";
-import {
-  logTabulariumReceipt,
-  type TabulariumReceipt,
-  type TabulariumReceiptInput,
+  buildCapabilityPreflightReceiptInput,
+  recordCapabilityPreflightReceipt,
+} from "@/lib/capabilities/preflight";
+import type {
+  TabulariumReceipt,
+  TabulariumReceiptInput,
 } from "@/lib/tabularium/receipts";
 
 export const COLLOQUIUM_CHAT_CAPABILITY_ID = "colloquium:chat.basic" as const;
@@ -59,47 +55,39 @@ export interface ColloquiumCapabilityReceiptArgs {
   receiptId?: string;
 }
 
-function colloquiumRuntimeContext(
-  localChatReady: boolean,
-): Omit<CapabilityRuntimeInput, "capabilityId"> {
-  return {
-    availableLocalProfiles: localChatReady ? [COLLOQUIUM_LOCAL_CHAT_PROFILE] : [],
-    availableCloudProfiles: [],
-    cloudUnlocked: false,
-    cloudConsentGranted: false,
-    velumReviewPassed: false,
-  };
-}
-
 export function buildColloquiumCapabilityDecisionReceiptInput(
   args: ColloquiumCapabilityReceiptArgs = {},
 ): TabulariumReceiptInput {
-  const decision = resolveCapabilityRuntimeForId(
-    COLLOQUIUM_CHAT_CAPABILITY_ID,
-    colloquiumRuntimeContext(Boolean(args.localChatReady)),
-  );
-  const event = createCapabilityDecisionReceipt(decision, {
-    createdAt: args.createdAt,
+  return buildCapabilityPreflightReceiptInput({
+    capabilityId: COLLOQUIUM_CHAT_CAPABILITY_ID,
+    availableLocalProfiles: args.localChatReady
+      ? [COLLOQUIUM_LOCAL_CHAT_PROFILE]
+      : [],
     providerId: args.providerId,
     modelId: args.modelId,
+    createdAt: args.createdAt,
+    receiptId: args.receiptId,
   });
-  const adapterOptions: CapabilityTabulariumAdapterOptions = {};
-  if (args.receiptId !== undefined) adapterOptions.receiptId = args.receiptId;
-  return capabilityDecisionToTabulariumReceiptInput(event, adapterOptions);
 }
 
 /**
  * Persist a Colloquium capability decision receipt through the existing
  * Tabularium pipeline. Returns the persisted receipt on success or null when
  * `logTabulariumReceipt` could not write. Caller treats the return as
- * advisory — chat success must not depend on receipt persistence.
+ * advisory -- chat success must not depend on receipt persistence.
  */
 export function recordColloquiumCapabilityDecisionReceipt(
   storage: Pick<Storage, "getItem" | "setItem">,
   args: ColloquiumCapabilityReceiptArgs = {},
 ): TabulariumReceipt | null {
-  return logTabulariumReceipt(
-    storage,
-    buildColloquiumCapabilityDecisionReceiptInput(args),
-  );
+  return recordCapabilityPreflightReceipt(storage, {
+    capabilityId: COLLOQUIUM_CHAT_CAPABILITY_ID,
+    availableLocalProfiles: args.localChatReady
+      ? [COLLOQUIUM_LOCAL_CHAT_PROFILE]
+      : [],
+    providerId: args.providerId,
+    modelId: args.modelId,
+    createdAt: args.createdAt,
+    receiptId: args.receiptId,
+  });
 }

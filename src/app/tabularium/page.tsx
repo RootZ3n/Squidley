@@ -27,6 +27,8 @@ import {
 } from "@/lib/tabularium/receipts";
 import { findReceiptByQueryId } from "@/lib/tabularium/gatewayReceipts";
 import { tabulariumLocalReceiptsDecision } from "@/lib/ratio";
+import { isCapabilityDecisionReceipt, receiptToCapabilityBadgeView } from "@/lib/capabilities/badges";
+import { CapabilityBadge } from "@/components/capabilities/CapabilityBadge";
 
 const MODULE_FILTERS: TabulariumModuleFilter[] = ["all", "colloquium", "velum", "archivum", "oculus", "fabrica", "nous", "settings", "system"];
 const STATUS_FILTERS: TabulariumStatusFilter[] = ["all", "succeeded", "failed", "interrupted", "info"];
@@ -210,10 +212,13 @@ export default function TabulariumPage() {
                         <span className={statusClass(receipt.status)}>{receipt.status}</span>
                       </div>
                       <p className="mt-1 text-xs text-ink-500 dark:text-ink-300">{receipt.summary}</p>
-                      <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] uppercase tracking-wide text-ink-400">
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-wide text-ink-400">
                         <span>{receipt.module}</span>
                         <span>{receipt.modelUsed ? "model used" : "no model"}</span>
                         <span>No cloud used</span>
+                        {isCapabilityDecisionReceipt(receipt) && (
+                          <CapabilityBadge metadata={receipt.metadata} showDetail={false} />
+                        )}
                       </div>
                     </button>
                   </li>
@@ -289,6 +294,14 @@ function ReceiptDetails({ receipt }: { receipt: TabulariumReceipt }) {
       <Detail label="Model" value={receipt.model ?? "Not applicable"} />
       <Detail label="Changed local storage" value={typeof receipt.changedLocalStorage === "boolean" ? String(receipt.changedLocalStorage) : "Not recorded"} />
       <Detail label="Related item" value={receipt.relatedItemId ?? "None"} />
+      {isCapabilityDecisionReceipt(receipt) && (
+        <div className="border-b border-ink-100 pb-2 dark:border-ink-700/60">
+          <dt className="text-xs font-medium uppercase tracking-wide text-ink-400">Capability badge</dt>
+          <dd className="mt-1">
+            <CapabilityBadge metadata={receipt.metadata} showDetail={true} />
+          </dd>
+        </div>
+      )}
       {receipt.metadata ? (
         <div>
           <dt className="text-xs font-medium uppercase tracking-wide text-ink-400">Safe metadata</dt>

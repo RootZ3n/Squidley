@@ -183,5 +183,39 @@ export function capabilityBadgeToneClass(tone: CapabilityBadgeTone): string {
   }
 }
 
+/**
+ * Detect whether a Tabularium receipt (or receipt-like object) represents a
+ * capability decision. Checks `action` and/or metadata fields.
+ */
+export function isCapabilityDecisionReceipt(
+  receipt: Readonly<{
+    action?: string;
+    metadata?: Readonly<Record<string, string | number | boolean>> | null;
+  }> | null | undefined,
+): boolean {
+  if (!receipt) return false;
+  if (receipt.action === "capability.decision") return true;
+  const meta = receipt.metadata;
+  if (!meta || typeof meta !== "object") return false;
+  return (
+    typeof meta.capabilityId === "string" &&
+    isCapabilityRuntimeState(meta.capabilityState)
+  );
+}
+
+/**
+ * Convert a Tabularium receipt (or receipt-like object) into a badge view.
+ * Returns `null` when the receipt is not a capability decision.
+ */
+export function receiptToCapabilityBadgeView(
+  receipt: Readonly<{
+    action?: string;
+    metadata?: Readonly<Record<string, string | number | boolean>> | null;
+  }> | null | undefined,
+): CapabilityBadgeView | null {
+  if (!isCapabilityDecisionReceipt(receipt)) return null;
+  return capabilityReceiptMetadataToBadgeView(receipt!.metadata);
+}
+
 /** Re-exported types so consumers can pick up the badge tone enum easily. */
 export type { CapabilityProviderMode, CapabilityRuntimeState, CapabilityTier };

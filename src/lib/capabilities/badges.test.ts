@@ -4,6 +4,8 @@ import {
   capabilityDecisionToBadgeView,
   capabilityReceiptMetadataToBadgeView,
   capabilityStateToBadgeLabel,
+  isCapabilityDecisionReceipt,
+  receiptToCapabilityBadgeView,
 } from "./badges";
 import {
   decideCapabilityRuntime,
@@ -333,5 +335,139 @@ describe("capabilityBadgeToneClass", () => {
       expect(typeof cls).toBe("string");
       expect(cls.length).toBeGreaterThan(20);
     }
+  });
+});
+
+describe("isCapabilityDecisionReceipt", () => {
+  it("detects receipt with action=capability.decision", () => {
+    expect(isCapabilityDecisionReceipt({ action: "capability.decision" })).toBe(true);
+  });
+
+  it("detects receipt with capability metadata fields even without matching action", () => {
+    expect(
+      isCapabilityDecisionReceipt({
+        action: "other",
+        metadata: { capabilityId: "colloquium:chat.basic", capabilityState: "LOCAL_READY" },
+      }),
+    ).toBe(true);
+  });
+
+  it("returns false for non-capability receipts", () => {
+    expect(isCapabilityDecisionReceipt({ action: "chat.sent" })).toBe(false);
+    expect(isCapabilityDecisionReceipt({ action: "review", metadata: { foo: "bar" } })).toBe(false);
+  });
+
+  it("returns false for null/undefined without throwing", () => {
+    expect(isCapabilityDecisionReceipt(null)).toBe(false);
+    expect(isCapabilityDecisionReceipt(undefined)).toBe(false);
+  });
+});
+
+describe("receiptToCapabilityBadgeView", () => {
+  it("maps a capability.decision receipt metadata to a badge view", () => {
+    const receipt = {
+      action: "capability.decision",
+      metadata: {
+        capabilityId: "colloquium:chat.basic",
+        capabilityState: "LOCAL_READY",
+        localAttemptAllowed: true,
+        cloudAllowed: false,
+      } as Record<string, string | number | boolean>,
+    };
+    const view = receiptToCapabilityBadgeView(receipt);
+    expect(view).not.toBeNull();
+    expect(view!.label).toBe("Local ready");
+    expect(view!.tone).toBe("local");
+    expect(view!.cloudUsed).toBe(false);
+  });
+
+  it("Colloquium capability decision receipt metadata produces Local ready", () => {
+    const input = buildColloquiumCapabilityDecisionReceiptInput({
+      createdAt: 1,
+      localChatReady: true,
+      providerId: "ollama",
+      modelId: "llama3.1:8b",
+    });
+    const receipt = { action: "capability.decision", metadata: input.metadata };
+    const view = receiptToCapabilityBadgeView(receipt);
+    expect(view).not.toBeNull();
+    expect(view!.label).toBe("Local ready");
+  });
+
+  it("Velum capability decision receipt metadata produces Local ready", () => {
+    const input = buildVelumCapabilityDecisionReceiptInput({
+      createdAt: 1,
+      reviewCompleted: true,
+    });
+    const receipt = { action: "capability.decision", metadata: input.metadata };
+    const view = receiptToCapabilityBadgeView(receipt);
+    expect(view).not.toBeNull();
+    expect(view!.label).toBe("Local ready");
+  });
+
+  it("cloudAllowed/providerMode still do not imply cloudUsed", () => {
+    const receipt = {
+      action: "capability.decision",
+      metadata: {
+        capabilityState: "CLOUD_REQUIRED",
+        providerMode: "cloud",
+        cloudAllowed: true,
+        localAttemptAllowed: false,
+      } as Record<string, string | number | boolean>,
+    };
+    const view = receiptToCapabilityBadgeView(receipt);
+    expect(view).not.toBeNull();
+    expect(view!.cloudAllowed).toBe(true);
+    expect(view!.cloudUsed).toBe(false);
+  });
+
+  it("returns null for non-capability receipts without throwing", () => {
+    expect(receiptToCapabilityBadgeView(null)).toBeNull();
+    expect(receiptToCapabilityBadgeView(undefined)).toBeNull();
+    expect(receiptToCapabilityBadgeView({ action: "chat.sent" })).toBeNull();
+    expect(receiptToCapabilityBadgeView({ action: "review", metadata: { foo: "bar" } })).toBeNull();
+  });
+
+  it("does not require or surface forbidden fields", () => {
+    const receipt = {
+      action: "capability.decision",
+      metadata: {
+        capabilityState: "LOCAL_READY",
+        capabilityId: "colloquium:chat.basic",
+        localAttemptAllowed: true,
+        cloudAllowed: false,
+      } as Record<string, string | number | boolean>,
+    };
+    const view = receiptToCapabilityBadgeView(receipt)!;
+    assertNoForbiddenKeysDeep(view as unknown as Record<string, unknown>);
+  });
+
+  describe("no fetch / no cloud calls from receipt helpers", () => {
+    let originalFetch: typeof globalThis.fetch | undefined;
+    let fetchSpy: ReturnType<typeof vi.fn<unknown[], unknown>>;
+
+    beforeEach(() => {
+      originalFetch = globalThis.fetch;
+      fetchSpy = vi.fn<unknown[], unknown>(() => {
+        throw new Error("receipt badge helpers attempted a network call");
+      });
+      (globalThis as unknown as { fetch: typeof globalThis.fetch }).fetch =
+        fetchSpy as unknown as typeof globalThis.fetch;
+    });
+
+    afterEach(() => {
+      if (originalFetch) {
+        (globalThis as unknown as { fetch: typeof globalThis.fetch }).fetch =
+          originalFetch;
+      }
+    });
+
+    it("isCapabilityDecisionReceipt and receiptToCapabilityBadgeView do not call fetch", () => {
+      isCapabilityDecisionReceipt({ action: "capability.decision", metadata: { capabilityState: "LOCAL_READY", capabilityId: "x" } });
+      receiptToCapabilityBadgeView({ action: "capability.decision", metadata: { capabilityState: "CLOUD_REQUIRED", capabilityId: "x", cloudAllowed: true } });
+      receiptToCapabilityBadgeView(null);
+      receiptToCapabilityBadgeView({ action: "other" });
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
   });
 });
