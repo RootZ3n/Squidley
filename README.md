@@ -133,6 +133,13 @@ Cloud-unlock modules are visible as future/advanced concepts, but remain locked.
 - No accounts, cloud sync, backend database, agents, tools, or shell execution.
 - Storage is browser-local only.
 
+## Local-First Trust Model
+
+Public Squidley uses a layered local-first trust architecture: capability
+states, gateway prompt-injection defense, policy boundaries, Velum review
+before cloud, explicit consent flow, and Tabularium trust chains. Consent
+does not equal execution. See [docs/TRUST_MODEL.md](docs/TRUST_MODEL.md).
+
 ## Documentation
 
 - [docs/PUBLIC_RELEASE_CHECKLIST.md](docs/PUBLIC_RELEASE_CHECKLIST.md) — release/demo checklist.
@@ -155,6 +162,7 @@ Cloud-unlock modules are visible as future/advanced concepts, but remain locked.
 - [docs/NOUS_PUBLIC.md](docs/NOUS_PUBLIC.md) — model map and provider registry.
 - [docs/MODULE_MATRIX.md](docs/MODULE_MATRIX.md) — module list and capability matrix.
 - [docs/LOCAL_ONLY_PRINCIPLES.md](docs/LOCAL_ONLY_PRINCIPLES.md) — local-first principles.
+- [docs/TRUST_MODEL.md](docs/TRUST_MODEL.md) — local-first trust architecture and cloud consent flow.
 
 ## Stack
 
