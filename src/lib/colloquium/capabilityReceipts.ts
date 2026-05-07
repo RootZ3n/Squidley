@@ -21,6 +21,12 @@ import {
   buildCapabilityPreflightReceiptInput,
   recordCapabilityPreflightReceipt,
 } from "@/lib/capabilities/preflight";
+import {
+  localModelsToCapabilityProfiles,
+  isLikelyEmbeddingModel,
+  type LocalModelSnapshot,
+} from "@/lib/capabilities/localReadiness";
+import type { AvailableProfile } from "@/lib/capabilities/runtime";
 import type {
   TabulariumReceipt,
   TabulariumReceiptInput,
@@ -28,23 +34,23 @@ import type {
 
 export const COLLOQUIUM_CHAT_CAPABILITY_ID = "colloquium:chat.basic" as const;
 
-/**
- * The local chat path uses Ollama. The `colloquium:chat.basic` capability is
- * registered with `localRequirements: [{ providerId: "ollama",
- * capabilityProfile: "chat" }]`. When the submit path knows it has a selected
- * local chat model, supplying this profile makes the runtime resolver report
- * LOCAL_READY; when no model is configured, supply an empty list so the
- * decision honestly reports "not ready".
- */
-const COLLOQUIUM_LOCAL_CHAT_PROFILE = {
-  providerId: "ollama",
-  capabilityProfile: "chat",
-} as const;
-
 export interface ColloquiumCapabilityReceiptArgs {
   /**
-   * True when the chat submit path has a selected local chat model and is
-   * about to invoke it. Defaults to false (no local provider asserted).
+   * Local models already discovered by the Colloquium page. When provided,
+   * the helper derives real capability profiles from the model list rather
+   * than relying on the boolean localChatReady flag.
+   */
+  localModels?: readonly LocalModelSnapshot[];
+  /**
+   * The currently selected model id (e.g. "llama3.2:latest"). Used as a
+   * minimal fallback snapshot when localModels is not provided, and always
+   * passed as receipt metadata when present.
+   */
+  selectedModel?: string;
+  /**
+   * @deprecated Prefer localModels or selectedModel. Kept for backward
+   * compatibility: when true and no localModels/selectedModel are given,
+   * injects a hardcoded ollama chat profile.
    */
   localChatReady?: boolean;
   /** Provider id, only when known cheaply at the call site (e.g. "ollama"). */
@@ -55,16 +61,44 @@ export interface ColloquiumCapabilityReceiptArgs {
   receiptId?: string;
 }
 
+/**
+ * Resolve available local profiles from the args, preferring real model data
+ * over the legacy boolean flag.
+ */
+function resolveLocalProfiles(args: ColloquiumCapabilityReceiptArgs): AvailableProfile[] {
+  // Best: full model list from the page.
+  if (args.localModels && args.localModels.length > 0) {
+    return localModelsToCapabilityProfiles(args.localModels);
+  }
+
+  // Good: selected model name as a minimal snapshot.
+  const selected = (args.selectedModel ?? args.modelId ?? "").trim();
+  if (selected.length > 0) {
+    const snapshot: LocalModelSnapshot = { name: selected, providerId: "ollama" };
+    // If the selected model is embedding-only, it cannot provide chat.
+    if (isLikelyEmbeddingModel(snapshot)) return [];
+    return localModelsToCapabilityProfiles([snapshot]);
+  }
+
+  // Legacy fallback: the old boolean flag.
+  if (args.localChatReady) {
+    return [{ providerId: "ollama", capabilityProfile: "chat" }];
+  }
+
+  return [];
+}
+
 export function buildColloquiumCapabilityDecisionReceiptInput(
   args: ColloquiumCapabilityReceiptArgs = {},
 ): TabulariumReceiptInput {
+  const modelId = args.selectedModel ?? args.modelId;
+  const providerId = modelId ? (args.providerId ?? "ollama") : args.providerId;
+
   return buildCapabilityPreflightReceiptInput({
     capabilityId: COLLOQUIUM_CHAT_CAPABILITY_ID,
-    availableLocalProfiles: args.localChatReady
-      ? [COLLOQUIUM_LOCAL_CHAT_PROFILE]
-      : [],
-    providerId: args.providerId,
-    modelId: args.modelId,
+    availableLocalProfiles: resolveLocalProfiles(args),
+    providerId,
+    modelId,
     createdAt: args.createdAt,
     receiptId: args.receiptId,
   });
@@ -80,13 +114,14 @@ export function recordColloquiumCapabilityDecisionReceipt(
   storage: Pick<Storage, "getItem" | "setItem">,
   args: ColloquiumCapabilityReceiptArgs = {},
 ): TabulariumReceipt | null {
+  const modelId = args.selectedModel ?? args.modelId;
+  const providerId = modelId ? (args.providerId ?? "ollama") : args.providerId;
+
   return recordCapabilityPreflightReceipt(storage, {
     capabilityId: COLLOQUIUM_CHAT_CAPABILITY_ID,
-    availableLocalProfiles: args.localChatReady
-      ? [COLLOQUIUM_LOCAL_CHAT_PROFILE]
-      : [],
-    providerId: args.providerId,
-    modelId: args.modelId,
+    availableLocalProfiles: resolveLocalProfiles(args),
+    providerId,
+    modelId,
     createdAt: args.createdAt,
     receiptId: args.receiptId,
   });

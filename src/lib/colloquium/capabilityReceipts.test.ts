@@ -57,7 +57,106 @@ describe("Colloquium chat capability id", () => {
   });
 });
 
-describe("buildColloquiumCapabilityDecisionReceiptInput", () => {
+// ---------------------------------------------------------------------------
+// Real local readiness (localModels / selectedModel)
+// ---------------------------------------------------------------------------
+
+describe("buildColloquiumCapabilityDecisionReceiptInput — real readiness", () => {
+  it("selected generative model produces LOCAL_READY", () => {
+    const input = buildColloquiumCapabilityDecisionReceiptInput({
+      createdAt: 1000,
+      localModels: [{ name: "llama3.2:latest" }, { name: "qwen2.5:3b" }],
+      selectedModel: "llama3.2:latest",
+    });
+    const meta = input.metadata!;
+    expect(meta.capabilityState).toBe("LOCAL_READY");
+    expect(meta.localAttemptAllowed).toBe(true);
+    expect(meta.providerId).toBe("ollama");
+    expect(meta.modelId).toBe("llama3.2:latest");
+  });
+
+  it("selectedModel-only fallback also produces LOCAL_READY for generative model", () => {
+    const input = buildColloquiumCapabilityDecisionReceiptInput({
+      createdAt: 1,
+      selectedModel: "llama3.1:8b",
+    });
+    const meta = input.metadata!;
+    expect(meta.capabilityState).toBe("LOCAL_READY");
+    expect(meta.localAttemptAllowed).toBe(true);
+    expect(meta.providerId).toBe("ollama");
+    expect(meta.modelId).toBe("llama3.1:8b");
+  });
+
+  it("selected embedding model does NOT produce LOCAL_READY for chat", () => {
+    const input = buildColloquiumCapabilityDecisionReceiptInput({
+      createdAt: 1,
+      localModels: [{ name: "all-minilm:latest" }],
+      selectedModel: "all-minilm:latest",
+    });
+    const meta = input.metadata!;
+    expect(meta.capabilityState).not.toBe("LOCAL_READY");
+    expect(meta.localAttemptAllowed).toBe(false);
+  });
+
+  it("selectedModel-only with embedding name does NOT produce LOCAL_READY", () => {
+    const input = buildColloquiumCapabilityDecisionReceiptInput({
+      createdAt: 1,
+      selectedModel: "nomic-embed-text:latest",
+    });
+    const meta = input.metadata!;
+    expect(meta.capabilityState).not.toBe("LOCAL_READY");
+    expect(meta.localAttemptAllowed).toBe(false);
+  });
+
+  it("no selected model does not silently claim LOCAL_READY", () => {
+    const input = buildColloquiumCapabilityDecisionReceiptInput({
+      createdAt: 1,
+    });
+    const meta = input.metadata!;
+    expect(meta.capabilityState).not.toBe("LOCAL_READY");
+    expect(meta.localAttemptAllowed).toBe(false);
+  });
+
+  it("empty localModels with no selectedModel does not claim LOCAL_READY", () => {
+    const input = buildColloquiumCapabilityDecisionReceiptInput({
+      createdAt: 1,
+      localModels: [],
+    });
+    const meta = input.metadata!;
+    expect(meta.capabilityState).not.toBe("LOCAL_READY");
+    expect(meta.localAttemptAllowed).toBe(false);
+  });
+
+  it("providerId/modelId are included only when selectedModel exists", () => {
+    const withModel = buildColloquiumCapabilityDecisionReceiptInput({
+      createdAt: 1,
+      selectedModel: "llama3.2:latest",
+    });
+    expect(withModel.metadata!.providerId).toBe("ollama");
+    expect(withModel.metadata!.modelId).toBe("llama3.2:latest");
+
+    const withoutModel = buildColloquiumCapabilityDecisionReceiptInput({
+      createdAt: 1,
+    });
+    expect(withoutModel.metadata!.providerId).toBeUndefined();
+    expect(withoutModel.metadata!.modelId).toBeUndefined();
+  });
+
+  it("does not include forbidden content fields", () => {
+    const input = buildColloquiumCapabilityDecisionReceiptInput({
+      createdAt: 1,
+      localModels: [{ name: "llama3.2:latest" }],
+      selectedModel: "llama3.2:latest",
+    });
+    assertNoForbiddenKeysDeep(input);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Legacy localChatReady boolean (backward compat)
+// ---------------------------------------------------------------------------
+
+describe("buildColloquiumCapabilityDecisionReceiptInput — legacy localChatReady", () => {
   it("returns a Tabularium-compatible input with capability metadata when local chat is ready", () => {
     const input = buildColloquiumCapabilityDecisionReceiptInput({
       createdAt: 1000,
@@ -108,6 +207,10 @@ describe("buildColloquiumCapabilityDecisionReceiptInput", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Record helper
+// ---------------------------------------------------------------------------
+
 describe("recordColloquiumCapabilityDecisionReceipt", () => {
   it("writes only via the supplied Tabularium storage and returns a receipt", () => {
     const data = new Map<string, string>();
@@ -118,9 +221,8 @@ describe("recordColloquiumCapabilityDecisionReceipt", () => {
     const receipt = recordColloquiumCapabilityDecisionReceipt(storage, {
       createdAt: 50,
       receiptId: "colloquium-cap-1",
-      localChatReady: true,
-      providerId: "ollama",
-      modelId: "llama3.1:8b",
+      localModels: [{ name: "llama3.1:8b" }],
+      selectedModel: "llama3.1:8b",
     });
     expect(receipt).not.toBeNull();
     expect(storage.setItem).toHaveBeenCalledTimes(1);
@@ -152,13 +254,9 @@ describe("recordColloquiumCapabilityDecisionReceipt", () => {
       getItem: vi.fn((key: string) => data.get(key) ?? null),
       setItem: vi.fn((key: string, value: string) => data.set(key, value)),
     };
-    // The capability adapter takes no body — there is no path for the user's
-    // prompt to land in this receipt. The test exists to lock that contract.
     recordColloquiumCapabilityDecisionReceipt(storage, {
       createdAt: 2,
-      localChatReady: true,
-      providerId: "ollama",
-      modelId: "llama3.1:8b",
+      selectedModel: "llama3.1:8b",
     });
     const written = data.get(storage.setItem.mock.calls[0][0])!;
     for (const probe of [
@@ -172,6 +270,10 @@ describe("recordColloquiumCapabilityDecisionReceipt", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// Purity and existing flow
+// ---------------------------------------------------------------------------
 
 describe("Colloquium capability receipt — purity and existing flow preserved", () => {
   let originalFetch: typeof globalThis.fetch | undefined;
@@ -201,11 +303,16 @@ describe("Colloquium capability receipt — purity and existing flow preserved",
     };
     buildColloquiumCapabilityDecisionReceiptInput({
       createdAt: 1,
+      localModels: [{ name: "llama3.2:latest" }],
+      selectedModel: "llama3.2:latest",
+    });
+    buildColloquiumCapabilityDecisionReceiptInput({
+      createdAt: 2,
       localChatReady: true,
     });
     recordColloquiumCapabilityDecisionReceipt(storage, {
-      createdAt: 2,
-      localChatReady: true,
+      createdAt: 3,
+      selectedModel: "llama3.2:latest",
     });
     expect(fetchSpy).not.toHaveBeenCalled();
   });

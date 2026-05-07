@@ -27,7 +27,7 @@ import {
 } from "@/lib/tabularium/receipts";
 import { findReceiptByQueryId } from "@/lib/tabularium/gatewayReceipts";
 import { tabulariumLocalReceiptsDecision } from "@/lib/ratio";
-import { isCapabilityDecisionReceipt, receiptToCapabilityBadgeView } from "@/lib/capabilities/badges";
+import { isCapabilityDecisionReceipt, isCloudConsentDecisionReceipt, isCloudEscalationOfferReceipt, receiptToTransparencyBadgeView } from "@/lib/capabilities/badges";
 import { CapabilityBadge } from "@/components/capabilities/CapabilityBadge";
 
 const MODULE_FILTERS: TabulariumModuleFilter[] = ["all", "colloquium", "velum", "archivum", "oculus", "fabrica", "nous", "settings", "system"];
@@ -216,9 +216,10 @@ export default function TabulariumPage() {
                         <span>{receipt.module}</span>
                         <span>{receipt.modelUsed ? "model used" : "no model"}</span>
                         <span>No cloud used</span>
-                        {isCapabilityDecisionReceipt(receipt) && (
-                          <CapabilityBadge metadata={receipt.metadata} showDetail={false} />
-                        )}
+                        {(isCapabilityDecisionReceipt(receipt) || isCloudEscalationOfferReceipt(receipt) || isCloudConsentDecisionReceipt(receipt)) && (() => {
+                          const badgeView = receiptToTransparencyBadgeView(receipt);
+                          return badgeView ? <CapabilityBadge view={badgeView} showDetail={false} /> : null;
+                        })()}
                       </div>
                     </button>
                   </li>
@@ -294,14 +295,23 @@ function ReceiptDetails({ receipt }: { receipt: TabulariumReceipt }) {
       <Detail label="Model" value={receipt.model ?? "Not applicable"} />
       <Detail label="Changed local storage" value={typeof receipt.changedLocalStorage === "boolean" ? String(receipt.changedLocalStorage) : "Not recorded"} />
       <Detail label="Related item" value={receipt.relatedItemId ?? "None"} />
-      {isCapabilityDecisionReceipt(receipt) && (
-        <div className="border-b border-ink-100 pb-2 dark:border-ink-700/60">
-          <dt className="text-xs font-medium uppercase tracking-wide text-ink-400">Capability badge</dt>
-          <dd className="mt-1">
-            <CapabilityBadge metadata={receipt.metadata} showDetail={true} />
-          </dd>
-        </div>
-      )}
+      {(() => {
+        const badgeView = receiptToTransparencyBadgeView(receipt);
+        if (!badgeView) return null;
+        const label = isCloudConsentDecisionReceipt(receipt)
+          ? "Cloud consent badge"
+          : isCloudEscalationOfferReceipt(receipt)
+            ? "Cloud escalation badge"
+            : "Capability badge";
+        return (
+          <div className="border-b border-ink-100 pb-2 dark:border-ink-700/60">
+            <dt className="text-xs font-medium uppercase tracking-wide text-ink-400">{label}</dt>
+            <dd className="mt-1">
+              <CapabilityBadge view={badgeView} showDetail={true} />
+            </dd>
+          </div>
+        );
+      })()}
       {receipt.metadata ? (
         <div>
           <dt className="text-xs font-medium uppercase tracking-wide text-ink-400">Safe metadata</dt>

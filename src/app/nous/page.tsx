@@ -9,6 +9,7 @@ import { markTourCompleted, readTourMode, restartTour as persistRestartTour } fr
 import { getTour } from "@/lib/tour";
 import { isLikelyVisionModel } from "@/lib/oculus/helpers";
 import type { LocalModelInfo } from "@/lib/providers/ollama";
+import { summarizeLocalCapabilities } from "@/lib/nous/localCapabilitySummary";
 import { PROVIDER_REGISTRY, getLockedCloudProviders } from "@/lib/providers/registry";
 import {
   createModelPreferencesDocument,
@@ -189,6 +190,11 @@ export default function NousPage() {
     [selectedColloquiumModel, selectedFabricaModel],
   );
 
+  const capabilitySummary = useMemo(
+    () => summarizeLocalCapabilities(localModels.models),
+    [localModels.models],
+  );
+
   async function loadLocalModels() {
     setLocalModels((prev) => ({ ...prev, loading: true, reason: null }));
     try {
@@ -343,6 +349,27 @@ export default function NousPage() {
             Reset model preferences
           </button>
         </TourHighlight>
+
+        <div className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
+          <h2 className="font-serif text-lg font-semibold text-ink-900 dark:text-ink-50">
+            Local capability readiness
+          </h2>
+          <p className="mt-1 text-xs text-ink-400">
+            Conservative local-readiness estimate based on installed model names. This does not benchmark quality.
+          </p>
+          {localModels.loading ? (
+            <p className="mt-3 text-sm text-ink-500 dark:text-ink-300">Checking local models...</p>
+          ) : (
+            <ul className="mt-3 space-y-1.5">
+              {capabilitySummary.beginnerSummaryLines.map((line) => (
+                <li key={line} className="flex items-start gap-2 text-sm">
+                  <span className={`mt-0.5 inline-block h-2 w-2 shrink-0 rounded-full ${readinessDotClass(line)}`} />
+                  <span className="text-ink-700 dark:text-ink-200">{line}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
         <TourHighlight target="nous-asi" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -564,6 +591,16 @@ function ProviderDetail({ label, value }: { label: string; value: string }) {
       <dd className="truncate text-right font-mono" title={value}>{value}</dd>
     </div>
   );
+}
+
+function readinessDotClass(line: string): string {
+  if (line.includes("Available locally") || line.includes("Likely available")) {
+    return "bg-emerald-500";
+  }
+  if (line.includes("Not detected") || line.includes("No local models") || line.includes("Not assumed")) {
+    return "bg-ink-300 dark:bg-ink-500";
+  }
+  return "bg-ink-300 dark:bg-ink-500";
 }
 
 const activeBadgeClass = "rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:border-emerald-700/60 dark:bg-emerald-900/20 dark:text-emerald-100";

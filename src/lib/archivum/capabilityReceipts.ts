@@ -16,6 +16,12 @@ import {
   buildCapabilityPreflightReceiptInput,
   recordCapabilityPreflightReceipt,
 } from "@/lib/capabilities/preflight";
+import {
+  localModelsToCapabilityProfiles,
+  isLikelyEmbeddingModel,
+  type LocalModelSnapshot,
+} from "@/lib/capabilities/localReadiness";
+import type { AvailableProfile } from "@/lib/capabilities/runtime";
 import type {
   TabulariumReceipt,
   TabulariumReceiptInput,
@@ -36,7 +42,15 @@ export interface ArchivumCapabilityReceiptArgs {
 }
 
 export interface ArchivumSummarizeCapabilityReceiptArgs {
-  /** True when a local chat model is selected and available. */
+  /** Local models already discovered. When provided, real capability profiles are derived. */
+  localModels?: readonly LocalModelSnapshot[];
+  /** The currently selected model id. Used as minimal fallback when localModels is not provided. */
+  selectedModel?: string;
+  /**
+   * @deprecated Prefer localModels or selectedModel. Kept for backward
+   * compatibility: when true and no localModels/selectedModel are given,
+   * injects a hardcoded ollama chat profile.
+   */
   localModelReady?: boolean;
   /** Provider id, only when known at the call site (e.g. "ollama"). */
   providerId?: string;
@@ -46,10 +60,40 @@ export interface ArchivumSummarizeCapabilityReceiptArgs {
   receiptId?: string;
 }
 
-const OLLAMA_CHAT_PROFILE = {
-  providerId: "ollama",
-  capabilityProfile: "chat",
-} as const;
+/**
+ * Resolve available local profiles from summarize args, preferring real model
+ * data over the legacy boolean flag.
+ */
+function resolveSummarizeLocalProfiles(
+  args: ArchivumSummarizeCapabilityReceiptArgs,
+): AvailableProfile[] {
+  // Best: full model list.
+  if (args.localModels && args.localModels.length > 0) {
+    return localModelsToCapabilityProfiles(args.localModels);
+  }
+
+  // Good: selected model name as a minimal snapshot.
+  const selected = (args.selectedModel ?? args.modelId ?? "").trim();
+  if (selected.length > 0) {
+    const snapshot: LocalModelSnapshot = { name: selected, providerId: "ollama" };
+    if (isLikelyEmbeddingModel(snapshot)) return [];
+    return localModelsToCapabilityProfiles([snapshot]);
+  }
+
+  // Legacy fallback: the old boolean flag.
+  if (args.localModelReady) {
+    return [{ providerId: "ollama", capabilityProfile: "chat" }];
+  }
+
+  return [];
+}
+
+/** Resolve providerId/modelId from summarize args. */
+function resolveSummarizeModelFields(args: ArchivumSummarizeCapabilityReceiptArgs) {
+  const modelId = args.selectedModel ?? args.modelId;
+  const providerId = modelId ? (args.providerId ?? "ollama") : args.providerId;
+  return { providerId, modelId };
+}
 
 // ---------------------------------------------------------------------------
 // Archivum local-storage (local-core, no requirements -> always LOCAL_READY)
@@ -108,11 +152,12 @@ export function recordMoreInputLocalStorageCapabilityReceipt(
 export function buildArchivumSummarizeCapabilityReceiptInput(
   args: ArchivumSummarizeCapabilityReceiptArgs = {},
 ): TabulariumReceiptInput {
+  const { providerId, modelId } = resolveSummarizeModelFields(args);
   return buildCapabilityPreflightReceiptInput({
     capabilityId: ARCHIVUM_SUMMARIZE_CAPABILITY_ID,
-    availableLocalProfiles: args.localModelReady ? [OLLAMA_CHAT_PROFILE] : [],
-    providerId: args.providerId,
-    modelId: args.modelId,
+    availableLocalProfiles: resolveSummarizeLocalProfiles(args),
+    providerId,
+    modelId,
     createdAt: args.createdAt,
     receiptId: args.receiptId,
   });
@@ -122,11 +167,12 @@ export function recordArchivumSummarizeCapabilityReceipt(
   storage: Pick<Storage, "getItem" | "setItem">,
   args: ArchivumSummarizeCapabilityReceiptArgs = {},
 ): TabulariumReceipt | null {
+  const { providerId, modelId } = resolveSummarizeModelFields(args);
   return recordCapabilityPreflightReceipt(storage, {
     capabilityId: ARCHIVUM_SUMMARIZE_CAPABILITY_ID,
-    availableLocalProfiles: args.localModelReady ? [OLLAMA_CHAT_PROFILE] : [],
-    providerId: args.providerId,
-    modelId: args.modelId,
+    availableLocalProfiles: resolveSummarizeLocalProfiles(args),
+    providerId,
+    modelId,
     createdAt: args.createdAt,
     receiptId: args.receiptId,
   });
@@ -139,11 +185,12 @@ export function recordArchivumSummarizeCapabilityReceipt(
 export function buildMoreInputSummarizeCapabilityReceiptInput(
   args: ArchivumSummarizeCapabilityReceiptArgs = {},
 ): TabulariumReceiptInput {
+  const { providerId, modelId } = resolveSummarizeModelFields(args);
   return buildCapabilityPreflightReceiptInput({
     capabilityId: MORE_INPUT_SUMMARIZE_CAPABILITY_ID,
-    availableLocalProfiles: args.localModelReady ? [OLLAMA_CHAT_PROFILE] : [],
-    providerId: args.providerId,
-    modelId: args.modelId,
+    availableLocalProfiles: resolveSummarizeLocalProfiles(args),
+    providerId,
+    modelId,
     createdAt: args.createdAt,
     receiptId: args.receiptId,
   });
@@ -153,11 +200,12 @@ export function recordMoreInputSummarizeCapabilityReceipt(
   storage: Pick<Storage, "getItem" | "setItem">,
   args: ArchivumSummarizeCapabilityReceiptArgs = {},
 ): TabulariumReceipt | null {
+  const { providerId, modelId } = resolveSummarizeModelFields(args);
   return recordCapabilityPreflightReceipt(storage, {
     capabilityId: MORE_INPUT_SUMMARIZE_CAPABILITY_ID,
-    availableLocalProfiles: args.localModelReady ? [OLLAMA_CHAT_PROFILE] : [],
-    providerId: args.providerId,
-    modelId: args.modelId,
+    availableLocalProfiles: resolveSummarizeLocalProfiles(args),
+    providerId,
+    modelId,
     createdAt: args.createdAt,
     receiptId: args.receiptId,
   });

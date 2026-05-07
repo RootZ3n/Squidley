@@ -217,5 +217,306 @@ export function receiptToCapabilityBadgeView(
   return capabilityReceiptMetadataToBadgeView(receipt!.metadata);
 }
 
+// ---------------------------------------------------------------------------
+// Cloud escalation offer badge helpers
+// ---------------------------------------------------------------------------
+
+type ConsentStateString = "not-required" | "required" | "granted" | "denied" | "blocked";
+
+function isConsentState(value: unknown): value is ConsentStateString {
+  return (
+    value === "not-required" ||
+    value === "required" ||
+    value === "granted" ||
+    value === "denied" ||
+    value === "blocked"
+  );
+}
+
+const CONSENT_LABELS: Record<ConsentStateString, string> = {
+  "not-required": "Cloud not required",
+  required: "Cloud consent needed",
+  granted: "Cloud allowed",
+  denied: "Cloud denied",
+  blocked: "Cloud blocked",
+};
+
+const CONSENT_TONES: Record<ConsentStateString, CapabilityBadgeTone> = {
+  "not-required": "neutral",
+  required: "cloud-required",
+  granted: "cloud-optional",
+  denied: "blocked",
+  blocked: "blocked",
+};
+
+const CONSENT_SHORT: Record<ConsentStateString, string> = {
+  "not-required": "Cloud is not required for this action.",
+  required: "Cloud consent is required before anything is sent.",
+  granted: "Cloud is allowed but nothing has been sent from this offer.",
+  denied: "Cloud was offered but consent was denied.",
+  blocked: "Cloud escalation is currently blocked.",
+};
+
+function escalationDetail(
+  consentState: ConsentStateString,
+  nothingSentYet: boolean,
+  requiresVelumReview: boolean,
+  velumReviewPassed: boolean,
+): string {
+  const parts: string[] = [];
+
+  if (nothingSentYet) {
+    parts.push("Nothing has been sent to any cloud provider.");
+  }
+
+  switch (consentState) {
+    case "required":
+      parts.push("Squidley needs your explicit consent before sending anything to the cloud.");
+      break;
+    case "granted":
+      parts.push("Cloud is allowed, but this receipt alone does not prove a cloud call happened.");
+      break;
+    case "denied":
+      parts.push("You denied cloud access for this offer.");
+      break;
+    case "blocked":
+      parts.push("Cloud escalation is blocked for this capability.");
+      break;
+    case "not-required":
+      parts.push("No cloud provider is needed.");
+      break;
+  }
+
+  if (requiresVelumReview && !velumReviewPassed) {
+    parts.push("Velum review is required before any data can be sent to the cloud.");
+  } else if (requiresVelumReview && velumReviewPassed) {
+    parts.push("Velum review has been completed.");
+  }
+
+  return parts.join(" ");
+}
+
+/**
+ * Detect whether a Tabularium receipt represents a cloud escalation offer.
+ */
+export function isCloudEscalationOfferReceipt(
+  receipt: Readonly<{
+    action?: string;
+    metadata?: Readonly<Record<string, string | number | boolean>> | null;
+  }> | null | undefined,
+): boolean {
+  if (!receipt) return false;
+  if (receipt.action === "cloud-escalation.offer") return true;
+  const meta = receipt.metadata;
+  if (!meta || typeof meta !== "object") return false;
+  return (
+    typeof meta.escalationPacketId === "string" &&
+    isConsentState(meta.consentState)
+  );
+}
+
+/**
+ * Build a badge view from a cloud-escalation.offer receipt's metadata.
+ * Returns null when the receipt is not a cloud escalation offer.
+ */
+export function cloudEscalationReceiptToBadgeView(
+  receipt: Readonly<{
+    action?: string;
+    metadata?: Readonly<Record<string, string | number | boolean>> | null;
+  }> | null | undefined,
+): CapabilityBadgeView | null {
+  if (!isCloudEscalationOfferReceipt(receipt)) return null;
+  const meta = receipt!.metadata!;
+
+  const consentState = isConsentState(meta.consentState)
+    ? meta.consentState
+    : "required";
+  const nothingSentYet = meta.nothingSentYet === true;
+  const requiresVelumReview = meta.requiresVelumReview === true;
+  const velumReviewPassed = meta.velumReviewPassed === true;
+  const cloudAllowed = consentState === "granted";
+
+  return {
+    label: CONSENT_LABELS[consentState],
+    tone: CONSENT_TONES[consentState],
+    shortDescription: CONSENT_SHORT[consentState],
+    detail: escalationDetail(consentState, nothingSentYet, requiresVelumReview, velumReviewPassed),
+    cloudUsed: false,
+    localAttemptAllowed: false,
+    cloudAllowed,
+  };
+}
+
+/**
+ * Unified transparency badge builder. Works for both capability.decision
+ * and cloud-escalation.offer receipts. Returns null for unrecognized
+ * receipt types.
+ */
+export function receiptToTransparencyBadgeView(
+  receipt: Readonly<{
+    action?: string;
+    metadata?: Readonly<Record<string, string | number | boolean>> | null;
+  }> | null | undefined,
+): CapabilityBadgeView | null {
+  if (isCloudConsentDecisionReceipt(receipt)) {
+    return cloudConsentReceiptToBadgeView(receipt);
+  }
+  if (isCloudEscalationOfferReceipt(receipt)) {
+    return cloudEscalationReceiptToBadgeView(receipt);
+  }
+  if (isCapabilityDecisionReceipt(receipt)) {
+    return capabilityReceiptMetadataToBadgeView(receipt!.metadata);
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Cloud consent decision badge helpers
+// ---------------------------------------------------------------------------
+
+type ConsentDecisionString = "granted" | "denied" | "cancelled" | "blocked";
+
+function isConsentDecision(value: unknown): value is ConsentDecisionString {
+  return (
+    value === "granted" ||
+    value === "denied" ||
+    value === "cancelled" ||
+    value === "blocked"
+  );
+}
+
+const CONSENT_DECISION_LABELS: Record<ConsentDecisionString, string> = {
+  granted: "Cloud consent granted",
+  denied: "Cloud consent denied",
+  cancelled: "Cloud consent cancelled",
+  blocked: "Cloud consent blocked",
+};
+
+const CONSENT_DECISION_TONES: Record<ConsentDecisionString, CapabilityBadgeTone> = {
+  granted: "cloud-optional",
+  denied: "blocked",
+  cancelled: "neutral",
+  blocked: "blocked",
+};
+
+const CONSENT_DECISION_SHORT: Record<ConsentDecisionString, string> = {
+  granted: "Permission granted. Nothing has been sent by this receipt.",
+  denied: "Cloud use was denied. Squidley will keep this local.",
+  cancelled: "No cloud decision was made. Nothing has been sent.",
+  blocked: "Cloud use is blocked. Nothing has been sent.",
+};
+
+function consentDecisionDetail(
+  decision: ConsentDecisionString,
+  nothingSentYet: boolean,
+  requiresVelumReview: boolean,
+  velumReviewPassed: boolean,
+): string {
+  const parts: string[] = [];
+
+  if (nothingSentYet) {
+    parts.push("Nothing has been sent to any cloud provider.");
+  }
+
+  switch (decision) {
+    case "granted":
+      parts.push(
+        "Cloud permission was granted for this capability. This receipt records the permission decision only — it does not mean a cloud call was made.",
+      );
+      break;
+    case "denied":
+      parts.push(
+        "You denied cloud access. Squidley will keep this local or stop this action.",
+      );
+      break;
+    case "cancelled":
+      parts.push(
+        "The cloud consent dialog was closed without a decision. Nothing was sent.",
+      );
+      break;
+    case "blocked":
+      parts.push(
+        "Cloud use is blocked for this capability. Nothing was sent.",
+      );
+      break;
+  }
+
+  if (requiresVelumReview && !velumReviewPassed) {
+    parts.push("Velum review is required before any data can be sent to the cloud.");
+  } else if (requiresVelumReview && velumReviewPassed) {
+    parts.push("Velum review has been completed.");
+  }
+
+  return parts.join(" ");
+}
+
+/**
+ * Detect whether a Tabularium receipt represents a cloud consent decision.
+ */
+export function isCloudConsentDecisionReceipt(
+  receipt: Readonly<{
+    action?: string;
+    metadata?: Readonly<Record<string, string | number | boolean>> | null;
+  }> | null | undefined,
+): boolean {
+  if (!receipt) return false;
+  const action = receipt.action ?? "";
+  if (
+    action === "cloud-consent.granted" ||
+    action === "cloud-consent.denied" ||
+    action === "cloud-consent.cancelled" ||
+    action === "cloud-consent.blocked"
+  ) {
+    return true;
+  }
+  const meta = receipt.metadata;
+  if (!meta || typeof meta !== "object") return false;
+  return (
+    typeof meta.escalationPacketId === "string" &&
+    isConsentDecision(meta.decision)
+  );
+}
+
+/**
+ * Build a badge view from a cloud consent decision receipt's metadata.
+ * Returns null when the receipt is not a cloud consent decision.
+ */
+export function cloudConsentReceiptToBadgeView(
+  receipt: Readonly<{
+    action?: string;
+    metadata?: Readonly<Record<string, string | number | boolean>> | null;
+  }> | null | undefined,
+): CapabilityBadgeView | null {
+  if (!isCloudConsentDecisionReceipt(receipt)) return null;
+  const meta = receipt!.metadata!;
+
+  const decision = isConsentDecision(meta.decision)
+    ? meta.decision
+    : actionToDecision(receipt!.action ?? "");
+  if (!decision) return null;
+
+  const nothingSentYet = meta.nothingSentYet === true;
+  const requiresVelumReview = meta.requiresVelumReview === true;
+  const velumReviewPassed = meta.velumReviewPassed === true;
+
+  return {
+    label: CONSENT_DECISION_LABELS[decision],
+    tone: CONSENT_DECISION_TONES[decision],
+    shortDescription: CONSENT_DECISION_SHORT[decision],
+    detail: consentDecisionDetail(decision, nothingSentYet, requiresVelumReview, velumReviewPassed),
+    cloudUsed: false,
+    localAttemptAllowed: false,
+    cloudAllowed: decision === "granted",
+  };
+}
+
+function actionToDecision(action: string): ConsentDecisionString | null {
+  if (action === "cloud-consent.granted") return "granted";
+  if (action === "cloud-consent.denied") return "denied";
+  if (action === "cloud-consent.cancelled") return "cancelled";
+  if (action === "cloud-consent.blocked") return "blocked";
+  return null;
+}
+
 /** Re-exported types so consumers can pick up the badge tone enum easily. */
 export type { CapabilityProviderMode, CapabilityRuntimeState, CapabilityTier };

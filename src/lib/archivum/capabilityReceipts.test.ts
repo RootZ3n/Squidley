@@ -9,6 +9,7 @@ import {
   buildMoreInputLocalStorageCapabilityReceiptInput,
   buildMoreInputSummarizeCapabilityReceiptInput,
   recordArchivumLocalStorageCapabilityReceipt,
+  recordArchivumSummarizeCapabilityReceipt,
   recordMoreInputLocalStorageCapabilityReceipt,
 } from "./capabilityReceipts";
 import { getCapabilityById } from "@/lib/capabilities/registry";
@@ -19,6 +20,9 @@ import {
 } from "./receipts";
 import { createArchivumEntry } from "./storage";
 
+// "summary" is intentionally omitted — it is a standard Tabularium receipt
+// field name. The forbidden list targets note/document *content* fields that
+// must never appear in capability receipt metadata.
 const FORBIDDEN_KEYS = [
   "prompt",
   "promptText",
@@ -30,6 +34,7 @@ const FORBIDDEN_KEYS = [
   "documents",
   "rawText",
   "redactedText",
+  "noteText",
   "secret",
   "secrets",
   "apiKey",
@@ -117,13 +122,18 @@ describe("buildArchivumLocalStorageCapabilityReceiptInput", () => {
     const input = buildArchivumLocalStorageCapabilityReceiptInput({ createdAt: 1 });
     assertNoForbiddenKeysDeep(input);
   });
+
+  it("local-storage receipts omit providerId/modelId (no model involved)", () => {
+    const input = buildArchivumLocalStorageCapabilityReceiptInput({ createdAt: 1 });
+    expect(input.metadata!.providerId).toBeUndefined();
+    expect(input.metadata!.modelId).toBeUndefined();
+  });
 });
 
 describe("buildMoreInputLocalStorageCapabilityReceiptInput", () => {
   it("returns capability.decision for more-input module mapped to archivum Tabularium module", () => {
     const input = buildMoreInputLocalStorageCapabilityReceiptInput({ createdAt: 200 });
     expect(input.action).toBe("capability.decision");
-    // more-input maps to archivum via the Tabularium adapter moduleId mapping
     expect(input.module).toBe("archivum");
 
     const meta = input.metadata!;
@@ -133,14 +143,112 @@ describe("buildMoreInputLocalStorageCapabilityReceiptInput", () => {
     expect(meta.localAttemptAllowed).toBe(true);
     expect(meta.cloudAllowed).toBe(false);
   });
+
+  it("local-storage receipts omit providerId/modelId", () => {
+    const input = buildMoreInputLocalStorageCapabilityReceiptInput({ createdAt: 1 });
+    expect(input.metadata!.providerId).toBeUndefined();
+    expect(input.metadata!.modelId).toBeUndefined();
+  });
 });
 
 // ---------------------------------------------------------------------------
-// Build helpers — summarize
+// Build helpers — summarize (real readiness)
 // ---------------------------------------------------------------------------
 
-describe("buildArchivumSummarizeCapabilityReceiptInput", () => {
-  it("reports LOCAL_LIMITED when local model is ready", () => {
+describe("buildArchivumSummarizeCapabilityReceiptInput — real readiness", () => {
+  it("selected generative model with full localModels resolves LOCAL_LIMITED", () => {
+    const input = buildArchivumSummarizeCapabilityReceiptInput({
+      localModels: [{ name: "llama3.2:latest" }, { name: "qwen2.5:3b" }],
+      selectedModel: "llama3.2:latest",
+      createdAt: 300,
+    });
+    const meta = input.metadata!;
+    expect(meta.capabilityId).toBe(ARCHIVUM_SUMMARIZE_CAPABILITY_ID);
+    expect(meta.capabilityState).toBe("LOCAL_LIMITED");
+    expect(meta.localAttemptAllowed).toBe(true);
+    expect(meta.providerId).toBe("ollama");
+    expect(meta.modelId).toBe("llama3.2:latest");
+  });
+
+  it("selectedModel-only fallback with generative model resolves LOCAL_LIMITED", () => {
+    const input = buildArchivumSummarizeCapabilityReceiptInput({
+      selectedModel: "llama3.1:8b",
+      createdAt: 301,
+    });
+    const meta = input.metadata!;
+    expect(meta.capabilityState).toBe("LOCAL_LIMITED");
+    expect(meta.localAttemptAllowed).toBe(true);
+    expect(meta.providerId).toBe("ollama");
+    expect(meta.modelId).toBe("llama3.1:8b");
+  });
+
+  it("selected embedding model does NOT resolve LOCAL_LIMITED", () => {
+    const input = buildArchivumSummarizeCapabilityReceiptInput({
+      localModels: [{ name: "all-minilm:latest" }],
+      selectedModel: "all-minilm:latest",
+      createdAt: 302,
+    });
+    const meta = input.metadata!;
+    expect(meta.capabilityState).not.toBe("LOCAL_LIMITED");
+    expect(meta.localAttemptAllowed).toBe(false);
+  });
+
+  it("selectedModel-only with embedding name does NOT resolve LOCAL_LIMITED", () => {
+    const input = buildArchivumSummarizeCapabilityReceiptInput({
+      selectedModel: "nomic-embed-text:latest",
+      createdAt: 303,
+    });
+    const meta = input.metadata!;
+    expect(meta.capabilityState).not.toBe("LOCAL_LIMITED");
+    expect(meta.localAttemptAllowed).toBe(false);
+  });
+
+  it("no selected model and no usable model does not claim local readiness", () => {
+    const input = buildArchivumSummarizeCapabilityReceiptInput({ createdAt: 304 });
+    const meta = input.metadata!;
+    expect(meta.capabilityState).not.toBe("LOCAL_LIMITED");
+    expect(meta.localAttemptAllowed).toBe(false);
+  });
+
+  it("empty localModels with no selectedModel does not claim local readiness", () => {
+    const input = buildArchivumSummarizeCapabilityReceiptInput({
+      localModels: [],
+      createdAt: 305,
+    });
+    const meta = input.metadata!;
+    expect(meta.capabilityState).not.toBe("LOCAL_LIMITED");
+    expect(meta.localAttemptAllowed).toBe(false);
+  });
+
+  it("providerId/modelId are included only when selectedModel exists", () => {
+    const withModel = buildArchivumSummarizeCapabilityReceiptInput({
+      selectedModel: "llama3.2:3b",
+      createdAt: 1,
+    });
+    expect(withModel.metadata!.providerId).toBe("ollama");
+    expect(withModel.metadata!.modelId).toBe("llama3.2:3b");
+
+    const withoutModel = buildArchivumSummarizeCapabilityReceiptInput({ createdAt: 1 });
+    expect(withoutModel.metadata!.providerId).toBeUndefined();
+    expect(withoutModel.metadata!.modelId).toBeUndefined();
+  });
+
+  it("does not include forbidden content fields", () => {
+    const input = buildArchivumSummarizeCapabilityReceiptInput({
+      localModels: [{ name: "llama3.2:latest" }],
+      selectedModel: "llama3.2:latest",
+      createdAt: 1,
+    });
+    assertNoForbiddenKeysDeep(input);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Build helpers — summarize (legacy localModelReady boolean)
+// ---------------------------------------------------------------------------
+
+describe("buildArchivumSummarizeCapabilityReceiptInput — legacy localModelReady", () => {
+  it("reports LOCAL_LIMITED when legacy flag is true", () => {
     const input = buildArchivumSummarizeCapabilityReceiptInput({
       localModelReady: true,
       providerId: "ollama",
@@ -156,7 +264,7 @@ describe("buildArchivumSummarizeCapabilityReceiptInput", () => {
     expect(meta.modelId).toBe("llama3.2:3b");
   });
 
-  it("reports BLOCKED when no local model is available", () => {
+  it("reports BLOCKED when legacy flag is false and no model info", () => {
     const input = buildArchivumSummarizeCapabilityReceiptInput({
       localModelReady: false,
       createdAt: 301,
@@ -165,24 +273,28 @@ describe("buildArchivumSummarizeCapabilityReceiptInput", () => {
     expect(meta.capabilityState).toBe("BLOCKED");
     expect(meta.localAttemptAllowed).toBe(false);
   });
-
-  it("does not include providerId/modelId when omitted", () => {
-    const input = buildArchivumSummarizeCapabilityReceiptInput({ createdAt: 1 });
-    const meta = input.metadata!;
-    expect(meta.providerId).toBeUndefined();
-    expect(meta.modelId).toBeUndefined();
-  });
 });
 
-describe("buildMoreInputSummarizeCapabilityReceiptInput", () => {
-  it("reports LOCAL_LIMITED when local model is ready", () => {
+describe("buildMoreInputSummarizeCapabilityReceiptInput — real readiness", () => {
+  it("selected generative model resolves LOCAL_LIMITED", () => {
     const input = buildMoreInputSummarizeCapabilityReceiptInput({
-      localModelReady: true,
+      selectedModel: "llama3.2:latest",
       createdAt: 400,
     });
     const meta = input.metadata!;
     expect(meta.capabilityId).toBe(MORE_INPUT_SUMMARIZE_CAPABILITY_ID);
     expect(meta.moduleId).toBe("more-input");
+    expect(meta.capabilityState).toBe("LOCAL_LIMITED");
+    expect(meta.providerId).toBe("ollama");
+    expect(meta.modelId).toBe("llama3.2:latest");
+  });
+
+  it("reports LOCAL_LIMITED with legacy flag (backward compat)", () => {
+    const input = buildMoreInputSummarizeCapabilityReceiptInput({
+      localModelReady: true,
+      createdAt: 401,
+    });
+    const meta = input.metadata!;
     expect(meta.capabilityState).toBe("LOCAL_LIMITED");
   });
 });
@@ -237,6 +349,25 @@ describe("recordMoreInputLocalStorageCapabilityReceipt", () => {
   });
 });
 
+describe("recordArchivumSummarizeCapabilityReceipt", () => {
+  it("writes via supplied storage with real model readiness", () => {
+    const data = new Map<string, string>();
+    const storage = {
+      getItem: vi.fn((key: string) => data.get(key) ?? null),
+      setItem: vi.fn((key: string, value: string) => data.set(key, value)),
+    };
+    const receipt = recordArchivumSummarizeCapabilityReceipt(storage, {
+      selectedModel: "llama3.2:latest",
+      createdAt: 70,
+    });
+    expect(receipt).not.toBeNull();
+    expect(receipt!.metadata!.capabilityId).toBe(ARCHIVUM_SUMMARIZE_CAPABILITY_ID);
+    expect(receipt!.metadata!.capabilityState).toBe("LOCAL_LIMITED");
+    expect(receipt!.localOnly).toBe(true);
+    expect(receipt!.cloudUsed).toBe(false);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Tabularium badge detection
 // ---------------------------------------------------------------------------
@@ -253,6 +384,14 @@ describe("Tabularium badge detection", () => {
   });
 
   it("receipts produced by summarize helpers are detected", () => {
+    const input = buildArchivumSummarizeCapabilityReceiptInput({
+      selectedModel: "llama3.2:latest",
+      createdAt: 1,
+    });
+    expect(isCapabilityDecisionReceipt(input)).toBe(true);
+  });
+
+  it("summarize receipts without a model are also detected", () => {
     const input = buildArchivumSummarizeCapabilityReceiptInput({ createdAt: 1 });
     expect(isCapabilityDecisionReceipt(input)).toBe(true);
   });
@@ -316,10 +455,12 @@ describe("Archivum capability receipts — no fetch / no cloud", () => {
     };
     buildArchivumLocalStorageCapabilityReceiptInput({ createdAt: 1 });
     buildMoreInputLocalStorageCapabilityReceiptInput({ createdAt: 2 });
-    buildArchivumSummarizeCapabilityReceiptInput({ localModelReady: true, createdAt: 3 });
-    buildMoreInputSummarizeCapabilityReceiptInput({ createdAt: 4 });
-    recordArchivumLocalStorageCapabilityReceipt(storage, { createdAt: 5 });
-    recordMoreInputLocalStorageCapabilityReceipt(storage, { createdAt: 6 });
+    buildArchivumSummarizeCapabilityReceiptInput({ selectedModel: "llama3.2:latest", createdAt: 3 });
+    buildArchivumSummarizeCapabilityReceiptInput({ localModelReady: true, createdAt: 4 });
+    buildMoreInputSummarizeCapabilityReceiptInput({ createdAt: 5 });
+    recordArchivumLocalStorageCapabilityReceipt(storage, { createdAt: 6 });
+    recordMoreInputLocalStorageCapabilityReceipt(storage, { createdAt: 7 });
+    recordArchivumSummarizeCapabilityReceipt(storage, { selectedModel: "llama3.2:latest", createdAt: 8 });
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
@@ -332,13 +473,21 @@ describe("capability receipt metadata does not include note content", () => {
   it("local-storage receipt serialization does not contain note-like text", () => {
     const input = buildArchivumLocalStorageCapabilityReceiptInput({ createdAt: 1 });
     const serialized = JSON.stringify(input);
-    // These are content-field names that must never appear
     for (const forbidden of FORBIDDEN_KEYS) {
       expect(serialized).not.toContain(`"${forbidden}"`);
     }
   });
 
-  it("summarize receipt serialization does not contain note-like text", () => {
+  it("summarize receipt with real readiness does not contain note-like text", () => {
+    const input = buildArchivumSummarizeCapabilityReceiptInput({
+      localModels: [{ name: "llama3.2:latest" }],
+      selectedModel: "llama3.2:latest",
+      createdAt: 1,
+    });
+    assertNoForbiddenKeysDeep(input);
+  });
+
+  it("summarize receipt with legacy flag does not contain note-like text", () => {
     const input = buildArchivumSummarizeCapabilityReceiptInput({
       localModelReady: true,
       providerId: "ollama",

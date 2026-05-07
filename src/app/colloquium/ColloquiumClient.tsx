@@ -437,9 +437,8 @@ export default function ColloquiumClient() {
       }));
       recordColloquiumCapabilityDecisionReceipt(window.localStorage, {
         createdAt: startedAt,
-        localChatReady: true,
-        providerId: "ollama",
-        modelId: selectedModel,
+        localModels: models,
+        selectedModel,
       });
       const controller = new AbortController();
       abortRef.current = controller;

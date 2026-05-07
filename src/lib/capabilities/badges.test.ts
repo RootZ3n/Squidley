@@ -4,8 +4,13 @@ import {
   capabilityDecisionToBadgeView,
   capabilityReceiptMetadataToBadgeView,
   capabilityStateToBadgeLabel,
+  cloudConsentReceiptToBadgeView,
+  cloudEscalationReceiptToBadgeView,
   isCapabilityDecisionReceipt,
+  isCloudConsentDecisionReceipt,
+  isCloudEscalationOfferReceipt,
   receiptToCapabilityBadgeView,
+  receiptToTransparencyBadgeView,
 } from "./badges";
 import {
   decideCapabilityRuntime,
@@ -469,5 +474,295 @@ describe("receiptToCapabilityBadgeView", () => {
       receiptToCapabilityBadgeView({ action: "other" });
       expect(fetchSpy).not.toHaveBeenCalled();
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cloud escalation offer badge helpers
+// ---------------------------------------------------------------------------
+
+function makeEscalationReceipt(overrides: Record<string, string | number | boolean> = {}) {
+  return {
+    action: "cloud-escalation.offer" as const,
+    metadata: {
+      escalationPacketId: "esc-1",
+      capabilityId: "fabrica:fabrica.multi-file-build",
+      moduleId: "fabrica",
+      capabilityTier: "cloud-required",
+      capabilityState: "CLOUD_REQUIRED",
+      consentState: "required",
+      requiresConsent: true,
+      requiresVelumReview: true,
+      velumReviewPassed: false,
+      nothingSentYet: true,
+      actionable: true,
+      dataCategories: "code, user-message",
+      ...overrides,
+    } as Record<string, string | number | boolean>,
+  };
+}
+
+describe("isCloudEscalationOfferReceipt", () => {
+  it("detects receipt with action=cloud-escalation.offer", () => {
+    expect(isCloudEscalationOfferReceipt(makeEscalationReceipt())).toBe(true);
+  });
+
+  it("detects receipt by metadata fields even without matching action", () => {
+    expect(isCloudEscalationOfferReceipt({
+      action: "other",
+      metadata: { escalationPacketId: "esc-1", consentState: "required" },
+    })).toBe(true);
+  });
+
+  it("returns false for capability.decision receipts", () => {
+    expect(isCloudEscalationOfferReceipt({
+      action: "capability.decision",
+      metadata: { capabilityState: "LOCAL_READY", capabilityId: "x" },
+    })).toBe(false);
+  });
+
+  it("returns false for null/undefined", () => {
+    expect(isCloudEscalationOfferReceipt(null)).toBe(false);
+    expect(isCloudEscalationOfferReceipt(undefined)).toBe(false);
+  });
+});
+
+describe("cloudEscalationReceiptToBadgeView", () => {
+  it("consentState=required produces 'Cloud consent needed'", () => {
+    const view = cloudEscalationReceiptToBadgeView(makeEscalationReceipt({ consentState: "required" }));
+    expect(view).not.toBeNull();
+    expect(view!.label).toBe("Cloud consent needed");
+    expect(view!.tone).toBe("cloud-required");
+    expect(view!.cloudUsed).toBe(false);
+    expect(view!.cloudAllowed).toBe(false);
+    expect(view!.detail.toLowerCase()).toContain("nothing has been sent");
+  });
+
+  it("consentState=granted produces 'Cloud allowed' with caveat", () => {
+    const view = cloudEscalationReceiptToBadgeView(makeEscalationReceipt({ consentState: "granted" }));
+    expect(view!.label).toBe("Cloud allowed");
+    expect(view!.tone).toBe("cloud-optional");
+    expect(view!.cloudUsed).toBe(false);
+    expect(view!.cloudAllowed).toBe(true);
+    expect(view!.detail.toLowerCase()).toContain("does not prove a cloud call happened");
+  });
+
+  it("consentState=denied produces 'Cloud denied'", () => {
+    const view = cloudEscalationReceiptToBadgeView(makeEscalationReceipt({ consentState: "denied" }));
+    expect(view!.label).toBe("Cloud denied");
+    expect(view!.tone).toBe("blocked");
+    expect(view!.cloudUsed).toBe(false);
+  });
+
+  it("consentState=blocked produces 'Cloud blocked'", () => {
+    const view = cloudEscalationReceiptToBadgeView(makeEscalationReceipt({ consentState: "blocked" }));
+    expect(view!.label).toBe("Cloud blocked");
+    expect(view!.tone).toBe("blocked");
+    expect(view!.cloudUsed).toBe(false);
+  });
+
+  it("nothingSentYet=true includes 'nothing has been sent' in detail", () => {
+    const view = cloudEscalationReceiptToBadgeView(makeEscalationReceipt({ nothingSentYet: true }));
+    expect(view!.detail.toLowerCase()).toContain("nothing has been sent");
+  });
+
+  it("requiresVelumReview=true and velumReviewPassed=false mentions Velum", () => {
+    const view = cloudEscalationReceiptToBadgeView(makeEscalationReceipt({
+      requiresVelumReview: true,
+      velumReviewPassed: false,
+    }));
+    expect(view!.detail.toLowerCase()).toContain("velum review is required");
+  });
+
+  it("requiresVelumReview=true and velumReviewPassed=true says completed", () => {
+    const view = cloudEscalationReceiptToBadgeView(makeEscalationReceipt({
+      requiresVelumReview: true,
+      velumReviewPassed: true,
+    }));
+    expect(view!.detail.toLowerCase()).toContain("velum review has been completed");
+  });
+
+  it("cloudUsed is always false", () => {
+    for (const consentState of ["not-required", "required", "granted", "denied", "blocked"]) {
+      const view = cloudEscalationReceiptToBadgeView(makeEscalationReceipt({ consentState }));
+      expect(view!.cloudUsed).toBe(false);
+    }
+  });
+
+  it("returns null for non-escalation receipts", () => {
+    expect(cloudEscalationReceiptToBadgeView(null)).toBeNull();
+    expect(cloudEscalationReceiptToBadgeView({ action: "chat.sent" })).toBeNull();
+  });
+
+  it("view has no forbidden keys", () => {
+    const view = cloudEscalationReceiptToBadgeView(makeEscalationReceipt())!;
+    assertNoForbiddenKeysDeep(view as unknown as Record<string, unknown>);
+  });
+});
+
+describe("receiptToTransparencyBadgeView", () => {
+  it("returns escalation badge for cloud-escalation.offer receipts", () => {
+    const view = receiptToTransparencyBadgeView(makeEscalationReceipt());
+    expect(view).not.toBeNull();
+    expect(view!.label).toBe("Cloud consent needed");
+  });
+
+  it("returns capability badge for capability.decision receipts", () => {
+    const view = receiptToTransparencyBadgeView({
+      action: "capability.decision",
+      metadata: { capabilityState: "LOCAL_READY", capabilityId: "x", localAttemptAllowed: true, cloudAllowed: false },
+    });
+    expect(view).not.toBeNull();
+    expect(view!.label).toBe("Local ready");
+  });
+
+  it("returns null for unrecognized receipt types", () => {
+    expect(receiptToTransparencyBadgeView(null)).toBeNull();
+    expect(receiptToTransparencyBadgeView({ action: "chat.sent" })).toBeNull();
+  });
+
+  it("returns consent badge for cloud-consent.* receipts", () => {
+    const view = receiptToTransparencyBadgeView(makeConsentReceipt("granted"));
+    expect(view).not.toBeNull();
+    expect(view!.label).toBe("Cloud consent granted");
+  });
+
+  it("does not call fetch", () => {
+    expect(() => {
+      receiptToTransparencyBadgeView(makeEscalationReceipt());
+      receiptToTransparencyBadgeView(makeConsentReceipt("denied"));
+      receiptToTransparencyBadgeView({ action: "capability.decision", metadata: { capabilityState: "LOCAL_READY", capabilityId: "x" } });
+      receiptToTransparencyBadgeView(null);
+    }).not.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cloud consent decision badge helpers
+// ---------------------------------------------------------------------------
+
+function makeConsentReceipt(decision: string, overrides: Record<string, string | number | boolean> = {}) {
+  return {
+    action: `cloud-consent.${decision}` as string,
+    metadata: {
+      escalationPacketId: "esc-1",
+      capabilityId: "fabrica:fabrica.multi-file-build",
+      moduleId: "fabrica",
+      capabilityTier: "cloud-required",
+      capabilityState: "CLOUD_REQUIRED",
+      decision,
+      consentStateBefore: "required",
+      consentStateAfter: decision === "cancelled" ? "required" : decision,
+      requiresVelumReview: true,
+      velumReviewPassed: false,
+      nothingSentYet: true,
+      dataCategories: "code, user-message",
+      ...overrides,
+    } as Record<string, string | number | boolean>,
+  };
+}
+
+describe("isCloudConsentDecisionReceipt", () => {
+  it("detects all four cloud-consent actions", () => {
+    expect(isCloudConsentDecisionReceipt(makeConsentReceipt("granted"))).toBe(true);
+    expect(isCloudConsentDecisionReceipt(makeConsentReceipt("denied"))).toBe(true);
+    expect(isCloudConsentDecisionReceipt(makeConsentReceipt("cancelled"))).toBe(true);
+    expect(isCloudConsentDecisionReceipt(makeConsentReceipt("blocked"))).toBe(true);
+  });
+
+  it("detects by metadata fields without matching action", () => {
+    expect(isCloudConsentDecisionReceipt({
+      action: "other",
+      metadata: { escalationPacketId: "esc-1", decision: "granted" },
+    })).toBe(true);
+  });
+
+  it("returns false for escalation offer receipts", () => {
+    expect(isCloudConsentDecisionReceipt(makeEscalationReceipt())).toBe(false);
+  });
+
+  it("returns false for capability.decision receipts", () => {
+    expect(isCloudConsentDecisionReceipt({
+      action: "capability.decision",
+      metadata: { capabilityState: "LOCAL_READY", capabilityId: "x" },
+    })).toBe(false);
+  });
+
+  it("returns false for null/undefined", () => {
+    expect(isCloudConsentDecisionReceipt(null)).toBe(false);
+    expect(isCloudConsentDecisionReceipt(undefined)).toBe(false);
+  });
+});
+
+describe("cloudConsentReceiptToBadgeView", () => {
+  it("granted maps to 'Cloud consent granted' with cloudUsed=false", () => {
+    const view = cloudConsentReceiptToBadgeView(makeConsentReceipt("granted"));
+    expect(view).not.toBeNull();
+    expect(view!.label).toBe("Cloud consent granted");
+    expect(view!.cloudUsed).toBe(false);
+    expect(view!.cloudAllowed).toBe(true);
+  });
+
+  it("granted detail says permission was granted but nothing sent", () => {
+    const view = cloudConsentReceiptToBadgeView(makeConsentReceipt("granted"));
+    expect(view!.detail.toLowerCase()).toContain("nothing has been sent");
+    expect(view!.detail.toLowerCase()).toContain("permission");
+    expect(view!.detail.toLowerCase()).toContain("does not mean a cloud call was made");
+  });
+
+  it("denied maps to 'Cloud consent denied' with cloudUsed=false", () => {
+    const view = cloudConsentReceiptToBadgeView(makeConsentReceipt("denied"));
+    expect(view!.label).toBe("Cloud consent denied");
+    expect(view!.cloudUsed).toBe(false);
+    expect(view!.cloudAllowed).toBe(false);
+  });
+
+  it("denied detail says keep local or stop", () => {
+    const view = cloudConsentReceiptToBadgeView(makeConsentReceipt("denied"));
+    expect(view!.detail.toLowerCase()).toMatch(/keep.*local|stop/);
+  });
+
+  it("cancelled maps to 'Cloud consent cancelled' with cloudUsed=false", () => {
+    const view = cloudConsentReceiptToBadgeView(makeConsentReceipt("cancelled"));
+    expect(view!.label).toBe("Cloud consent cancelled");
+    expect(view!.cloudUsed).toBe(false);
+    expect(view!.cloudAllowed).toBe(false);
+  });
+
+  it("cancelled detail says nothing was sent", () => {
+    const view = cloudConsentReceiptToBadgeView(makeConsentReceipt("cancelled"));
+    expect(view!.detail.toLowerCase()).toContain("nothing");
+  });
+
+  it("blocked maps to 'Cloud consent blocked' with cloudUsed=false", () => {
+    const view = cloudConsentReceiptToBadgeView(makeConsentReceipt("blocked"));
+    expect(view!.label).toBe("Cloud consent blocked");
+    expect(view!.cloudUsed).toBe(false);
+    expect(view!.cloudAllowed).toBe(false);
+  });
+
+  it("blocked detail says nothing was sent", () => {
+    const view = cloudConsentReceiptToBadgeView(makeConsentReceipt("blocked"));
+    expect(view!.detail.toLowerCase()).toContain("nothing");
+  });
+
+  it("Velum required but not passed is mentioned in detail", () => {
+    const view = cloudConsentReceiptToBadgeView(makeConsentReceipt("granted", {
+      requiresVelumReview: true,
+      velumReviewPassed: false,
+    }));
+    expect(view!.detail.toLowerCase()).toContain("velum");
+  });
+
+  it("unknown/non-consent receipt returns null without throwing", () => {
+    expect(cloudConsentReceiptToBadgeView(null)).toBeNull();
+    expect(cloudConsentReceiptToBadgeView({ action: "chat.sent" })).toBeNull();
+  });
+
+  it("view has no forbidden keys", () => {
+    for (const decision of ["granted", "denied", "cancelled", "blocked"]) {
+      const view = cloudConsentReceiptToBadgeView(makeConsentReceipt(decision))!;
+      assertNoForbiddenKeysDeep(view as unknown as Record<string, unknown>);
+    }
   });
 });
