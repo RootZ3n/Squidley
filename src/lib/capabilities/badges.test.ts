@@ -6,9 +6,13 @@ import {
   capabilityStateToBadgeLabel,
   cloudConsentReceiptToBadgeView,
   cloudEscalationReceiptToBadgeView,
+  gatewayPolicyReceiptToBadgeView,
   isCapabilityDecisionReceipt,
   isCloudConsentDecisionReceipt,
   isCloudEscalationOfferReceipt,
+  isGatewayPolicyDecisionReceipt,
+  isPromptInjectionAssessmentReceipt,
+  promptInjectionReceiptToBadgeView,
   receiptToCapabilityBadgeView,
   receiptToTransparencyBadgeView,
 } from "./badges";
@@ -764,5 +768,302 @@ describe("cloudConsentReceiptToBadgeView", () => {
       const view = cloudConsentReceiptToBadgeView(makeConsentReceipt(decision))!;
       assertNoForbiddenKeysDeep(view as unknown as Record<string, unknown>);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Prompt-injection assessment badge helpers
+// ---------------------------------------------------------------------------
+
+function makeInjectionReceipt(riskLevel: string, overrides: Record<string, string | number | boolean> = {}) {
+  return {
+    action: "security.prompt-injection.assessment" as string,
+    metadata: {
+      riskLevel,
+      findingCount: riskLevel === "none" ? 0 : 1,
+      categories: "instruction-override",
+      recommendedAction: riskLevel === "none" ? "allow" : "block",
+      shouldBlockToolUse: riskLevel === "high" || riskLevel === "critical",
+      shouldBlockCloudEscalation: riskLevel === "high" || riskLevel === "critical",
+      shouldRequireVelumReview: riskLevel !== "none" && riskLevel !== "low",
+      shouldWarnUser: riskLevel !== "none" && riskLevel !== "low",
+      safeSummary: "Test summary.",
+      ...overrides,
+    } as Record<string, string | number | boolean>,
+  };
+}
+
+describe("isPromptInjectionAssessmentReceipt", () => {
+  it("detects receipt with action=security.prompt-injection.assessment", () => {
+    expect(isPromptInjectionAssessmentReceipt(makeInjectionReceipt("medium"))).toBe(true);
+  });
+
+  it("detects by metadata fields without matching action", () => {
+    expect(isPromptInjectionAssessmentReceipt({
+      action: "other",
+      metadata: { riskLevel: "high", findingCount: 2 },
+    })).toBe(true);
+  });
+
+  it("returns false for capability.decision receipts", () => {
+    expect(isPromptInjectionAssessmentReceipt({
+      action: "capability.decision",
+      metadata: { capabilityState: "LOCAL_READY", capabilityId: "x" },
+    })).toBe(false);
+  });
+
+  it("returns false for null/undefined", () => {
+    expect(isPromptInjectionAssessmentReceipt(null)).toBe(false);
+    expect(isPromptInjectionAssessmentReceipt(undefined)).toBe(false);
+  });
+});
+
+describe("promptInjectionReceiptToBadgeView", () => {
+  it("none maps to 'Gateway check passed'", () => {
+    const view = promptInjectionReceiptToBadgeView(makeInjectionReceipt("none"));
+    expect(view!.label).toBe("Gateway check passed");
+    expect(view!.tone).toBe("local");
+    expect(view!.cloudUsed).toBe(false);
+  });
+
+  it("low maps to 'Gateway low risk'", () => {
+    const view = promptInjectionReceiptToBadgeView(makeInjectionReceipt("low"));
+    expect(view!.label).toBe("Gateway low risk");
+    expect(view!.tone).toBe("neutral");
+  });
+
+  it("medium maps to 'Gateway review advised'", () => {
+    const view = promptInjectionReceiptToBadgeView(makeInjectionReceipt("medium"));
+    expect(view!.label).toBe("Gateway review advised");
+    expect(view!.tone).toBe("limited");
+  });
+
+  it("high maps to 'Gateway restricted'", () => {
+    const view = promptInjectionReceiptToBadgeView(makeInjectionReceipt("high"));
+    expect(view!.label).toBe("Gateway restricted");
+    expect(view!.tone).toBe("blocked");
+  });
+
+  it("critical maps to 'Gateway blocked'", () => {
+    const view = promptInjectionReceiptToBadgeView(makeInjectionReceipt("critical"));
+    expect(view!.label).toBe("Gateway blocked");
+    expect(view!.tone).toBe("blocked");
+  });
+
+  it("shouldBlockCloudEscalation appears in detail", () => {
+    const view = promptInjectionReceiptToBadgeView(makeInjectionReceipt("high", {
+      shouldBlockCloudEscalation: true,
+    }));
+    expect(view!.detail.toLowerCase()).toContain("cloud escalation");
+  });
+
+  it("shouldBlockToolUse appears in detail", () => {
+    const view = promptInjectionReceiptToBadgeView(makeInjectionReceipt("high", {
+      shouldBlockToolUse: true,
+    }));
+    expect(view!.detail.toLowerCase()).toContain("tool use");
+  });
+
+  it("shouldRequireVelumReview appears in detail", () => {
+    const view = promptInjectionReceiptToBadgeView(makeInjectionReceipt("medium", {
+      shouldRequireVelumReview: true,
+    }));
+    expect(view!.detail.toLowerCase()).toContain("velum review");
+  });
+
+  it("cloudUsed is always false", () => {
+    for (const risk of ["none", "low", "medium", "high", "critical"]) {
+      const view = promptInjectionReceiptToBadgeView(makeInjectionReceipt(risk));
+      expect(view!.cloudUsed).toBe(false);
+    }
+  });
+
+  it("returns null for non-injection receipts", () => {
+    expect(promptInjectionReceiptToBadgeView(null)).toBeNull();
+    expect(promptInjectionReceiptToBadgeView({ action: "chat.sent" })).toBeNull();
+  });
+
+  it("view has no forbidden keys", () => {
+    for (const risk of ["none", "low", "medium", "high", "critical"]) {
+      const view = promptInjectionReceiptToBadgeView(makeInjectionReceipt(risk))!;
+      assertNoForbiddenKeysDeep(view as unknown as Record<string, unknown>);
+    }
+  });
+
+  it("no raw injection text appears in badge view", () => {
+    const view = promptInjectionReceiptToBadgeView(makeInjectionReceipt("critical"))!;
+    expect(view.label).not.toContain("ignore");
+    expect(view.shortDescription).not.toContain("ignore");
+    expect(view.detail).not.toContain("ignore previous");
+  });
+});
+
+describe("receiptToTransparencyBadgeView — security receipts", () => {
+  it("returns gateway badge for security assessment receipts", () => {
+    const view = receiptToTransparencyBadgeView(makeInjectionReceipt("high"));
+    expect(view).not.toBeNull();
+    expect(view!.label).toBe("Gateway restricted");
+  });
+
+  it("handles security receipts before other types", () => {
+    const view = receiptToTransparencyBadgeView(makeInjectionReceipt("none"));
+    expect(view!.label).toBe("Gateway check passed");
+  });
+
+  it("still handles other receipt types", () => {
+    expect(receiptToTransparencyBadgeView(makeEscalationReceipt())!.label).toBe("Cloud consent needed");
+    expect(receiptToTransparencyBadgeView(makeConsentReceipt("granted"))!.label).toBe("Cloud consent granted");
+    expect(receiptToTransparencyBadgeView({
+      action: "capability.decision",
+      metadata: { capabilityState: "LOCAL_READY", capabilityId: "x" },
+    })!.label).toBe("Local ready");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Gateway policy decision badge helpers
+// ---------------------------------------------------------------------------
+
+function makePolicyReceipt(boundary: string, allowed: boolean, blockedBy = "none", overrides: Record<string, string | number | boolean> = {}) {
+  return {
+    action: "security.gateway-policy.decision" as string,
+    metadata: {
+      boundary,
+      allowed,
+      blockedBy,
+      riskLevel: allowed ? "none" : "high",
+      categories: "instruction-override",
+      recommendedAction: allowed ? "allow" : "block",
+      shouldWarnUser: !allowed,
+      shouldRequireVelumReview: blockedBy === "velum-required",
+      shouldRecordReceipt: true,
+      reason: "Test policy reason.",
+      ...overrides,
+    } as Record<string, string | number | boolean>,
+  };
+}
+
+describe("isGatewayPolicyDecisionReceipt", () => {
+  it("detects receipt with action=security.gateway-policy.decision", () => {
+    expect(isGatewayPolicyDecisionReceipt(makePolicyReceipt("chat", true))).toBe(true);
+  });
+
+  it("detects by metadata fields without matching action", () => {
+    expect(isGatewayPolicyDecisionReceipt({
+      action: "other",
+      metadata: { boundary: "tool-use", allowed: false },
+    })).toBe(true);
+  });
+
+  it("returns false for injection assessment receipts", () => {
+    expect(isGatewayPolicyDecisionReceipt(makeInjectionReceipt("high"))).toBe(false);
+  });
+
+  it("returns false for null/undefined", () => {
+    expect(isGatewayPolicyDecisionReceipt(null)).toBe(false);
+    expect(isGatewayPolicyDecisionReceipt(undefined)).toBe(false);
+  });
+});
+
+describe("gatewayPolicyReceiptToBadgeView", () => {
+  it("cloud-escalation allowed → 'Cloud boundary allowed' with cloudUsed=false", () => {
+    const view = gatewayPolicyReceiptToBadgeView(makePolicyReceipt("cloud-escalation", true));
+    expect(view!.label).toBe("Cloud boundary allowed");
+    expect(view!.cloudUsed).toBe(false);
+    expect(view!.detail).toContain("does not mean cloud was used");
+  });
+
+  it("cloud-escalation velum-required → 'Velum required'", () => {
+    const view = gatewayPolicyReceiptToBadgeView(makePolicyReceipt("cloud-escalation", false, "velum-required"));
+    expect(view!.label).toBe("Velum required");
+    expect(view!.tone).toBe("limited");
+    expect(view!.detail.toLowerCase()).toContain("velum review");
+  });
+
+  it("cloud-escalation prompt-injection blocked → 'Cloud boundary blocked'", () => {
+    const view = gatewayPolicyReceiptToBadgeView(makePolicyReceipt("cloud-escalation", false, "prompt-injection"));
+    expect(view!.label).toBe("Cloud boundary blocked");
+    expect(view!.tone).toBe("blocked");
+    expect(view!.detail.toLowerCase()).toContain("prompt-injection");
+  });
+
+  it("tool-use blocked → 'Tool boundary blocked'", () => {
+    const view = gatewayPolicyReceiptToBadgeView(makePolicyReceipt("tool-use", false, "prompt-injection"));
+    expect(view!.label).toBe("Tool boundary blocked");
+    expect(view!.tone).toBe("blocked");
+  });
+
+  it("tool-use allowed → 'Tool boundary allowed'", () => {
+    const view = gatewayPolicyReceiptToBadgeView(makePolicyReceipt("tool-use", true));
+    expect(view!.label).toBe("Tool boundary allowed");
+  });
+
+  it("provider-switch blocked → 'Provider switch blocked'", () => {
+    const view = gatewayPolicyReceiptToBadgeView(makePolicyReceipt("provider-switch", false, "velum-required"));
+    expect(view!.label).toBe("Velum required");
+  });
+
+  it("receipt-write → 'Receipts preserved'", () => {
+    const view = gatewayPolicyReceiptToBadgeView(makePolicyReceipt("receipt-write", true));
+    expect(view!.label).toBe("Receipts preserved");
+    expect(view!.detail).toContain("preserved");
+  });
+
+  it("velum-handoff → 'Velum handoff allowed'", () => {
+    const view = gatewayPolicyReceiptToBadgeView(makePolicyReceipt("velum-handoff", true));
+    expect(view!.label).toBe("Velum handoff allowed");
+  });
+
+  it("chat allowed → 'Chat allowed'", () => {
+    const view = gatewayPolicyReceiptToBadgeView(makePolicyReceipt("chat", true));
+    expect(view!.label).toBe("Chat allowed");
+  });
+
+  it("chat blocked → 'Chat blocked'", () => {
+    const view = gatewayPolicyReceiptToBadgeView(makePolicyReceipt("chat", false, "prompt-injection"));
+    expect(view!.label).toBe("Chat blocked");
+  });
+
+  it("cloudUsed is always false", () => {
+    for (const boundary of ["chat", "tool-use", "cloud-escalation", "receipt-write", "velum-handoff"] as const) {
+      const view = gatewayPolicyReceiptToBadgeView(makePolicyReceipt(boundary, true));
+      expect(view!.cloudUsed).toBe(false);
+    }
+  });
+
+  it("returns null for non-policy receipts", () => {
+    expect(gatewayPolicyReceiptToBadgeView(null)).toBeNull();
+    expect(gatewayPolicyReceiptToBadgeView({ action: "chat.sent" })).toBeNull();
+  });
+
+  it("view has no forbidden keys", () => {
+    for (const boundary of ["chat", "cloud-escalation", "tool-use", "receipt-write"] as const) {
+      const view = gatewayPolicyReceiptToBadgeView(makePolicyReceipt(boundary, true))!;
+      assertNoForbiddenKeysDeep(view as unknown as Record<string, unknown>);
+    }
+  });
+
+  it("no raw injection text in badge view", () => {
+    const view = gatewayPolicyReceiptToBadgeView(makePolicyReceipt("cloud-escalation", false, "prompt-injection"))!;
+    expect(view.label).not.toContain("ignore");
+    expect(view.detail).not.toContain("skip velum");
+  });
+});
+
+describe("receiptToTransparencyBadgeView — policy receipts", () => {
+  it("returns policy badge for gateway-policy receipts before assessment receipts", () => {
+    const view = receiptToTransparencyBadgeView(makePolicyReceipt("cloud-escalation", false, "prompt-injection"));
+    expect(view).not.toBeNull();
+    expect(view!.label).toBe("Cloud boundary blocked");
+  });
+
+  it("still handles all other receipt types", () => {
+    expect(receiptToTransparencyBadgeView(makeInjectionReceipt("high"))!.label).toBe("Gateway restricted");
+    expect(receiptToTransparencyBadgeView(makeEscalationReceipt())!.label).toBe("Cloud consent needed");
+    expect(receiptToTransparencyBadgeView(makeConsentReceipt("denied"))!.label).toBe("Cloud consent denied");
+    expect(receiptToTransparencyBadgeView({
+      action: "capability.decision",
+      metadata: { capabilityState: "LOCAL_READY", capabilityId: "x" },
+    })!.label).toBe("Local ready");
   });
 });

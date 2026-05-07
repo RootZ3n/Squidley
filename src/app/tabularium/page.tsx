@@ -27,7 +27,7 @@ import {
 } from "@/lib/tabularium/receipts";
 import { findReceiptByQueryId } from "@/lib/tabularium/gatewayReceipts";
 import { tabulariumLocalReceiptsDecision } from "@/lib/ratio";
-import { isCapabilityDecisionReceipt, isCloudConsentDecisionReceipt, isCloudEscalationOfferReceipt, receiptToTransparencyBadgeView } from "@/lib/capabilities/badges";
+import { isCapabilityDecisionReceipt, isCloudConsentDecisionReceipt, isCloudEscalationOfferReceipt, isGatewayPolicyDecisionReceipt, isPromptInjectionAssessmentReceipt, receiptToTransparencyBadgeView } from "@/lib/capabilities/badges";
 import { CapabilityBadge } from "@/components/capabilities/CapabilityBadge";
 
 const MODULE_FILTERS: TabulariumModuleFilter[] = ["all", "colloquium", "velum", "archivum", "oculus", "fabrica", "nous", "settings", "system"];
@@ -216,7 +216,7 @@ export default function TabulariumPage() {
                         <span>{receipt.module}</span>
                         <span>{receipt.modelUsed ? "model used" : "no model"}</span>
                         <span>No cloud used</span>
-                        {(isCapabilityDecisionReceipt(receipt) || isCloudEscalationOfferReceipt(receipt) || isCloudConsentDecisionReceipt(receipt)) && (() => {
+                        {(isCapabilityDecisionReceipt(receipt) || isCloudEscalationOfferReceipt(receipt) || isCloudConsentDecisionReceipt(receipt) || isPromptInjectionAssessmentReceipt(receipt) || isGatewayPolicyDecisionReceipt(receipt)) && (() => {
                           const badgeView = receiptToTransparencyBadgeView(receipt);
                           return badgeView ? <CapabilityBadge view={badgeView} showDetail={false} /> : null;
                         })()}
@@ -298,11 +298,15 @@ function ReceiptDetails({ receipt }: { receipt: TabulariumReceipt }) {
       {(() => {
         const badgeView = receiptToTransparencyBadgeView(receipt);
         if (!badgeView) return null;
-        const label = isCloudConsentDecisionReceipt(receipt)
-          ? "Cloud consent badge"
-          : isCloudEscalationOfferReceipt(receipt)
-            ? "Cloud escalation badge"
-            : "Capability badge";
+        const label = isGatewayPolicyDecisionReceipt(receipt)
+          ? "Gateway policy badge"
+          : isPromptInjectionAssessmentReceipt(receipt)
+            ? "Gateway security badge"
+            : isCloudConsentDecisionReceipt(receipt)
+              ? "Cloud consent badge"
+              : isCloudEscalationOfferReceipt(receipt)
+                ? "Cloud escalation badge"
+                : "Capability badge";
         return (
           <div className="border-b border-ink-100 pb-2 dark:border-ink-700/60">
             <dt className="text-xs font-medium uppercase tracking-wide text-ink-400">{label}</dt>

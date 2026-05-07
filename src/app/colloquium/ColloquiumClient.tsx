@@ -85,6 +85,8 @@ import {
 } from "@/lib/colloquium/receipts";
 import { recordColloquiumCapabilityDecisionReceipt } from "@/lib/colloquium/capabilityReceipts";
 import { buildNousModelPreferenceChangedReceipt } from "@/lib/nous/receipts";
+import { assessPromptInjectionRisk } from "@/lib/security/promptInjection";
+import { recordPromptInjectionAssessmentReceipt } from "@/lib/security/promptInjectionReceipts";
 
 // ---- Local UI types -------------------------------------------------------
 
@@ -169,6 +171,7 @@ export default function ColloquiumClient() {
   const [modelSource, setModelSource] = useState<ModelSourceExplanation | null>(null);
   const [importedDraftNote, setImportedDraftNote] = useState<string | null>(null);
   const [gatewayNotice, setGatewayNotice] = useState<{ message: string; href: string } | null>(null);
+  const [injectionNotice, setInjectionNotice] = useState<string | null>(null);
   const [refreshingModels, setRefreshingModels] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
   const [sessionsDoc, setSessionsDoc] = useState<StoredChatSessionsDocument | null>(null);
@@ -440,6 +443,10 @@ export default function ColloquiumClient() {
         localModels: models,
         selectedModel,
       });
+      const injectionAssessment = assessPromptInjectionRisk(trimmed);
+      recordPromptInjectionAssessmentReceipt(window.localStorage, injectionAssessment, {
+        createdAt: startedAt,
+      });
       const controller = new AbortController();
       abortRef.current = controller;
 
@@ -460,6 +467,14 @@ export default function ColloquiumClient() {
       setPending(true);
       setDraft("");
       setGatewayNotice(null);
+      if (injectionAssessment.shouldWarnUser) {
+        setInjectionNotice(
+          "Squidley noticed instructions that look like they may be trying to override safety, tools, receipts, or cloud controls. " +
+          "Chat will continue locally, but tool and cloud actions may require review later.",
+        );
+      } else {
+        setInjectionNotice(null);
+      }
 
       const fail = (message: string, safetyReceiptHref?: string) => {
         const interrupted = message.toLowerCase().includes("stopped");
@@ -1097,6 +1112,22 @@ export default function ColloquiumClient() {
                 <Link href={gatewayNotice.href} className="underline decoration-dotted">
                   View safety receipt
                 </Link>
+              </div>
+            )}
+            {injectionNotice && (
+              <div
+                style={{
+                  marginTop: 10,
+                  padding: "10px 14px",
+                  borderRadius: 14,
+                  border: "1px solid rgba(250,204,21,0.34)",
+                  background: "rgba(250,204,21,0.08)",
+                  color: "#fde68a",
+                  fontSize: 13,
+                  lineHeight: 1.55,
+                }}
+              >
+                <p>{injectionNotice}</p>
               </div>
             )}
           </TourHighlight>

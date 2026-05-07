@@ -348,9 +348,8 @@ export function cloudEscalationReceiptToBadgeView(
 }
 
 /**
- * Unified transparency badge builder. Works for both capability.decision
- * and cloud-escalation.offer receipts. Returns null for unrecognized
- * receipt types.
+ * Unified transparency badge builder. Handles all receipt types with
+ * transparency badges. Returns null for unrecognized receipt types.
  */
 export function receiptToTransparencyBadgeView(
   receipt: Readonly<{
@@ -358,6 +357,12 @@ export function receiptToTransparencyBadgeView(
     metadata?: Readonly<Record<string, string | number | boolean>> | null;
   }> | null | undefined,
 ): CapabilityBadgeView | null {
+  if (isGatewayPolicyDecisionReceipt(receipt)) {
+    return gatewayPolicyReceiptToBadgeView(receipt);
+  }
+  if (isPromptInjectionAssessmentReceipt(receipt)) {
+    return promptInjectionReceiptToBadgeView(receipt);
+  }
   if (isCloudConsentDecisionReceipt(receipt)) {
     return cloudConsentReceiptToBadgeView(receipt);
   }
@@ -368,6 +373,239 @@ export function receiptToTransparencyBadgeView(
     return capabilityReceiptMetadataToBadgeView(receipt!.metadata);
   }
   return null;
+}
+
+// ---------------------------------------------------------------------------
+// Gateway policy decision badge helpers
+// ---------------------------------------------------------------------------
+
+type BoundaryString = "chat" | "tool-use" | "cloud-escalation" | "provider-switch" | "receipt-write" | "velum-handoff";
+type BlockedByString = "prompt-injection" | "velum-required" | "consent-required" | "policy" | "none";
+
+function isBoundary(value: unknown): value is BoundaryString {
+  return (
+    value === "chat" ||
+    value === "tool-use" ||
+    value === "cloud-escalation" ||
+    value === "provider-switch" ||
+    value === "receipt-write" ||
+    value === "velum-handoff"
+  );
+}
+
+function policyLabel(boundary: BoundaryString, allowed: boolean, blockedBy: BlockedByString): string {
+  if (boundary === "receipt-write") return "Receipts preserved";
+  if (boundary === "velum-handoff") return "Velum handoff allowed";
+
+  const names: Record<BoundaryString, string> = {
+    chat: "Chat",
+    "tool-use": "Tool boundary",
+    "cloud-escalation": "Cloud boundary",
+    "provider-switch": "Provider switch",
+    "receipt-write": "Receipts",
+    "velum-handoff": "Velum handoff",
+  };
+  const name = names[boundary];
+
+  if (!allowed && blockedBy === "velum-required") return "Velum required";
+  return `${name} ${allowed ? "allowed" : "blocked"}`;
+}
+
+function policyTone(allowed: boolean, blockedBy: BlockedByString, requireVelum: boolean): CapabilityBadgeTone {
+  if (!allowed && (blockedBy === "prompt-injection" || blockedBy === "policy")) return "blocked";
+  if (!allowed && blockedBy === "velum-required") return "limited";
+  if (requireVelum) return "limited";
+  return allowed ? "neutral" : "blocked";
+}
+
+function policyShort(boundary: BoundaryString, allowed: boolean, blockedBy: BlockedByString): string {
+  if (boundary === "receipt-write") return "Receipt writing was preserved by gateway policy.";
+  if (boundary === "velum-handoff") return "Velum review/handoff was allowed by gateway policy.";
+  if (allowed) return `Gateway policy allowed the ${boundary} boundary to proceed.`;
+  if (blockedBy === "velum-required") return `Gateway policy requires Velum review before ${boundary}.`;
+  return `Gateway policy blocked the ${boundary} boundary.`;
+}
+
+function policyDetail(boundary: BoundaryString, allowed: boolean, blockedBy: BlockedByString): string {
+  if (boundary === "receipt-write") return "Gateway policy preserved receipt writing.";
+  if (boundary === "velum-handoff") return "Gateway policy allowed review and handoff to Velum.";
+
+  if (allowed) {
+    if (boundary === "cloud-escalation") {
+      return "Gateway policy allowed the cloud escalation boundary to proceed to consent and review. This does not mean cloud was used.";
+    }
+    return `Gateway policy allowed the ${boundary} boundary to proceed. This does not mean the action was executed.`;
+  }
+  if (blockedBy === "velum-required") {
+    return `Gateway policy requires Velum review before the ${boundary} boundary can proceed.`;
+  }
+  if (blockedBy === "prompt-injection") {
+    return `Gateway policy blocked the ${boundary} boundary because of prompt-injection risk.`;
+  }
+  return `Gateway policy blocked the ${boundary} boundary.`;
+}
+
+/**
+ * Detect whether a Tabularium receipt represents a gateway policy decision.
+ */
+export function isGatewayPolicyDecisionReceipt(
+  receipt: Readonly<{
+    action?: string;
+    metadata?: Readonly<Record<string, string | number | boolean>> | null;
+  }> | null | undefined,
+): boolean {
+  if (!receipt) return false;
+  if (receipt.action === "security.gateway-policy.decision") return true;
+  const meta = receipt.metadata;
+  if (!meta || typeof meta !== "object") return false;
+  return isBoundary(meta.boundary) && typeof meta.allowed === "boolean";
+}
+
+/**
+ * Build a badge view from a gateway policy decision receipt's metadata.
+ * Returns null when the receipt is not a gateway policy decision.
+ */
+export function gatewayPolicyReceiptToBadgeView(
+  receipt: Readonly<{
+    action?: string;
+    metadata?: Readonly<Record<string, string | number | boolean>> | null;
+  }> | null | undefined,
+): CapabilityBadgeView | null {
+  if (!isGatewayPolicyDecisionReceipt(receipt)) return null;
+  const meta = receipt!.metadata!;
+
+  const boundary = isBoundary(meta.boundary) ? meta.boundary : "chat";
+  const allowed = meta.allowed === true;
+  const blockedBy = (typeof meta.blockedBy === "string" ? meta.blockedBy : "none") as BlockedByString;
+  const requireVelum = meta.shouldRequireVelumReview === true;
+
+  return {
+    label: policyLabel(boundary, allowed, blockedBy),
+    tone: policyTone(allowed, blockedBy, requireVelum),
+    shortDescription: policyShort(boundary, allowed, blockedBy),
+    detail: policyDetail(boundary, allowed, blockedBy),
+    cloudUsed: false,
+    localAttemptAllowed: true,
+    cloudAllowed: false,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Prompt-injection assessment badge helpers
+// ---------------------------------------------------------------------------
+
+type InjectionRiskString = "none" | "low" | "medium" | "high" | "critical";
+
+function isInjectionRisk(value: unknown): value is InjectionRiskString {
+  return (
+    value === "none" ||
+    value === "low" ||
+    value === "medium" ||
+    value === "high" ||
+    value === "critical"
+  );
+}
+
+const INJECTION_LABELS: Record<InjectionRiskString, string> = {
+  none: "Gateway check passed",
+  low: "Gateway low risk",
+  medium: "Gateway review advised",
+  high: "Gateway restricted",
+  critical: "Gateway blocked",
+};
+
+const INJECTION_TONES: Record<InjectionRiskString, CapabilityBadgeTone> = {
+  none: "local",
+  low: "neutral",
+  medium: "limited",
+  high: "blocked",
+  critical: "blocked",
+};
+
+const INJECTION_SHORT: Record<InjectionRiskString, string> = {
+  none: "No prompt-injection issues found.",
+  low: "Minor prompt-injection signals; no action needed.",
+  medium: "Suspicious instructions detected; Velum review may be required.",
+  high: "High-risk injected instructions may restrict tool or cloud actions.",
+  critical: "High-risk injected instructions blocked before tool or cloud use.",
+};
+
+function injectionDetail(
+  riskLevel: InjectionRiskString,
+  blockTool: boolean,
+  blockCloud: boolean,
+  requireVelum: boolean,
+  warnUser: boolean,
+): string {
+  const parts: string[] = [];
+
+  if (riskLevel === "none" || riskLevel === "low") {
+    parts.push("Gateway found no blocking prompt-injection issue.");
+    return parts.join(" ");
+  }
+
+  parts.push(INJECTION_SHORT[riskLevel]);
+
+  if (blockCloud) {
+    parts.push("Cloud escalation is restricted for this input.");
+  }
+  if (blockTool) {
+    parts.push("Tool use is restricted for this input.");
+  }
+  if (requireVelum) {
+    parts.push("Velum review is required before tool or cloud actions.");
+  }
+  if (warnUser && !blockCloud && !blockTool) {
+    parts.push("A warning was shown to the user.");
+  }
+
+  return parts.join(" ");
+}
+
+/**
+ * Detect whether a Tabularium receipt represents a prompt-injection assessment.
+ */
+export function isPromptInjectionAssessmentReceipt(
+  receipt: Readonly<{
+    action?: string;
+    metadata?: Readonly<Record<string, string | number | boolean>> | null;
+  }> | null | undefined,
+): boolean {
+  if (!receipt) return false;
+  if (receipt.action === "security.prompt-injection.assessment") return true;
+  const meta = receipt.metadata;
+  if (!meta || typeof meta !== "object") return false;
+  return isInjectionRisk(meta.riskLevel) && typeof meta.findingCount === "number";
+}
+
+/**
+ * Build a badge view from a prompt-injection assessment receipt's metadata.
+ * Returns null when the receipt is not a prompt-injection assessment.
+ */
+export function promptInjectionReceiptToBadgeView(
+  receipt: Readonly<{
+    action?: string;
+    metadata?: Readonly<Record<string, string | number | boolean>> | null;
+  }> | null | undefined,
+): CapabilityBadgeView | null {
+  if (!isPromptInjectionAssessmentReceipt(receipt)) return null;
+  const meta = receipt!.metadata!;
+
+  const riskLevel = isInjectionRisk(meta.riskLevel) ? meta.riskLevel : "none";
+  const blockTool = meta.shouldBlockToolUse === true;
+  const blockCloud = meta.shouldBlockCloudEscalation === true;
+  const requireVelum = meta.shouldRequireVelumReview === true;
+  const warnUser = meta.shouldWarnUser === true;
+
+  return {
+    label: INJECTION_LABELS[riskLevel],
+    tone: INJECTION_TONES[riskLevel],
+    shortDescription: INJECTION_SHORT[riskLevel],
+    detail: injectionDetail(riskLevel, blockTool, blockCloud, requireVelum, warnUser),
+    cloudUsed: false,
+    localAttemptAllowed: true,
+    cloudAllowed: false,
+  };
 }
 
 // ---------------------------------------------------------------------------

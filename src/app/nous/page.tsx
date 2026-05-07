@@ -10,6 +10,7 @@ import { getTour } from "@/lib/tour";
 import { isLikelyVisionModel } from "@/lib/oculus/helpers";
 import type { LocalModelInfo } from "@/lib/providers/ollama";
 import { summarizeLocalCapabilities } from "@/lib/nous/localCapabilitySummary";
+import { CloudEscalationConsentDemo } from "@/components/capabilities/CloudEscalationConsentDemo";
 import { PROVIDER_REGISTRY, getLockedCloudProviders } from "@/lib/providers/registry";
 import {
   createModelPreferencesDocument,
@@ -463,6 +464,10 @@ export default function NousPage() {
             ))}
           </ul>
         </TourHighlight>
+      </section>
+
+      <section className="mt-4">
+        <CloudEscalationConsentDemo />
       </section>
 
       {tourActive && (
