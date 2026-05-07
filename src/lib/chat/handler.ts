@@ -13,6 +13,10 @@
  */
 
 import type { LocalProviderConfig } from "@/lib/providers/local";
+import {
+  applyGatewayCautionToMessages,
+  buildGatewayDecision,
+} from "@/lib/security/promptGateway";
 import type {
   ChatErrorCode,
   ChatMessage,
@@ -54,6 +58,21 @@ export async function handleChatRequest(args: {
     ...(history ?? []),
     { role: "user", content: message },
   ];
+  const gateway = buildGatewayDecision({
+    route: "/api/chat",
+    module: "colloquium",
+    fields: messages
+      .filter((item) => item.role === "user")
+      .map((item, index) => ({
+        label: index === 0 ? "user-draft" : `history-user-${index}`,
+        source: "user-draft",
+        text: item.content,
+      })),
+  });
+  if (!gateway.allowed) {
+    return error(400, "prompt_gateway_blocked", gateway.recommendedUserMessage, gateway);
+  }
+  const upstreamMessages = applyGatewayCautionToMessages(messages, gateway);
   const url = `${args.config.endpoint}/api/chat`;
   const startedAt = now();
 
@@ -62,7 +81,7 @@ export async function handleChatRequest(args: {
     upstream = await fetchImpl(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model, messages, stream: false }),
+      body: JSON.stringify({ model, messages: upstreamMessages, stream: false }),
     });
   } catch (e) {
     return error(
@@ -128,7 +147,12 @@ export async function handleChatRequest(args: {
   };
 }
 
-function error(status: number, code: ChatErrorCode, message: string): HandlerResult {
+function error(
+  status: number,
+  code: ChatErrorCode,
+  message: string,
+  gateway?: ReturnType<typeof buildGatewayDecision>,
+): HandlerResult {
   return {
     status,
     payload: {
@@ -136,6 +160,16 @@ function error(status: number, code: ChatErrorCode, message: string): HandlerRes
       provider: "local",
       cloudUsed: false,
       toolsUsed: false,
+      ...(gateway
+        ? {
+            promptGateway: {
+              risk: gateway.risk,
+              allowed: gateway.allowed,
+              findingCategories: Array.from(new Set(gateway.findings.map((finding) => finding.category))),
+              safeSummary: gateway.safeSummary,
+            },
+          }
+        : {}),
       error: { code, message },
     },
   };

@@ -2,6 +2,7 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
@@ -80,9 +81,10 @@ const config: Config = {
         "panel-in": "panel-in 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both",
       },
       fontFamily: {
-        sans: ["ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Roboto", "Helvetica", "Arial", "sans-serif"],
-        serif: ["ui-serif", "Georgia", "Cambria", "Times", "serif"],
-        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"],
+        sans: ["Outfit", "ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Roboto", "Helvetica", "Arial", "sans-serif"],
+        serif: ["Syne", "ui-serif", "Georgia", "Cambria", "Times", "serif"],
+        mono: ["DM Mono", "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"],
+        display: ["Syne", "ui-serif", "Georgia", "serif"],
       },
     },
   },

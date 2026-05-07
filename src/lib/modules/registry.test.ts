@@ -1,10 +1,13 @@
 import { describe, it, expect } from "vitest";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import {
   PUBLIC_MODULES,
   getModuleById,
   getCoreLocalModules,
   getCloudUnlockModules,
 } from "./registry";
+import { validateModuleContracts } from "./validateModuleContracts";
 
 const REQUIRED_CORE_LOCAL = [
   "colloquium",
@@ -88,6 +91,85 @@ describe("public module registry", () => {
       expect(m.beginnerDescription.length, `${m.id} description empty`).toBeGreaterThan(20);
     }
   });
+
+  it("core-local modules with routes point to existing app routes", () => {
+    for (const m of getCoreLocalModules()) {
+      if (!m.route) continue;
+      const routePath = m.route === "/" ? "page.tsx" : `${m.route.slice(1)}/page.tsx`;
+      expect(existsSync(join(process.cwd(), "src/app", routePath)), `${m.id} route should exist`).toBe(true);
+    }
+  });
+
+  it("cloud-unlock modules stay locked and do not expose active routes", () => {
+    for (const m of getCloudUnlockModules()) {
+      expect(m.route, `${m.id} should not expose a public route yet`).toBeUndefined();
+      expect(m.cloudUnlockRequired).toBe(true);
+      expect(m.localOnlySupported).toBe(false);
+      expect(m.status, `${m.id} should remain locked`).toBe("locked");
+      expect(m.enabled, `${m.id} should not be enabled`).toBe(false);
+    }
+  });
+
+  it("satisfies the public module contract boundary", () => {
+    const issues = validateModuleContracts(PUBLIC_MODULES, {
+      routeExists(route) {
+        const routePath = route === "/" ? "page.tsx" : `${route.slice(1)}/page.tsx`;
+        return existsSync(join(process.cwd(), "src/app", routePath));
+      },
+    });
+    expect(issues).toEqual([]);
+  });
+
+  it("declares docs, Ratio actions, receipts, storage, and handoff ownership", () => {
+    for (const m of PUBLIC_MODULES) {
+      expect(m.docs.primary || m.docs.note, `${m.id} should declare docs`).toBeTruthy();
+      if (m.docs.primary) {
+        expect(existsSync(join(process.cwd(), m.docs.primary)), `${m.id} doc should exist`).toBe(true);
+      }
+      expect(m.ratioActions, `${m.id} should declare Ratio actions or none`).toBeDefined();
+      expect(m.receiptActions, `${m.id} should declare receipt actions or none`).toBeDefined();
+    }
+
+    for (const id of ["colloquium", "archivum", "more-input", "tabularium", "nous"]) {
+      expect(getModuleById(id)?.storageKeys?.length, `${id} should declare storage keys`).toBeGreaterThan(0);
+    }
+    for (const id of ["colloquium", "velum", "archivum", "more-input", "oculus"]) {
+      expect(getModuleById(id)?.handoffKinds?.length, `${id} should declare handoff kinds`).toBeGreaterThan(0);
+    }
+  });
+
+  it("has no duplicate module ids or unaliased duplicate routes", () => {
+    const ids = PUBLIC_MODULES.map((m) => m.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    const routeOwners = new Map<string, string>();
+    for (const m of PUBLIC_MODULES) {
+      if (!m.route) continue;
+      const existing = routeOwners.get(m.route);
+      if (existing && !m.routeAliasOf) {
+        throw new Error(`${m.id} duplicates ${m.route} without routeAliasOf`);
+      }
+      routeOwners.set(m.route, m.id);
+    }
+  });
+
+  it("release hardening docs exist", () => {
+    for (const path of [
+      "docs/PUBLIC_RELEASE_CHECKLIST.md",
+      "docs/LOCAL_MODEL_SETUP.md",
+      "docs/KNOWN_LIMITATIONS.md",
+      ".env.example",
+    ]) {
+      expect(existsSync(join(process.cwd(), path)), `${path} should exist`).toBe(true);
+    }
+  });
+
+  it("describes public route behavior without overpromising unsupported modules", () => {
+    expect(getModuleById("nous")?.beginnerDescription.toLowerCase()).toContain("cloud providers locked");
+    expect(getModuleById("oculus")?.beginnerDescription.toLowerCase()).toContain("not stored");
+    expect(getModuleById("tabularium")?.beginnerDescription.toLowerCase()).toContain("browser-local");
+    expect(getModuleById("velum")?.beginnerDescription.toLowerCase()).toContain("deterministic");
+    expect(getModuleById("archelon")?.beginnerDescription.toLowerCase()).toContain("not wired");
+  });
 });
 
 describe("Fabrica public-mode constraints", () => {
@@ -113,7 +195,8 @@ describe("Fabrica public-mode constraints", () => {
 
   it("description mentions it is not a full coding agent", () => {
     expect(fabrica?.beginnerDescription.toLowerCase()).toContain(
-      "not a full coding agent",
+      "single-file",
     );
+    expect(fabrica?.limitations?.join(" ").toLowerCase()).toContain("not a full coding agent");
   });
 });

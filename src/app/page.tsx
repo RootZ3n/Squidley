@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SquidleyMascot } from "@/components/SquidleyMascot";
+import { AppPageShell } from "@/components/shell/AppPageShell";
 import {
   readFirstRunCompleted,
   readTourCompleted,
@@ -17,19 +18,19 @@ import {
 
 const VALUE_POINTS = [
   {
-    icon: "🛡",
     title: "Local-first",
     body: "Core modules run on your device. Nothing is sent anywhere unless you ask.",
+    accent: "#4df5c8",
   },
   {
-    icon: "🧭",
     title: "Squidley teaches as you go",
     body: "A short tour shows you each part of the screen, in plain language.",
+    accent: "#bc8cff",
   },
   {
-    icon: "🌱",
     title: "Beginner-safe by default",
     body: "Calm defaults, no autonomous shells, no surprise cloud calls.",
+    accent: "#fb923c",
   },
 ];
 
@@ -64,153 +65,308 @@ export default function WelcomePage() {
   const cloud = getCloudUnlockModules();
 
   return (
-    <main className="bg-welcome-aurora min-h-screen">
-      <div className="mx-auto flex min-h-screen max-w-5xl flex-col items-center px-6 py-12">
-        {/* Hero */}
-        <section className="flex flex-col items-center pt-6 text-center sm:pt-12">
-          <SquidleyMascot
-            size={220}
-            animated
-            priority
-            className="drop-shadow-[0_24px_48px_rgba(118,68,180,0.25)]"
+    <AppPageShell
+      eyebrow="Public Squidley · welcome"
+      title="Hi, I'm Squidley."
+      intro="A friendly companion that runs on your device. Take a 60-second guided tour, or jump straight into Colloquium."
+      accent="#bc8cff"
+      headerRight={
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "8px 14px",
+            borderRadius: 999,
+            border: "1px solid rgba(77,245,200,0.42)",
+            background: "rgba(77,245,200,0.08)",
+            color: "#7bffdd",
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            letterSpacing: "0.18em",
+            textTransform: "uppercase",
+          }}
+        >
+          <span
+            aria-hidden
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: "#4df5c8",
+              boxShadow: "0 0 8px rgba(77,245,200,0.55)",
+            }}
           />
-
-          <p className="mt-6 text-xs font-medium uppercase tracking-[0.2em] text-iris-600 dark:text-iris-300">
-            Public Squidley
+          Local-only · stays on this device
+        </span>
+      }
+    >
+      <section
+        className="sq-glass sq-fade-in"
+        style={{
+          padding: "32px clamp(20px, 4vw, 48px)",
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 220px) 1fr",
+          gap: 32,
+          alignItems: "center",
+        }}
+      >
+        <div style={{ justifySelf: "center" }}>
+          <SquidleyMascot size={220} animated priority />
+        </div>
+        <div>
+          <h2
+            style={{
+              fontFamily: "var(--font-display)",
+              fontWeight: 800,
+              fontSize: "clamp(22px, 2.4vw, 30px)",
+              letterSpacing: "0.02em",
+              color: "var(--text-primary)",
+              margin: 0,
+            }}
+          >
+            Start here.
+          </h2>
+          <p
+            style={{
+              marginTop: 10,
+              fontSize: 16,
+              lineHeight: 1.6,
+              color: "rgba(238,240,255,0.78)",
+              maxWidth: 560,
+            }}
+          >
+            Squidley is a calm, local-first AI workspace. Pick the tour and I&rsquo;ll
+            walk you through every screen, or skip ahead and start chatting.
           </p>
-          <h1 className="mt-1 font-serif text-4xl font-semibold tracking-tight text-ink-900 sm:text-5xl dark:text-ink-50">
-            Hi, I&rsquo;m Squidley.
-          </h1>
-          <p className="mt-3 max-w-xl text-balance text-base text-ink-600 dark:text-ink-200">
-            A friendly companion that runs on your device. I can give you a
-            short guided tour of the app, or you can jump straight in.
-          </p>
-
-          {/* Primary actions */}
-          <div className="mt-7 flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
-            <div className="flex flex-col items-center">
-              <button
-                type="button"
-                onClick={startTour}
-                className="inline-flex h-12 min-w-[160px] items-center justify-center rounded-xl bg-gradient-to-br from-squid-500 to-iris-500 px-6 text-base font-medium text-white shadow-md shadow-iris-500/20 transition hover:from-squid-600 hover:to-iris-600 focus:outline-none focus:ring-2 focus:ring-iris-400 focus:ring-offset-2"
-              >
-                Start Tour
-              </button>
-              <span className="mt-1.5 text-[11px] text-ink-400">
-                About 60 seconds
-              </span>
-            </div>
-
-            <div className="flex flex-col items-center">
-              <button
-                type="button"
-                onClick={skipTour}
-                className="inline-flex h-12 min-w-[160px] items-center justify-center rounded-xl border border-ink-200 bg-white px-6 text-base font-medium text-ink-700 shadow-sm transition hover:border-ink-300 hover:bg-ink-50 focus:outline-none focus:ring-2 focus:ring-ink-300 focus:ring-offset-2 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-100 dark:hover:bg-ink-700"
-              >
-                Skip Tour
-              </button>
-              <span className="mt-1.5 text-[11px] text-ink-400">
-                You can start it any time
-              </span>
-            </div>
-          </div>
-
-          {/* Returning user */}
-          {hydrated && returning && (
+          <div
+            style={{
+              marginTop: 22,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 14,
+              alignItems: "center",
+            }}
+          >
             <button
               type="button"
-              onClick={continueAsBefore}
-              className="mt-5 text-sm text-ink-500 underline decoration-dotted underline-offset-4 hover:text-ink-700 dark:text-ink-300 dark:hover:text-ink-50"
+              onClick={startTour}
+              className="sq-btn sq-btn-primary"
+              style={{ fontSize: 15, padding: "10px 22px", minWidth: 160 }}
             >
-              {tourCompleted ? "Continue where I left off" : "Continue as before"}
+              Start Tour
             </button>
-          )}
-
-          {/* Local-only reassurance */}
-          <p className="mt-6 inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-white/70 px-3 py-1 text-xs text-emerald-800 shadow-sm backdrop-blur dark:border-emerald-700/40 dark:bg-emerald-900/30 dark:text-emerald-200">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            Local-only · stays on this device
-          </p>
-        </section>
-
-        {/* Value props */}
-        <section className="mt-14 grid w-full grid-cols-1 gap-3 sm:grid-cols-3">
-          {VALUE_POINTS.map((p) => (
-            <div
-              key={p.title}
-              className="rounded-2xl border border-white/40 bg-white/70 p-4 shadow-sm backdrop-blur-sm dark:border-ink-700/60 dark:bg-ink-800/60"
+            <button
+              type="button"
+              onClick={skipTour}
+              className="sq-btn"
+              style={{ fontSize: 15, padding: "10px 22px", minWidth: 160 }}
             >
-              <div className="text-xl" aria-hidden>
-                {p.icon}
-              </div>
-              <h3 className="mt-2 font-serif text-base font-semibold text-ink-900 dark:text-ink-50">
-                {p.title}
-              </h3>
-              <p className="mt-1 text-sm text-ink-600 dark:text-ink-200">
-                {p.body}
-              </p>
-            </div>
-          ))}
-        </section>
-
-        {/* Module preview */}
-        <section className="mt-12 w-full">
-          <div className="flex items-baseline justify-between gap-4">
-            <div>
-              <h2 className="font-serif text-xl font-semibold text-ink-900 dark:text-ink-50">
-                Core modules
-              </h2>
-              <p className="text-xs text-ink-500 dark:text-ink-300">
-                Beginner-safe · work locally without a cloud account.
-              </p>
-            </div>
-            <Link
-              href="/modules"
-              className="text-sm text-iris-600 underline decoration-dotted underline-offset-4 hover:text-iris-700 dark:text-iris-300"
-            >
-              See all →
-            </Link>
+              Skip Tour
+            </button>
+            {hydrated && returning && (
+              <button
+                type="button"
+                onClick={continueAsBefore}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--accent-vision)",
+                  textDecoration: "underline",
+                  textDecorationStyle: "dotted",
+                  textUnderlineOffset: "4px",
+                  cursor: "pointer",
+                  fontFamily: "var(--font-body)",
+                  fontSize: 14,
+                }}
+              >
+                {tourCompleted ? "Continue where I left off" : "Continue as before"}
+              </button>
+            )}
           </div>
-          <ul className="mt-3 flex flex-wrap gap-2">
-            {core.map((m) => (
+          <p
+            style={{
+              marginTop: 14,
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              color: "var(--text-muted)",
+            }}
+          >
+            About 60 seconds · choice saved on this device only
+          </p>
+        </div>
+      </section>
+
+      <section
+        style={{
+          marginTop: 24,
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: 14,
+        }}
+      >
+        {VALUE_POINTS.map((p) => (
+          <article
+            key={p.title}
+            className="sq-glass"
+            style={{
+              padding: "20px 22px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
+            <span
+              aria-hidden
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 8,
+                background: `radial-gradient(circle, ${p.accent}66, transparent 70%)`,
+                border: `1px solid ${p.accent}55`,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: p.accent,
+              }}
+            >
+              ◆
+            </span>
+            <h3
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: 18,
+                fontWeight: 700,
+                color: "var(--text-primary)",
+                margin: 0,
+              }}
+            >
+              {p.title}
+            </h3>
+            <p style={{ fontSize: 14, lineHeight: 1.6, color: "var(--text-dim)" }}>
+              {p.body}
+            </p>
+          </article>
+        ))}
+      </section>
+
+      <section style={{ marginTop: 28 }}>
+        <header
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <div>
+            <h2
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: 22,
+                fontWeight: 700,
+                color: "var(--text-primary)",
+                margin: 0,
+              }}
+            >
+              Core modules
+            </h2>
+            <p style={{ marginTop: 4, fontSize: 13, color: "var(--text-dim)" }}>
+              Beginner-safe · work locally without a cloud account.
+            </p>
+          </div>
+          <Link
+            href="/modules"
+            style={{
+              color: "var(--accent-vision)",
+              textDecoration: "underline",
+              textDecorationStyle: "dotted",
+              textUnderlineOffset: "4px",
+              fontSize: 14,
+            }}
+          >
+            See all →
+          </Link>
+        </header>
+        <ul
+          style={{
+            listStyle: "none",
+            padding: 0,
+            margin: "14px 0 0",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 8,
+          }}
+        >
+          {core.map((m) => (
+            <li
+              key={m.id}
+              title={m.beginnerDescription}
+              style={{
+                padding: "8px 14px",
+                borderRadius: 999,
+                border: "1px solid rgba(77,245,200,0.32)",
+                background: "rgba(77,245,200,0.06)",
+                color: "#cdfdec",
+                fontSize: 13,
+              }}
+            >
+              {m.displayName}
+            </li>
+          ))}
+        </ul>
+
+        <div style={{ marginTop: 24 }}>
+          <h2
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: 22,
+              fontWeight: 700,
+              color: "var(--text-primary)",
+              margin: 0,
+            }}
+          >
+            Cloud Unlock
+          </h2>
+          <p style={{ marginTop: 4, fontSize: 13, color: "var(--text-dim)" }}>
+            Advanced modules · shown so you know they exist. Locked in public mode.
+          </p>
+          <ul
+            style={{
+              listStyle: "none",
+              padding: 0,
+              margin: "14px 0 0",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 8,
+            }}
+          >
+            {cloud.map((m) => (
               <li
                 key={m.id}
-                className="rounded-full border border-emerald-200/70 bg-white/70 px-3 py-1 text-xs text-ink-700 shadow-sm backdrop-blur-sm dark:border-emerald-700/40 dark:bg-ink-800/60 dark:text-ink-100"
-                title={m.beginnerDescription}
+                title={`${m.beginnerDescription} (locked in public mode)`}
+                style={{
+                  padding: "8px 14px",
+                  borderRadius: 999,
+                  border: "1px solid rgba(245,158,11,0.42)",
+                  background: "rgba(245,158,11,0.08)",
+                  color: "#ffd28a",
+                  fontSize: 13,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
               >
+                <span aria-hidden>🔒</span>
                 {m.displayName}
               </li>
             ))}
           </ul>
-
-          <div className="mt-6">
-            <h2 className="font-serif text-xl font-semibold text-ink-900 dark:text-ink-50">
-              Cloud Unlock
-            </h2>
-            <p className="text-xs text-ink-500 dark:text-ink-300">
-              Advanced modules · shown so you know they exist. Locked in public
-              mode.
-            </p>
-            <ul className="mt-3 flex flex-wrap gap-2">
-              {cloud.map((m) => (
-                <li
-                  key={m.id}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/70 bg-white/60 px-3 py-1 text-xs text-ink-500 shadow-sm backdrop-blur-sm dark:border-amber-700/40 dark:bg-ink-800/40 dark:text-ink-300"
-                  title={`${m.beginnerDescription} (locked in public mode)`}
-                >
-                  <span aria-hidden>🔒</span>
-                  <span>{m.displayName}</span>
-                  <span className="sr-only">(locked in public mode)</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-
-        <p className="mt-12 max-w-md text-center text-xs text-ink-400">
-          Your choice is saved on this device only.
-        </p>
-      </div>
-    </main>
+        </div>
+      </section>
+    </AppPageShell>
   );
 }

@@ -9,15 +9,19 @@ is down, chat is down — that is the contract.
 
 ```
 ┌────────────┐       ┌──────────────────────┐       ┌──────────────────┐
-│  Browser   │──POST▶│ /api/chat (Next.js)  │──POST▶│  Ollama @ :11434 │
-│  Colloquium│◀──────│ src/lib/chat/handler │◀──────│  /api/chat        │
+│  Browser   │──POST▶│ /api/chat/stream     │──POST▶│  Ollama @ :11434 │
+│  Colloquium│◀──────│ src/lib/chat/stream  │◀──────│  /api/chat        │
 └────────────┘       └──────────────────────┘       └──────────────────┘
 ```
 
-The Next.js route handler in `src/app/api/chat/route.ts` is a thin wrapper
-around the pure handler in `src/lib/chat/handler.ts`. The handler reads
-its endpoint and model from the configured local provider only. There is
-no other provider in the codebase.
+Colloquium uses:
+
+- `GET /api/local/health` to check the configured Ollama-compatible server.
+- `GET /api/local/models` to discover installed local models from `/api/tags`.
+- `POST /api/chat/stream` to stream local replies token-by-token.
+
+The older non-streaming `POST /api/chat` route remains local-only as an
+internal fallback path. There is no other provider in the codebase.
 
 ## Quick start
 
@@ -38,7 +42,7 @@ no other provider in the codebase.
    npm run dev
    ```
    Open <http://localhost:3000>, complete or skip the tour, and send a
-   message in Colloquium.
+   message in Colloquium. The header should show "Local model server ready."
 
 ## Configuration
 
@@ -61,28 +65,87 @@ SQUIDLEY_LOCAL_MODEL=qwen2.5:3b npm run dev
 ```
 
 The configured values are surfaced in chat receipts and message metrics so
-you can verify which model actually answered.
+you can verify which model actually answered. If the configured default model
+is installed, Colloquium selects it. Otherwise it selects the first model
+returned by Ollama. If no models are installed, the selector is disabled and
+Colloquium suggests pulling one.
+
+## Health Check and Model Discovery
+
+`GET /api/local/health` calls `${SQUIDLEY_LOCAL_ENDPOINT}/api/tags` and returns
+a beginner-readable payload:
+
+```json
+{
+  "ok": true,
+  "provider": "local",
+  "endpoint": "http://localhost:11434",
+  "modelCount": 1,
+  "cloudUsed": false
+}
+```
+
+If Ollama is unavailable, the route returns `ok: false`, an `errorCode`, and a
+plain-language `reason`. Stack traces and raw connection errors are not exposed
+to the browser.
+
+`GET /api/local/models` also calls `/api/tags` and normalizes models into:
+
+```json
+{
+  "name": "llama3.2:latest",
+  "displayName": "llama3.2 latest",
+  "size": 2019393189,
+  "modifiedAt": "2026-04-01T00:00:00Z"
+}
+```
+
+To install another local model:
+
+```bash
+ollama pull qwen2.5:3b
+```
+
+After the pull completes, use **Refresh models** in Colloquium. Squidley calls
+the local health and model discovery routes again without refreshing the whole
+page. Refresh is disabled while a reply is actively streaming so it does not
+interrupt the current response.
+
+When models are refreshed, Colloquium keeps your selected model if it is still
+installed. If that model disappeared, Squidley selects the configured default
+model when available, otherwise the first discovered model. If no models are
+available, the selector is empty and Send stays disabled.
+
+Colloquium also reads the browser-local Nous model preference for chat. When
+that preference is used, Colloquium shows a small "Using your Nous preference"
+note and a **Change in Nous** link. Changing the model directly in Colloquium
+saves that choice as the new shared Colloquium preference.
 
 ## Compatibility
 
-This pass targets Ollama's `/api/chat` endpoint. Any server that exposes
-the same endpoint shape will work:
+This pass targets Ollama's `/api/tags` and `/api/chat` endpoints. Any server
+that exposes the same endpoint shapes will work:
 
 ```
 POST /api/chat
-{ "model": "<name>", "messages": [...], "stream": false }
+{ "model": "<name>", "messages": [...], "stream": true }
 ```
 
-Streaming is not implemented in this pass; the request is sent with
-`stream: false` and the full reply is returned in one JSON body. The code
-in `src/lib/chat/handler.ts` is structured so a streaming path can be
-added later without changing the public response shape.
+Squidley converts Ollama's newline-delimited stream into a small
+newline-delimited stream for the browser:
+
+- `meta` includes `provider: local`, `cloudUsed: false`, `toolsUsed: false`,
+  the selected model, and start time.
+- `delta` includes incremental assistant text.
+- `done` includes duration and token counts when Ollama reports them.
+- `error` includes a beginner-readable local error.
 
 ## Local-only guarantee
 
 The handler is small on purpose so the guarantee is auditable:
 
-- It only ever calls `${config.endpoint}/api/chat`. There is no second
+- It only ever calls `${config.endpoint}/api/tags` and
+  `${config.endpoint}/api/chat`. There is no second
   fetch, no retry against a different host, and no environment-driven
   fallback.
 - Every response (success or error) carries `cloudUsed: false` and
@@ -90,8 +153,40 @@ The handler is small on purpose so the guarantee is auditable:
 - The Colloquium UI shows a green "Local-only" badge in the header at
   all times in this pass.
 
-There are unit tests covering this in `src/lib/chat/handler.test.ts` —
-see the "local-only guarantee" describe block.
+There are unit tests covering this in `src/lib/chat/handler.test.ts`,
+`src/lib/chat/stream.test.ts`, and `src/lib/providers/ollama.test.ts`.
+
+## Prompt Gateway
+
+Before chat text is sent to the local model server, Prompt Gateway performs a
+deterministic local check for prompt-injection signals. Low-risk text is sent
+normally. Suspicious educational discussion can be sent with a model-facing
+caution. Direct attempts to override instructions, reveal hidden prompts, use
+tools or shell commands, exfiltrate data, or bypass local boundaries are paused
+with a friendly message.
+
+See [docs/PROMPT_GATEWAY.md](PROMPT_GATEWAY.md).
+
+## Local Conversation Storage
+
+Colloquium saves chat history and recent visible receipts in this browser using
+versioned `localStorage`. It restores them on page load without sending any
+messages or restarting interrupted streams. Use **Clear chat** to remove the
+saved local chat for this browser, or **Export chat** to download a local `.txt`
+copy.
+
+See [`docs/LOCAL_CONVERSATIONS.md`](LOCAL_CONVERSATIONS.md) for details.
+
+## Redacted Drafts from Velum
+
+Use **Review in Velum** near the Colloquium input box to send the current draft
+to Velum for local review before submitting it to your local model. The draft is
+passed through browser `sessionStorage`, not the URL, and Velum waits for you to
+click **Review text**.
+
+Velum can hand a redacted preview to Colloquium as a draft. Colloquium consumes
+that browser-local handoff once, fills the input box, and waits for you to click
+**Send**. The original unredacted Velum text is not transferred.
 
 ## Receipts
 
@@ -100,9 +195,9 @@ Every send writes a receipt the user can see:
 | Field | Source |
 | --- | --- |
 | `provider` | always `local` |
-| `model` | configured default, or `model` field from the request |
+| `model` | selected discovered local model |
 | `status` | `running` → `succeeded` or `failed` |
-| `startedAt` / `completedAt` | server clock (`Date.now()`) |
+| `startedAt` / `completedAt` | browser and stream route clocks (`Date.now()`) |
 | `cloudUsed` | always `false` |
 | `toolsUsed` | always `false` |
 | `errorMessage` | beginner-friendly error when status is `failed` |
@@ -126,6 +221,42 @@ and label it as such — we don't pretend precision we don't have.
 **Squidley says it can't reach the local server.**
 The configured endpoint isn't reachable. Make sure Ollama is running
 (`ollama serve`), and that the host and port match `SQUIDLEY_LOCAL_ENDPOINT`.
+In Colloquium, the local-only badge stays visible and Send remains disabled.
+Start Ollama, then use **Refresh models**:
+
+```bash
+ollama serve
+```
+
+**No models appear in the selector.**
+Ollama is reachable, but no local models are installed. Pull one, then use
+**Refresh models**:
+
+```bash
+ollama pull llama3.2
+```
+
+Squidley will not fall back to a cloud model while you do this.
+
+**A model I pulled is not appearing.**
+First check that Ollama sees it:
+
+```bash
+ollama list
+```
+
+If it appears there, use **Refresh models** in Colloquium. If it still does not
+appear, confirm Squidley is pointed at the same endpoint as Ollama:
+
+```bash
+SQUIDLEY_LOCAL_ENDPOINT=http://localhost:11434 npm run dev
+```
+
+If you want Squidley to prefer a specific installed model on startup, set:
+
+```bash
+SQUIDLEY_LOCAL_MODEL=qwen2.5:3b npm run dev
+```
 
 **Squidley says the model isn't installed.**
 The local server is up, but the model name in the request isn't pulled
@@ -143,7 +274,6 @@ model from your `ollama list`.
 
 ## What this pass intentionally does *not* do
 
-- No streaming responses.
 - No memory or RAG.
 - No tool execution.
 - No multi-agent routing.
@@ -152,5 +282,6 @@ model from your `ollama list`.
 - No background agents.
 - No telemetry.
 
-These are deliberately out of scope. The point of this pass is to make
-the Send button real, safely, and nothing more.
+These are deliberately out of scope. The point of this pass is to make local
+chat feel responsive and beginner-friendly without weakening the local-only
+contract.

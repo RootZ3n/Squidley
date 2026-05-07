@@ -1,0 +1,8 @@
+alias sqpub-status='systemctl --user status squidley-public.service'
+alias sqpub-start='systemctl --user start squidley-public.service'
+alias sqpub-stop='systemctl --user stop squidley-public.service'
+alias sqpub-restart='systemctl --user restart squidley-public.service'
+alias sqpub-logs='journalctl --user -u squidley-public.service -f'
+alias sqpub-build='cd /mnt/ai/squidley && npm run build'
+alias sqpub-check='cd /mnt/ai/squidley && npm run typecheck && npm test && npm run build && git diff --check'
+alias sqpub-rebuild='/mnt/ai/squidley/ops/squidley-public-rebuild.sh'

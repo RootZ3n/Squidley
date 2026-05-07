@@ -23,6 +23,12 @@ export interface ChatErrorBody {
   provider: "local";
   cloudUsed: false;
   toolsUsed: false;
+  promptGateway?: {
+    risk: "low" | "medium" | "high" | "blocked";
+    allowed: boolean;
+    findingCategories: string[];
+    safeSummary: string;
+  };
   error: {
     code: ChatErrorCode;
     /** Beginner-friendly message safe to render in the UI. */
@@ -53,4 +59,5 @@ export type ChatErrorCode =
   | "invalid_input"
   | "local_provider_unreachable"
   | "local_provider_error"
-  | "local_provider_model_missing";
+  | "local_provider_model_missing"
+  | "prompt_gateway_blocked";
