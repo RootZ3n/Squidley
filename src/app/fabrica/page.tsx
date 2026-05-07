@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { CompanionTourPanel } from "@/components/CompanionTourPanel";
+import { CloudEscalationConsentDialog } from "@/components/capabilities/CloudEscalationConsentDialog";
 import { LocalStatusNote } from "@/components/LocalStatusNote";
 import { RatioCapabilityNote } from "@/components/RatioCapabilityNote";
 import { TourHighlight } from "@/components/TourHighlight";
@@ -12,6 +13,10 @@ import {
   saveArchivum,
   upsertArchivumEntry,
 } from "@/lib/archivum/storage";
+import { createCloudConsentDialogHandlers } from "@/lib/capabilities/cloudConsentOrchestration";
+import type { GuardedCloudPreflightResult } from "@/lib/capabilities/guardedCloudPreflight";
+import { runFabricaMultiFileBuildCloudPreflight } from "@/lib/fabrica/cloudPreflight";
+import { fabricaPreflightStatusCopy, fabricaConsentStatusCopy, type FabricaCloudPreflightStatusCopy } from "@/lib/fabrica/cloudPreflightStatus";
 import { markTourCompleted, readTourMode, restartTour as persistRestartTour } from "@/lib/firstRun";
 import { getTour } from "@/lib/tour";
 import type { LocalModelInfo } from "@/lib/providers/ollama";
@@ -53,6 +58,9 @@ export default function FabricaPage() {
   const [tourActive, setTourActive] = useState(false);
   const [tourRunId, setTourRunId] = useState(0);
   const [activeTarget, setActiveTarget] = useState<string | null>(null);
+  const [cloudStatusCopy, setCloudStatusCopy] = useState<FabricaCloudPreflightStatusCopy | null>(null);
+  const [cloudPreflightResult, setCloudPreflightResult] = useState<GuardedCloudPreflightResult | null>(null);
+  const [consentDialogOpen, setConsentDialogOpen] = useState(false);
   const tour = useMemo(() => getTour("fabrica")!, []);
   const singleFileRatio = useMemo(
     () => fabricaSingleFileSuggestionDecision(selectedModel),
@@ -247,6 +255,64 @@ export default function FabricaPage() {
     setSafetyReceipt(null);
   }
 
+  function handleMultiFileBuildClick() {
+    setCloudStatusCopy(null);
+    setConsentDialogOpen(false);
+    setCloudPreflightResult(null);
+
+    const result = runFabricaMultiFileBuildCloudPreflight({
+      velumReviewPassed: false,
+      recordReceipts: true,
+      storage: window.localStorage,
+    });
+    setCloudPreflightResult(result);
+
+    const copy = fabricaPreflightStatusCopy(
+      result.blockedBy,
+      result.allowedToOfferCloud,
+    );
+
+    if (result.allowedToOfferCloud && result.escalationPacket) {
+      setConsentDialogOpen(true);
+      setCloudStatusCopy(copy);
+    } else {
+      setCloudStatusCopy(copy);
+    }
+  }
+
+  function handleConsentGrant() {
+    if (!cloudPreflightResult?.escalationPacket) return;
+    const handlers = createCloudConsentDialogHandlers(
+      window.localStorage,
+      cloudPreflightResult.escalationPacket,
+    );
+    handlers.handleGrant();
+    setConsentDialogOpen(false);
+    setCloudStatusCopy(fabricaConsentStatusCopy("granted"));
+  }
+
+  function handleConsentDeny() {
+    if (!cloudPreflightResult?.escalationPacket) return;
+    const handlers = createCloudConsentDialogHandlers(
+      window.localStorage,
+      cloudPreflightResult.escalationPacket,
+    );
+    handlers.handleDeny();
+    setConsentDialogOpen(false);
+    setCloudStatusCopy(fabricaConsentStatusCopy("denied"));
+  }
+
+  function handleConsentClose() {
+    if (!cloudPreflightResult?.escalationPacket) return;
+    const handlers = createCloudConsentDialogHandlers(
+      window.localStorage,
+      cloudPreflightResult.escalationPacket,
+    );
+    handlers.handleCancel();
+    setConsentDialogOpen(false);
+    setCloudStatusCopy(fabricaConsentStatusCopy("cancelled"));
+  }
+
   const canGenerate = selectedModel.length > 0 && requestedChange.trim().length > 0 && !generating;
 
   return (
@@ -307,6 +373,43 @@ export default function FabricaPage() {
         <RatioCapabilityNote decision={singleFileRatio} title="Ratio: single-file suggestion" compact />
         <RatioCapabilityNote decision={multiFileRatio} title="Ratio: multi-file build" compact />
       </div>
+
+      <div className="mt-4 rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
+        <h2 className="font-serif text-lg font-semibold text-ink-900 dark:text-ink-50">
+          Multi-file build (cloud-required)
+        </h2>
+        <p className="mt-2 text-sm text-ink-600 dark:text-ink-300">
+          Multi-file autonomous builds require a future Cloud Agent mode. You can check the preflight gate to see what would happen.
+        </p>
+        <button
+          type="button"
+          onClick={handleMultiFileBuildClick}
+          className="mt-3 rounded-lg border border-iris-200 bg-white px-4 py-2 text-sm font-medium text-iris-700 shadow-sm hover:bg-iris-50 dark:border-iris-700/60 dark:bg-ink-900 dark:text-iris-100"
+        >
+          Check multi-file build preflight
+        </button>
+        {cloudStatusCopy && (
+          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-700/60 dark:bg-amber-900/20 dark:text-amber-100">
+            <p>{cloudStatusCopy.message}</p>
+            <p className="mt-1 text-xs text-ink-500 dark:text-ink-400">
+              {cloudStatusCopy.tabulariumHint}{" "}
+              <Link href="/tabularium" className="font-medium text-iris-600 underline decoration-dotted underline-offset-4 dark:text-iris-300">
+                View in Tabularium
+              </Link>
+            </p>
+          </div>
+        )}
+      </div>
+
+      {consentDialogOpen && cloudPreflightResult?.escalationPacket && (
+        <CloudEscalationConsentDialog
+          packet={cloudPreflightResult.escalationPacket}
+          open={consentDialogOpen}
+          onGrant={handleConsentGrant}
+          onDeny={handleConsentDeny}
+          onClose={handleConsentClose}
+        />
+      )}
 
       <section className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-4">
