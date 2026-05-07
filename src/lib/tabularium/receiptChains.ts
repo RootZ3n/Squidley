@@ -38,6 +38,8 @@ export type TabulariumReceiptStepKind =
   | "offer"
   | "consent"
   | "capability"
+  | "velum-prep"
+  | "velum-review"
   | "other";
 
 export interface TabulariumReceiptChainStep {
@@ -99,6 +101,8 @@ export function classifyReceiptChainStep(
   if (action === "cloud-escalation.offer") return "offer";
   if (action.startsWith("cloud-consent.")) return "consent";
   if (action === "capability.decision") return "capability";
+  if (action === "velum-handoff.preparation") return "velum-prep";
+  if (action === "velum-review.completed") return "velum-review";
   return "other";
 }
 
@@ -153,11 +157,16 @@ function classifyChainKind(stepKinds: ReadonlySet<TabulariumReceiptStepKind>): T
   const hasOffer = stepKinds.has("offer");
   const hasConsent = stepKinds.has("consent");
   const hasCapability = stepKinds.has("capability");
+  const hasVelumPrep = stepKinds.has("velum-prep");
+  const hasVelumReview = stepKinds.has("velum-review");
+  const hasVelum = hasVelumPrep || hasVelumReview;
 
   // Full cloud consent flow: assessment + policy + offer + consent
   if (hasAssessment && hasPolicy && hasOffer && hasConsent) return "cloud-consent-flow";
   // Partial cloud flow: any of offer/consent present with security steps
   if (hasOffer || hasConsent) return "cloud-consent-flow";
+  // Velum steps mixed with gateway/capability steps → cloud-consent-flow (pre-cloud safety)
+  if (hasVelum && (hasAssessment || hasPolicy || hasCapability)) return "cloud-consent-flow";
   // Gateway security flow: assessment + policy without cloud receipts
   if (hasAssessment && hasPolicy) return "gateway-security-flow";
   // Capability decision only
@@ -165,6 +174,8 @@ function classifyChainKind(stepKinds: ReadonlySet<TabulariumReceiptStepKind>): T
   if (hasCapability) return "capability-decision";
   // Assessment-only or policy-only
   if (hasAssessment || hasPolicy) return "gateway-security-flow";
+  // Velum-only chains
+  if (hasVelum) return "cloud-consent-flow";
   return "standalone";
 }
 
@@ -236,7 +247,7 @@ function extractFinalDecision(steps: readonly TabulariumReceiptChainStep[], rece
 
 function computeNothingSentYet(steps: readonly TabulariumReceiptChainStep[], receipts: readonly TabulariumReceipt[]): boolean {
   for (const step of steps) {
-    if (step.stepKind === "offer" || step.stepKind === "consent") {
+    if (step.stepKind === "offer" || step.stepKind === "consent" || step.stepKind === "velum-prep" || step.stepKind === "velum-review") {
       const original = receipts.find((r) => r.id === step.receiptId);
       if (original?.metadata && original.metadata.nothingSentYet === false) {
         return false;
@@ -253,8 +264,33 @@ function computeNothingSentYet(steps: readonly TabulariumReceiptChainStep[], rec
 export function summarizeReceiptChain(chain: Readonly<TabulariumReceiptChain>): string {
   const { kind, riskLevel, finalDecision, nothingSentYet } = chain;
   const nothingSent = nothingSentYet ? " Nothing was sent." : "";
+  const stepKinds = new Set(chain.steps.map((s) => s.stepKind));
+  const hasVelumPrep = stepKinds.has("velum-prep");
+  const hasVelumReview = stepKinds.has("velum-review");
+  const hasVelum = hasVelumPrep || hasVelumReview;
 
   if (kind === "cloud-consent-flow") {
+    // Velum-aware summaries when velum steps are present
+    if (hasVelum) {
+      if (finalDecision === "granted" && hasVelumReview) {
+        return "Velum review completed and cloud consent was granted. Nothing was sent by these receipts.";
+      }
+      if (finalDecision === "granted") {
+        return `Gateway and Velum checks ran before cloud consent. Consent was granted, but nothing was sent by these receipts.`;
+      }
+      if (finalDecision === "denied" || finalDecision === "cancelled" || finalDecision === "blocked") {
+        return `Gateway and Velum checks ran before cloud consent. Consent was ${finalDecision}.${nothingSent}`;
+      }
+      if (hasVelumReview && !hasVelumPrep) {
+        return `Velum review was marked complete locally. Consent may be offered next, but nothing was sent.`;
+      }
+      if (hasVelumReview) {
+        return `Gateway and Velum checks ran before cloud consent. Consent may be recorded, but nothing was sent.`;
+      }
+      // Prep only
+      return "Velum review was prepared locally. Nothing was sent.";
+    }
+
     if (finalDecision === "granted") {
       return `Gateway allowed the cloud boundary, consent was granted, and nothing was sent by these receipts.`;
     }
@@ -344,11 +380,12 @@ export function buildReceiptChains(
           }
         }
         if (!found) {
-          // Check if it should be standalone (e.g. capability.decision)
+          // Check if it should be standalone (e.g. capability.decision or unrelated)
           const stepKind = classifyReceiptChainStep(receipt);
           if (stepKind === "capability" || stepKind === "other") {
             ungrouped.push(receipt);
           } else {
+            // Start a new group — security, offer, consent, velum-prep, velum-review
             groups.set(key, [receipt]);
           }
         }

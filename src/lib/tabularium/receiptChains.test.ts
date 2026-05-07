@@ -164,6 +164,50 @@ function makeUnrelatedReceipt(opts: {
   });
 }
 
+function makeVelumPrepReceipt(opts: {
+  createdAt?: number;
+  capabilityId?: string;
+} = {}): TabulariumReceipt {
+  return makeReceipt({
+    id: `velum-prep-${opts.createdAt ?? 500}`,
+    createdAt: opts.createdAt ?? 500,
+    module: "fabrica",
+    action: "velum-handoff.preparation",
+    title: "Velum review preparation recorded for Fabrica multi-file build",
+    summary: "Fabrica recorded that Velum review is needed before cloud consent can be offered. Nothing has been sent.",
+    metadata: {
+      capabilityId: opts.capabilityId ?? "fabrica:fabrica.multi-file-build",
+      sourceModule: "fabrica",
+      requiresVelumReview: true,
+      velumReviewPassed: false,
+      nothingSentYet: true,
+      cloudUsed: false,
+    },
+  });
+}
+
+function makeVelumReviewReceipt(opts: {
+  createdAt?: number;
+  capabilityId?: string;
+} = {}): TabulariumReceipt {
+  return makeReceipt({
+    id: `velum-review-${opts.createdAt ?? 600}`,
+    createdAt: opts.createdAt ?? 600,
+    module: "fabrica",
+    action: "velum-review.completed",
+    title: "Velum review marked complete for Fabrica multi-file build",
+    summary: "Fabrica recorded that Velum review was completed locally. Cloud consent can now be offered. Nothing has been sent.",
+    metadata: {
+      capabilityId: opts.capabilityId ?? "fabrica:fabrica.multi-file-build",
+      sourceModule: "fabrica",
+      requiresVelumReview: true,
+      velumReviewPassed: true,
+      nothingSentYet: true,
+      cloudUsed: false,
+    },
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -682,5 +726,289 @@ describe("summarizeReceiptChain", () => {
     const summary = summarizeReceiptChain(chain);
     expect(summary).toContain("Velum review");
     expect(summary).toMatch(/[Nn]othing was sent/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Velum handoff / review step classification
+// ---------------------------------------------------------------------------
+
+describe("classifyReceiptChainStep — Velum receipts", () => {
+  it("classifies velum-handoff.preparation as velum-prep", () => {
+    expect(classifyReceiptChainStep(makeVelumPrepReceipt())).toBe("velum-prep");
+  });
+
+  it("classifies velum-review.completed as velum-review", () => {
+    expect(classifyReceiptChainStep(makeVelumReviewReceipt())).toBe("velum-review");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Velum receipts group with Fabrica capabilityId chains
+// ---------------------------------------------------------------------------
+
+describe("buildReceiptChains — Velum grouping", () => {
+  it("velum-prep groups with other capabilityId receipts within timestamp window", () => {
+    const capId = "fabrica:fabrica.multi-file-build";
+    const receipts = [
+      makeVelumPrepReceipt({ createdAt: 1000, capabilityId: capId }),
+      makeVelumReviewReceipt({ createdAt: 1500, capabilityId: capId }),
+    ];
+
+    const chains = buildReceiptChains(receipts);
+    expect(chains).toHaveLength(1);
+    expect(chains[0].steps).toHaveLength(2);
+    expect(chains[0].steps[0].stepKind).toBe("velum-prep");
+    expect(chains[0].steps[1].stepKind).toBe("velum-review");
+  });
+
+  it("velum-prep only chain is cloud-consent-flow kind", () => {
+    const receipts = [makeVelumPrepReceipt({ createdAt: 1000 })];
+    const chains = buildReceiptChains(receipts);
+    expect(chains).toHaveLength(1);
+    expect(chains[0].kind).toBe("cloud-consent-flow");
+  });
+
+  it("velum-review only chain is cloud-consent-flow kind", () => {
+    const receipts = [makeVelumReviewReceipt({ createdAt: 1000 })];
+    const chains = buildReceiptChains(receipts);
+    expect(chains).toHaveLength(1);
+    expect(chains[0].kind).toBe("cloud-consent-flow");
+  });
+
+  it("velum steps + assessment + policy groups as cloud-consent-flow", () => {
+    const capId = "fabrica:fabrica.multi-file-build";
+    const receipts = [
+      makeVelumPrepReceipt({ createdAt: 1000, capabilityId: capId }),
+      makeVelumReviewReceipt({ createdAt: 1200, capabilityId: capId }),
+      makeAssessmentReceipt({ createdAt: 1400 }),
+      makePolicyReceipt({ createdAt: 1600 }),
+    ];
+    // Assessment and policy use escalationPacketId, so they may be in a separate chain.
+    // But velum steps with capabilityId will group together.
+    const chains = buildReceiptChains(receipts);
+    const velumChain = chains.find((c) => c.steps.some((s) => s.stepKind === "velum-prep"));
+    expect(velumChain).toBeDefined();
+    expect(velumChain!.kind).toBe("cloud-consent-flow");
+  });
+
+  it("velum-prep + velum-review + offer + consent all group via escalationPacketId", () => {
+    const pktId = "pkt-fab-1";
+    const capId = "fabrica:fabrica.multi-file-build";
+    // Give velum receipts an escalationPacketId to group with cloud flow
+    const prepReceipt = makeReceipt({
+      id: "vp-1",
+      createdAt: 1000,
+      module: "fabrica",
+      action: "velum-handoff.preparation",
+      title: "Velum prep",
+      summary: "Velum review prep recorded. Nothing sent.",
+      metadata: {
+        capabilityId: capId,
+        escalationPacketId: pktId,
+        velumReviewPassed: false,
+        nothingSentYet: true,
+        cloudUsed: false,
+      },
+    });
+    const reviewReceipt = makeReceipt({
+      id: "vr-1",
+      createdAt: 2000,
+      module: "fabrica",
+      action: "velum-review.completed",
+      title: "Velum review complete",
+      summary: "Velum review completed. Nothing sent.",
+      metadata: {
+        capabilityId: capId,
+        escalationPacketId: pktId,
+        velumReviewPassed: true,
+        nothingSentYet: true,
+        cloudUsed: false,
+      },
+    });
+    const receipts = [
+      prepReceipt,
+      reviewReceipt,
+      makeOfferReceipt({ createdAt: 3000, escalationPacketId: pktId }),
+      makeConsentReceipt({ createdAt: 4000, decision: "granted", escalationPacketId: pktId }),
+    ];
+
+    const chains = buildReceiptChains(receipts);
+    expect(chains).toHaveLength(1);
+    expect(chains[0].kind).toBe("cloud-consent-flow");
+    expect(chains[0].steps).toHaveLength(4);
+    expect(chains[0].steps[0].stepKind).toBe("velum-prep");
+    expect(chains[0].steps[1].stepKind).toBe("velum-review");
+    expect(chains[0].steps[2].stepKind).toBe("offer");
+    expect(chains[0].steps[3].stepKind).toBe("consent");
+  });
+
+  it("cloudUsed remains false for chains with Velum steps", () => {
+    const receipts = [
+      makeVelumPrepReceipt({ createdAt: 1000 }),
+      makeVelumReviewReceipt({ createdAt: 2000 }),
+    ];
+    const chains = buildReceiptChains(receipts);
+    expect(chains[0].cloudUsed).toBe(false);
+  });
+
+  it("nothingSentYet is true for chains with Velum steps", () => {
+    const receipts = [
+      makeVelumPrepReceipt({ createdAt: 1000 }),
+      makeVelumReviewReceipt({ createdAt: 2000 }),
+    ];
+    const chains = buildReceiptChains(receipts);
+    expect(chains[0].nothingSentYet).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Velum chain summaries
+// ---------------------------------------------------------------------------
+
+describe("summarizeReceiptChain — Velum summaries", () => {
+  it("prep-only summary says nothing was sent", () => {
+    const receipts = [makeVelumPrepReceipt({ createdAt: 1000 })];
+    const chains = buildReceiptChains(receipts);
+    expect(chains[0].summary).toContain("Velum review was prepared locally");
+    expect(chains[0].summary).toContain("Nothing was sent");
+  });
+
+  it("review-completed-only summary says consent may be offered next", () => {
+    const receipts = [makeVelumReviewReceipt({ createdAt: 1000 })];
+    const chains = buildReceiptChains(receipts);
+    expect(chains[0].summary).toContain("Velum review was marked complete locally");
+    expect(chains[0].summary).toMatch(/[Cc]onsent may be offered/);
+    expect(chains[0].summary).toContain("nothing was sent");
+  });
+
+  it("prep + review summary mentions gateway and Velum checks", () => {
+    const capId = "fabrica:fabrica.multi-file-build";
+    const receipts = [
+      makeVelumPrepReceipt({ createdAt: 1000, capabilityId: capId }),
+      makeVelumReviewReceipt({ createdAt: 1500, capabilityId: capId }),
+    ];
+    const chains = buildReceiptChains(receipts);
+    expect(chains[0].summary).toContain("Velum");
+    expect(chains[0].summary).not.toContain("cloud execution");
+  });
+
+  it("full flow with granted consent after Velum review says nothing was sent", () => {
+    const pktId = "pkt-fab-full";
+    const prepReceipt = makeReceipt({
+      id: "vp-full",
+      createdAt: 1000,
+      module: "fabrica",
+      action: "velum-handoff.preparation",
+      title: "Velum prep",
+      summary: "Prep recorded.",
+      metadata: {
+        escalationPacketId: pktId,
+        capabilityId: "fabrica:fabrica.multi-file-build",
+        velumReviewPassed: false,
+        nothingSentYet: true,
+        cloudUsed: false,
+      },
+    });
+    const reviewReceipt = makeReceipt({
+      id: "vr-full",
+      createdAt: 2000,
+      module: "fabrica",
+      action: "velum-review.completed",
+      title: "Velum review complete",
+      summary: "Review completed.",
+      metadata: {
+        escalationPacketId: pktId,
+        capabilityId: "fabrica:fabrica.multi-file-build",
+        velumReviewPassed: true,
+        nothingSentYet: true,
+        cloudUsed: false,
+      },
+    });
+    const receipts = [
+      prepReceipt,
+      reviewReceipt,
+      makeOfferReceipt({ createdAt: 3000, escalationPacketId: pktId }),
+      makeConsentReceipt({ createdAt: 4000, decision: "granted", escalationPacketId: pktId }),
+    ];
+
+    const chains = buildReceiptChains(receipts);
+    const fullChain = chains[0];
+    expect(fullChain.summary).toContain("Velum review completed");
+    expect(fullChain.summary).toContain("consent was granted");
+    expect(fullChain.summary).toContain("Nothing was sent");
+    expect(fullChain.cloudUsed).toBe(false);
+  });
+
+  it("summary does not imply cloud execution", () => {
+    const receipts = [
+      makeVelumPrepReceipt({ createdAt: 1000 }),
+      makeVelumReviewReceipt({ createdAt: 2000 }),
+    ];
+    const chains = buildReceiptChains(receipts);
+    expect(chains[0].summary).not.toMatch(/cloud was used/i);
+    expect(chains[0].summary).not.toMatch(/sent to cloud/i);
+    expect(chains[0].summary).not.toMatch(/cloud execution/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Velum step badges
+// ---------------------------------------------------------------------------
+
+describe("buildReceiptChains — Velum badges", () => {
+  it("velum-prep step has a badge view", () => {
+    const receipts = [makeVelumPrepReceipt({ createdAt: 1000 })];
+    const chains = buildReceiptChains(receipts);
+    const step = chains[0].steps[0];
+    expect(step.badgeView).toBeDefined();
+    expect(step.badgeView!.cloudUsed).toBe(false);
+    expect(step.badgeView!.label).toContain("Velum");
+  });
+
+  it("velum-review step has a badge view", () => {
+    const receipts = [makeVelumReviewReceipt({ createdAt: 1000 })];
+    const chains = buildReceiptChains(receipts);
+    const step = chains[0].steps[0];
+    expect(step.badgeView).toBeDefined();
+    expect(step.badgeView!.cloudUsed).toBe(false);
+    expect(step.badgeView!.label).toContain("Velum");
+  });
+
+  it("velum badges have local tone", () => {
+    const prepChains = buildReceiptChains([makeVelumPrepReceipt()]);
+    expect(prepChains[0].steps[0].badgeView!.tone).toBe("limited");
+
+    const reviewChains = buildReceiptChains([makeVelumReviewReceipt()]);
+    expect(reviewChains[0].steps[0].badgeView!.tone).toBe("local");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Velum chains — safety
+// ---------------------------------------------------------------------------
+
+describe("buildReceiptChains — Velum safety", () => {
+  it("forbidden content keys are absent from Velum chains", () => {
+    const receipts = [
+      makeVelumPrepReceipt({ createdAt: 1000 }),
+      makeVelumReviewReceipt({ createdAt: 2000 }),
+    ];
+    const chains = buildReceiptChains(receipts);
+    for (const chain of chains) {
+      expect(chainContainsForbiddenContentKeys(chain)).toBe(false);
+    }
+  });
+
+  it("source Velum receipts are not mutated", () => {
+    const receipts = [
+      makeVelumPrepReceipt({ createdAt: 1000 }),
+      makeVelumReviewReceipt({ createdAt: 2000 }),
+    ];
+    const snapshots = receipts.map((r) => JSON.stringify(r));
+    buildReceiptChains(receipts);
+    receipts.forEach((r, i) => {
+      expect(JSON.stringify(r)).toBe(snapshots[i]);
+    });
   });
 });

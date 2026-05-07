@@ -17,6 +17,7 @@ import { createCloudConsentDialogHandlers } from "@/lib/capabilities/cloudConsen
 import type { GuardedCloudPreflightResult } from "@/lib/capabilities/guardedCloudPreflight";
 import { runFabricaMultiFileBuildCloudPreflight } from "@/lib/fabrica/cloudPreflight";
 import { fabricaPreflightStatusCopy, fabricaConsentStatusCopy, type FabricaCloudPreflightStatusCopy } from "@/lib/fabrica/cloudPreflightStatus";
+import { recordFabricaVelumHandoffPreparedReceipt, recordFabricaVelumReviewCompletedReceipt } from "@/lib/fabrica/velumHandoff";
 import { markTourCompleted, readTourMode, restartTour as persistRestartTour } from "@/lib/firstRun";
 import { getTour } from "@/lib/tour";
 import type { LocalModelInfo } from "@/lib/providers/ollama";
@@ -61,6 +62,9 @@ export default function FabricaPage() {
   const [cloudStatusCopy, setCloudStatusCopy] = useState<FabricaCloudPreflightStatusCopy | null>(null);
   const [cloudPreflightResult, setCloudPreflightResult] = useState<GuardedCloudPreflightResult | null>(null);
   const [consentDialogOpen, setConsentDialogOpen] = useState(false);
+  const [velumHandoffPrepared, setVelumHandoffPrepared] = useState(false);
+  const [velumReviewPassed, setVelumReviewPassed] = useState(false);
+  const [velumReviewNotice, setVelumReviewNotice] = useState<string | null>(null);
   const tour = useMemo(() => getTour("fabrica")!, []);
   const singleFileRatio = useMemo(
     () => fabricaSingleFileSuggestionDecision(selectedModel),
@@ -255,13 +259,28 @@ export default function FabricaPage() {
     setSafetyReceipt(null);
   }
 
+  function handlePrepareVelumHandoff() {
+    recordFabricaVelumHandoffPreparedReceipt(window.localStorage);
+    setVelumHandoffPrepared(true);
+  }
+
+  function handleMarkVelumReviewPassed() {
+    recordFabricaVelumReviewCompletedReceipt(window.localStorage);
+    setVelumReviewPassed(true);
+    setVelumReviewNotice(
+      "Velum review marked complete locally. You can rerun preflight to offer cloud consent. Nothing has been sent.",
+    );
+  }
+
   function handleMultiFileBuildClick() {
     setCloudStatusCopy(null);
     setConsentDialogOpen(false);
     setCloudPreflightResult(null);
+    setVelumHandoffPrepared(false);
+    setVelumReviewNotice(null);
 
     const result = runFabricaMultiFileBuildCloudPreflight({
-      velumReviewPassed: false,
+      velumReviewPassed,
       recordReceipts: true,
       storage: window.localStorage,
     });
@@ -391,6 +410,42 @@ export default function FabricaPage() {
         {cloudStatusCopy && (
           <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-700/60 dark:bg-amber-900/20 dark:text-amber-100">
             <p>{cloudStatusCopy.message}</p>
+            {cloudPreflightResult?.blockedBy === "velum-required" && !velumHandoffPrepared && (
+              <button
+                type="button"
+                onClick={handlePrepareVelumHandoff}
+                className="mt-2 rounded-lg border border-iris-200 bg-white px-3 py-1.5 text-xs font-medium text-iris-700 shadow-sm hover:bg-iris-50 dark:border-iris-700/60 dark:bg-ink-900 dark:text-iris-100"
+              >
+                Review with Velum first
+              </button>
+            )}
+            {cloudPreflightResult?.blockedBy === "velum-required" && velumHandoffPrepared && (
+              <div className="mt-2">
+                <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                  Velum review preparation recorded. Nothing has been sent.
+                </p>
+                <Link
+                  href="/velum"
+                  className="mt-1 inline-block text-xs font-medium text-iris-600 underline decoration-dotted underline-offset-4 dark:text-iris-300"
+                >
+                  Open Velum
+                </Link>
+                {!velumReviewPassed && (
+                  <button
+                    type="button"
+                    onClick={handleMarkVelumReviewPassed}
+                    className="mt-2 block rounded-lg border border-emerald-200 bg-white px-3 py-1.5 text-xs font-medium text-emerald-700 shadow-sm hover:bg-emerald-50 dark:border-emerald-700/60 dark:bg-ink-900 dark:text-emerald-100"
+                  >
+                    I completed Velum review
+                  </button>
+                )}
+              </div>
+            )}
+            {velumReviewNotice && (
+              <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-300">
+                {velumReviewNotice}
+              </p>
+            )}
             <p className="mt-1 text-xs text-ink-500 dark:text-ink-400">
               {cloudStatusCopy.tabulariumHint}{" "}
               <Link href="/tabularium" className="font-medium text-iris-600 underline decoration-dotted underline-offset-4 dark:text-iris-300">

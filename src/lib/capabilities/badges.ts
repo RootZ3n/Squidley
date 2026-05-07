@@ -369,10 +369,67 @@ export function receiptToTransparencyBadgeView(
   if (isCloudEscalationOfferReceipt(receipt)) {
     return cloudEscalationReceiptToBadgeView(receipt);
   }
+  if (isVelumHandoffOrReviewReceipt(receipt)) {
+    return velumHandoffReceiptToBadgeView(receipt);
+  }
   if (isCapabilityDecisionReceipt(receipt)) {
     return capabilityReceiptMetadataToBadgeView(receipt!.metadata);
   }
   return null;
+}
+
+// ---------------------------------------------------------------------------
+// Velum handoff / review badge helpers
+// ---------------------------------------------------------------------------
+
+export function isVelumHandoffOrReviewReceipt(
+  receipt: Readonly<{
+    action?: string;
+    metadata?: Readonly<Record<string, string | number | boolean>> | null;
+  }> | null | undefined,
+): boolean {
+  if (!receipt) return false;
+  return (
+    receipt.action === "velum-handoff.preparation" ||
+    receipt.action === "velum-review.completed"
+  );
+}
+
+export function velumHandoffReceiptToBadgeView(
+  receipt: Readonly<{
+    action?: string;
+    metadata?: Readonly<Record<string, string | number | boolean>> | null;
+  }> | null | undefined,
+): CapabilityBadgeView | null {
+  if (!isVelumHandoffOrReviewReceipt(receipt)) return null;
+
+  const isReviewCompleted = receipt!.action === "velum-review.completed";
+  const meta = receipt!.metadata;
+  const velumReviewPassed = meta?.velumReviewPassed === true;
+
+  if (isReviewCompleted) {
+    return {
+      label: "Velum review complete",
+      tone: "local",
+      shortDescription: "Velum review was marked complete locally.",
+      detail: velumReviewPassed
+        ? "Velum review has been completed. Cloud consent may be offered next, but nothing has been sent."
+        : "Velum review completion was recorded. Nothing has been sent.",
+      cloudUsed: false,
+      localAttemptAllowed: true,
+      cloudAllowed: false,
+    };
+  }
+
+  return {
+    label: "Velum prep recorded",
+    tone: "limited",
+    shortDescription: "Velum review preparation was recorded locally.",
+    detail: "Velum review is required before cloud consent can be offered. Nothing has been sent.",
+    cloudUsed: false,
+    localAttemptAllowed: true,
+    cloudAllowed: false,
+  };
 }
 
 // ---------------------------------------------------------------------------
