@@ -96,7 +96,7 @@ function detailFor(
       return "Squidley can run this locally. Cloud could improve the result, but is not used unless you opt in.";
     case "CLOUD_REQUIRED":
       return cloudAllowed
-        ? "This needs a cloud capability. Cloud is allowed, but nothing has been sent yet from this decision."
+        ? "This needs a cloud capability. Consent was granted, but no cloud call was made by this decision."
         : "This needs a cloud capability before it can run. Nothing has been sent.";
     case "BLOCKED": {
       const trimmed = honestMessage?.trim();

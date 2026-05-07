@@ -76,7 +76,7 @@ export function fabricaConsentStatusCopy(
     case "granted":
       return {
         message:
-          "Cloud consent was recorded. Execution is not enabled yet, so nothing was sent.",
+          "Cloud consent was recorded. No cloud call was made — nothing was sent.",
         tabulariumHint: TABULARIUM_HINT,
         variant: "granted",
       };

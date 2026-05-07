@@ -208,8 +208,8 @@ describe("capabilityDecisionToBadgeView", () => {
     expect(view.tone).toBe("cloud-required");
     expect(view.cloudAllowed).toBe(true);
     expect(view.cloudUsed).toBe(false);
-    expect(view.detail.toLowerCase()).toContain("nothing has been sent");
-    expect(view.detail.toLowerCase()).toMatch(/cloud is allowed/);
+    expect(view.detail.toLowerCase()).toContain("no cloud call was made");
+    expect(view.detail.toLowerCase()).toMatch(/consent was granted/);
   });
 
   it("maps BLOCKED to blocked tone and prefers honestMessage as detail when available", () => {

@@ -73,9 +73,9 @@ describe("fabricaPreflightStatusCopy", () => {
 // ---------------------------------------------------------------------------
 
 describe("fabricaConsentStatusCopy", () => {
-  it("granted says execution is not enabled", () => {
+  it("granted says no cloud call was made", () => {
     const copy = fabricaConsentStatusCopy("granted");
-    expect(copy.message).toContain("Execution is not enabled yet");
+    expect(copy.message).toContain("No cloud call was made");
     expect(copy.message).toContain("nothing was sent");
     expect(copy.variant).toBe("granted");
   });
