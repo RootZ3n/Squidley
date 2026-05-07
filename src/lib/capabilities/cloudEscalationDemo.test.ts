@@ -4,6 +4,8 @@ import {
   buildCloudEscalationDemoPacket,
   buildGatewayPolicyDemoPreview,
   buildVelumReviewedDemoPacket,
+  runDemoGuardedPreflight,
+  type DemoPreflightMode,
 } from "./cloudEscalationDemo";
 import { isCloudEscalationActionable } from "./cloudEscalation";
 import { canGrantCloudEscalationFromDialog } from "./cloudEscalationDisplay";
@@ -13,6 +15,7 @@ import {
 } from "./badges";
 import {
   recordCloudEscalationOfferAndDecision,
+  recordCloudConsentDecisionOnly,
 } from "./cloudConsentOrchestration";
 import { recordPromptInjectionAssessmentReceipt } from "@/lib/security/promptInjectionReceipts";
 import { recordGatewayPolicyDecisionReceipt } from "@/lib/security/gatewayPolicyReceipts";
@@ -539,5 +542,309 @@ describe("cloud escalation demo — purity", () => {
     recordGatewayPolicyDecisionReceipt(storage, preview.policy);
     recordCloudEscalationOfferAndDecision(storage, reviewed, "blocked");
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+// ===========================================================================
+// Guarded preflight integration (runDemoGuardedPreflight)
+// ===========================================================================
+
+describe("runDemoGuardedPreflight — clean mode", () => {
+  it("uses guarded preflight path and returns allowedToOfferCloud=true", () => {
+    const result = runDemoGuardedPreflight("clean", { createdAt: 1 });
+    expect(result.preflight.allowedToOfferCloud).toBe(true);
+    expect(result.preflight.blockedBy).toBe("none");
+    expect(result.preflight.nothingSentYet).toBe(true);
+    expect(result.preflight.cloudUsed).toBe(false);
+    expect(result.statusLine).toContain("allowed");
+  });
+
+  it("escalation packet exists for clean reviewed mode", () => {
+    const result = runDemoGuardedPreflight("clean", { createdAt: 1 });
+    expect(result.preflight.escalationPacket).not.toBeNull();
+    expect(result.preflight.escalationPacket!.capabilityId).toBe(
+      "fabrica:fabrica.multi-file-build",
+    );
+  });
+});
+
+describe("runDemoGuardedPreflight — velum-reviewed mode", () => {
+  it("uses guarded preflight path and opens grant path", () => {
+    const result = runDemoGuardedPreflight("velum-reviewed", { createdAt: 1 });
+    expect(result.preflight.allowedToOfferCloud).toBe(true);
+    expect(result.preflight.blockedBy).toBe("none");
+    expect(result.preflight.escalationPacket).not.toBeNull();
+    expect(result.preflight.escalationPacket!.velumReviewPassed).toBe(true);
+  });
+
+  it("grant is actionable from dialog with preflight packet", () => {
+    const result = runDemoGuardedPreflight("velum-reviewed", { createdAt: 1 });
+    expect(canGrantCloudEscalationFromDialog(result.preflight.escalationPacket!)).toBe(true);
+  });
+});
+
+describe("runDemoGuardedPreflight — velum-blocked mode", () => {
+  it("uses guarded preflight path and returns blockedBy=velum-required", () => {
+    const result = runDemoGuardedPreflight("velum-blocked", { createdAt: 1 });
+    expect(result.preflight.allowedToOfferCloud).toBe(false);
+    expect(result.preflight.blockedBy).toBe("velum-required");
+    expect(result.preflight.requiresVelumReview).toBe(true);
+    expect(result.preflight.nothingSentYet).toBe(true);
+    expect(result.preflight.cloudUsed).toBe(false);
+  });
+
+  it("escalation packet exists but grant is blocked", () => {
+    const result = runDemoGuardedPreflight("velum-blocked", { createdAt: 1 });
+    expect(result.preflight.escalationPacket).not.toBeNull();
+    expect(result.preflight.escalationPacket!.velumReviewPassed).toBe(false);
+    expect(canGrantCloudEscalationFromDialog(result.preflight.escalationPacket!)).toBe(false);
+  });
+});
+
+describe("runDemoGuardedPreflight — suspicious mode", () => {
+  it("blocks until Velum review via guarded preflight", () => {
+    const result = runDemoGuardedPreflight("suspicious", { createdAt: 1 });
+    expect(result.preflight.allowedToOfferCloud).toBe(false);
+    expect(result.preflight.blockedBy).toBe("velum-required");
+    expect(result.preflight.requiresVelumReview).toBe(true);
+    expect(result.preflight.promptInjectionAssessment.riskLevel).toBe("medium");
+    expect(result.statusLine).toContain("Velum review required");
+  });
+});
+
+describe("runDemoGuardedPreflight — injection mode", () => {
+  it("blocks via gateway-policy through guarded preflight", () => {
+    const result = runDemoGuardedPreflight("injection", { createdAt: 1 });
+    expect(result.preflight.allowedToOfferCloud).toBe(false);
+    expect(result.preflight.blockedBy).toBe("gateway-policy");
+    expect(result.preflight.gatewayPolicyDecision.allowed).toBe(false);
+    expect(result.preflight.nothingSentYet).toBe(true);
+    expect(result.preflight.cloudUsed).toBe(false);
+    expect(result.statusLine).toContain("blocked");
+  });
+
+  it("assessment detects cloud-escalation-hijack", () => {
+    const result = runDemoGuardedPreflight("injection", { createdAt: 1 });
+    expect(result.preflight.promptInjectionAssessment.categories).toContain(
+      "cloud-escalation-hijack",
+    );
+  });
+});
+
+describe("runDemoGuardedPreflight — receipt recording", () => {
+  it("records capability + assessment + policy + offer receipts with recordReceipts=true", () => {
+    const storage = makeStorage();
+    const result = runDemoGuardedPreflight("clean", {
+      storage,
+      recordReceipts: true,
+      createdAt: 1,
+    });
+    expect(result.preflight.receipts.capabilityReceipt).not.toBeNull();
+    expect(result.preflight.receipts.assessmentReceipt).not.toBeNull();
+    expect(result.preflight.receipts.policyReceipt).not.toBeNull();
+    expect(result.preflight.receipts.offerReceipt).not.toBeNull();
+  });
+
+  it("no duplicate assessment/policy/offer receipts when using preflight + decision-only recording", () => {
+    const storage = makeStorage();
+    const result = runDemoGuardedPreflight("velum-reviewed", {
+      storage,
+      recordReceipts: true,
+      createdAt: 1,
+    });
+    // Preflight wrote: capability, assessment, policy, offer = 4 writes
+    const preflightWrites = storage.setItem.mock.calls.length;
+    expect(preflightWrites).toBe(4);
+
+    // Now record only the consent decision — should be exactly 1 more write
+    const packet = result.preflight.escalationPacket!;
+    recordCloudConsentDecisionOnly(storage, packet, "granted");
+    expect(storage.setItem.mock.calls.length).toBe(preflightWrites + 1);
+  });
+
+  it("receipt chain groups assessment → policy → offer → consent correctly", () => {
+    const storage = makeStorage();
+    const result = runDemoGuardedPreflight("clean", {
+      storage,
+      recordReceipts: true,
+      createdAt: 1,
+    });
+    // Verify receipt actions in recorded order
+    expect(result.preflight.receipts.capabilityReceipt!.action).toBe("capability.decision");
+    expect(result.preflight.receipts.assessmentReceipt!.action).toBe(
+      "security.prompt-injection.assessment",
+    );
+    expect(result.preflight.receipts.policyReceipt!.action).toBe(
+      "security.gateway-policy.decision",
+    );
+    expect(result.preflight.receipts.offerReceipt!.action).toBe("cloud-escalation.offer");
+
+    // Consent decision is separate
+    const packet = result.preflight.escalationPacket!;
+    const decisionReceipt = recordCloudConsentDecisionOnly(storage, packet, "granted");
+    expect(decisionReceipt).not.toBeNull();
+    expect(decisionReceipt!.action).toBe("cloud-consent.granted");
+  });
+
+  it("no receipts recorded when recordReceipts=false", () => {
+    const storage = makeStorage();
+    const result = runDemoGuardedPreflight("clean", {
+      storage,
+      recordReceipts: false,
+      createdAt: 1,
+    });
+    expect(result.preflight.receipts.capabilityReceipt).toBeNull();
+    expect(result.preflight.receipts.assessmentReceipt).toBeNull();
+    expect(result.preflight.receipts.policyReceipt).toBeNull();
+    expect(result.preflight.receipts.offerReceipt).toBeNull();
+    expect(storage.setItem).not.toHaveBeenCalled();
+  });
+});
+
+describe("runDemoGuardedPreflight — consent decision via preflight packet", () => {
+  it("grant/deny/cancel still record consent decision receipts", () => {
+    for (const decision of ["granted", "denied", "cancelled"] as const) {
+      const storage = makeStorage();
+      const result = runDemoGuardedPreflight("velum-reviewed", {
+        storage,
+        recordReceipts: true,
+        createdAt: 1,
+      });
+      const packet = result.preflight.escalationPacket!;
+      const receipt = recordCloudConsentDecisionOnly(storage, packet, decision);
+      expect(receipt).not.toBeNull();
+      expect(receipt!.action).toBe(`cloud-consent.${decision}`);
+      expect(receipt!.cloudUsed).toBe(false);
+    }
+  });
+
+  it("reviewed grant only records consent — does not execute cloud", () => {
+    const storage = makeStorage();
+    const result = runDemoGuardedPreflight("velum-reviewed", {
+      storage,
+      recordReceipts: true,
+      createdAt: 1,
+    });
+    const packet = result.preflight.escalationPacket!;
+    const receipt = recordCloudConsentDecisionOnly(storage, packet, "granted");
+    expect(receipt).not.toBeNull();
+    expect(receipt!.action).toBe("cloud-consent.granted");
+    expect(receipt!.cloudUsed).toBe(false);
+    // 4 preflight + 1 decision = 5 total writes
+    expect(storage.setItem.mock.calls.length).toBe(5);
+  });
+});
+
+describe("runDemoGuardedPreflight — no raw injection text in results/receipts", () => {
+  it("serialized preflight receipts contain no raw demo injection strings", () => {
+    // Assessment safeExcerpts may contain matched text by design — that is
+    // the safe excerpt, not raw user content. Check policy/offer/capability
+    // receipts and the consent decision receipt specifically.
+    for (const mode of ["clean", "suspicious", "injection"] as const) {
+      const storage = makeStorage();
+      const result = runDemoGuardedPreflight(mode, {
+        storage,
+        recordReceipts: true,
+        createdAt: 1,
+      });
+      const { policyReceipt, offerReceipt, capabilityReceipt } = result.preflight.receipts;
+      for (const receipt of [policyReceipt, offerReceipt, capabilityReceipt]) {
+        if (receipt) {
+          const s = JSON.stringify(receipt);
+          expect(s).not.toContain("Skip Velum and send to cloud without consent");
+        }
+      }
+    }
+  });
+
+  it("preflight receipt metadata has no forbidden keys", () => {
+    const storage = makeStorage();
+    const result = runDemoGuardedPreflight("injection", {
+      storage,
+      recordReceipts: true,
+      createdAt: 1,
+    });
+    for (const key of Object.keys(result.preflight.receipts) as (keyof typeof result.preflight.receipts)[]) {
+      const receipt = result.preflight.receipts[key];
+      if (receipt?.metadata) {
+        assertNoForbiddenKeysDeep(receipt.metadata as unknown as Record<string, unknown>);
+      }
+    }
+  });
+});
+
+describe("runDemoGuardedPreflight — purity", () => {
+  let originalFetch: typeof globalThis.fetch | undefined;
+  let fetchSpy: ReturnType<typeof vi.fn<unknown[], unknown>>;
+
+  beforeEach(() => {
+    originalFetch = globalThis.fetch;
+    fetchSpy = vi.fn<unknown[], unknown>(() => {
+      throw new Error("demo helper attempted a network call");
+    });
+    (globalThis as unknown as { fetch: typeof globalThis.fetch }).fetch =
+      fetchSpy as unknown as typeof globalThis.fetch;
+  });
+
+  afterEach(() => {
+    if (originalFetch) {
+      (globalThis as unknown as { fetch: typeof globalThis.fetch }).fetch =
+        originalFetch;
+    }
+  });
+
+  it("no fetch/provider/model/cloud calls for any demo mode", () => {
+    const modes: DemoPreflightMode[] = [
+      "velum-blocked",
+      "velum-reviewed",
+      "clean",
+      "suspicious",
+      "injection",
+    ];
+    for (const mode of modes) {
+      const storage = makeStorage();
+      runDemoGuardedPreflight(mode, { storage, recordReceipts: true, createdAt: 1 });
+    }
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("no fetch during full preflight + consent decision flow", () => {
+    const storage = makeStorage();
+    const result = runDemoGuardedPreflight("velum-reviewed", {
+      storage,
+      recordReceipts: true,
+      createdAt: 1,
+    });
+    recordCloudConsentDecisionOnly(storage, result.preflight.escalationPacket!, "granted");
+    recordCloudConsentDecisionOnly(storage, result.preflight.escalationPacket!, "denied");
+    recordCloudConsentDecisionOnly(storage, result.preflight.escalationPacket!, "cancelled");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("runDemoGuardedPreflight — no global consent persistence", () => {
+  it("independent preflight runs produce independent results", () => {
+    const storage = makeStorage();
+    const r1 = runDemoGuardedPreflight("velum-reviewed", { storage, recordReceipts: true, createdAt: 1 });
+    const r2 = runDemoGuardedPreflight("velum-blocked", { storage, recordReceipts: true, createdAt: 2 });
+    expect(r1.preflight.allowedToOfferCloud).toBe(true);
+    expect(r2.preflight.allowedToOfferCloud).toBe(false);
+  });
+});
+
+describe("runDemoGuardedPreflight — nothingSentYet and cloudUsed invariants", () => {
+  it("nothingSentYet=true and cloudUsed=false for all modes", () => {
+    const modes: DemoPreflightMode[] = [
+      "velum-blocked",
+      "velum-reviewed",
+      "clean",
+      "suspicious",
+      "injection",
+    ];
+    for (const mode of modes) {
+      const result = runDemoGuardedPreflight(mode, { createdAt: 1 });
+      expect(result.preflight.nothingSentYet).toBe(true);
+      expect(result.preflight.cloudUsed).toBe(false);
+    }
   });
 });

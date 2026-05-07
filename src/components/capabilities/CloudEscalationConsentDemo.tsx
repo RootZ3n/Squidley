@@ -3,6 +3,7 @@
  *
  * Exercises the consent dialog, receipt orchestration, and gateway policy
  * end-to-end using a real registered capability, without making cloud calls.
+ * Uses runGuardedCloudEscalationPreflight as the canonical preflight path.
  * Granting consent here only records a local decision receipt in Tabularium.
  *
  * No fetch. No provider calls. No cloud calls. No global consent state.
@@ -10,114 +11,138 @@
 
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { CloudEscalationConsentDialog } from "./CloudEscalationConsentDialog";
 import {
-  buildBlockedVelumDemoPacket,
-  buildGatewayPolicyDemoPreview,
-  buildVelumReviewedDemoPacket,
+  runDemoGuardedPreflight,
   GATEWAY_POLICY_DEMO_LABELS,
+  type DemoPreflightMode,
+  type DemoPreflightResult,
   type GatewayPolicyDemoMode,
-  type GatewayPolicyDemoPreview,
 } from "@/lib/capabilities/cloudEscalationDemo";
 import {
-  recordCloudEscalationOfferAndDecision,
-  type CloudConsentOrchestrationResult,
+  recordCloudConsentDecisionOnly,
 } from "@/lib/capabilities/cloudConsentOrchestration";
-import { recordPromptInjectionAssessmentReceipt } from "@/lib/security/promptInjectionReceipts";
-import { recordGatewayPolicyDecisionReceipt } from "@/lib/security/gatewayPolicyReceipts";
+import type { CloudConsentDecision } from "@/lib/capabilities/cloudConsentReceipts";
 
-type VelumMode = "blocked" | "reviewed";
+interface DemoLastResult {
+  decision: string;
+  offerRecorded: boolean;
+  decisionRecorded: boolean;
+  nothingSentYet: true;
+  errors: string[];
+}
 
 export function CloudEscalationConsentDemo() {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [velumMode, setVelumMode] = useState<VelumMode>("blocked");
-  const [gatewayPreview, setGatewayPreview] = useState<GatewayPolicyDemoPreview | null>(null);
-  const [lastResult, setLastResult] = useState<CloudConsentOrchestrationResult | null>(null);
+  const [currentPreflight, setCurrentPreflight] = useState<DemoPreflightResult | null>(null);
+  const [lastResult, setLastResult] = useState<DemoLastResult | null>(null);
 
-  const blockedPacket = useMemo(() => buildBlockedVelumDemoPacket(), []);
-  const reviewedPacket = useMemo(() => buildVelumReviewedDemoPacket(), []);
-  const activePacket = velumMode === "reviewed" ? reviewedPacket : blockedPacket;
+  const activePacket = currentPreflight?.preflight.escalationPacket ?? null;
 
-  const openVelumDialog = useCallback((m: VelumMode) => {
-    setVelumMode(m);
-    setGatewayPreview(null);
+  const recordDecision = useCallback(
+    (decision: CloudConsentDecision) => {
+      if (!activePacket) return;
+      try {
+        const receipt = recordCloudConsentDecisionOnly(
+          window.localStorage,
+          activePacket,
+          decision,
+        );
+        setLastResult({
+          decision,
+          offerRecorded: currentPreflight?.preflight.receipts.offerReceipt !== null ?? false,
+          decisionRecorded: receipt !== null,
+          nothingSentYet: true,
+          errors: receipt ? [] : ["Decision receipt write returned null."],
+        });
+      } catch {
+        // Grant threw (e.g. Velum not passed) — record blocked instead.
+        try {
+          const receipt = recordCloudConsentDecisionOnly(
+            window.localStorage,
+            activePacket,
+            "blocked",
+          );
+          setLastResult({
+            decision: "blocked",
+            offerRecorded: currentPreflight?.preflight.receipts.offerReceipt !== null ?? false,
+            decisionRecorded: receipt !== null,
+            nothingSentYet: true,
+            errors: [],
+          });
+        } catch {
+          setLastResult({
+            decision: "blocked",
+            offerRecorded: currentPreflight?.preflight.receipts.offerReceipt !== null ?? false,
+            decisionRecorded: false,
+            nothingSentYet: true,
+            errors: ["Decision receipt failed."],
+          });
+        }
+      }
+      setDialogOpen(false);
+    },
+    [activePacket, currentPreflight],
+  );
+
+  // Velum preview: run preflight, always open dialog to demo the state.
+  const openVelumPreview = useCallback((blocked: boolean) => {
+    const mode: DemoPreflightMode = blocked ? "velum-blocked" : "velum-reviewed";
+    const result = runDemoGuardedPreflight(mode, {
+      storage: window.localStorage,
+      recordReceipts: true,
+    });
+    setCurrentPreflight(result);
     setLastResult(null);
     setDialogOpen(true);
   }, []);
 
-  const openGatewayDialog = useCallback((mode: GatewayPolicyDemoMode) => {
-    const preview = buildGatewayPolicyDemoPreview(mode, {
-      velumReviewPassed: true,
+  // Gateway preview: run preflight, open dialog only if allowed.
+  const openGatewayPreview = useCallback((gatewayMode: GatewayPolicyDemoMode) => {
+    const result = runDemoGuardedPreflight(gatewayMode, {
+      storage: window.localStorage,
+      recordReceipts: true,
     });
-    setGatewayPreview(preview);
+    setCurrentPreflight(result);
 
-    // Record prompt-injection assessment receipt, then policy decision receipt.
-    recordPromptInjectionAssessmentReceipt(
-      window.localStorage,
-      preview.assessment,
-    );
-    recordGatewayPolicyDecisionReceipt(
-      window.localStorage,
-      preview.policy,
-    );
-
-    if (!preview.policy.allowed) {
-      // Policy blocks: record blocked immediately, do not open dialog.
-      const packet = buildVelumReviewedDemoPacket();
-      const result = recordCloudEscalationOfferAndDecision(
-        window.localStorage,
-        packet,
-        "blocked",
-      );
-      setLastResult(result);
-      setDialogOpen(false);
-    } else {
-      // Policy allows: open dialog with Velum-reviewed packet.
-      setVelumMode("reviewed");
+    if (result.preflight.allowedToOfferCloud) {
       setLastResult(null);
       setDialogOpen(true);
+    } else {
+      // Policy blocks: record blocked decision, do not open dialog.
+      const packet = result.preflight.escalationPacket;
+      if (packet) {
+        try {
+          const receipt = recordCloudConsentDecisionOnly(
+            window.localStorage,
+            packet,
+            "blocked",
+          );
+          setLastResult({
+            decision: "blocked",
+            offerRecorded: result.preflight.receipts.offerReceipt !== null,
+            decisionRecorded: receipt !== null,
+            nothingSentYet: true,
+            errors: receipt ? [] : ["Decision receipt write returned null."],
+          });
+        } catch {
+          setLastResult({
+            decision: "blocked",
+            offerRecorded: result.preflight.receipts.offerReceipt !== null,
+            decisionRecorded: false,
+            nothingSentYet: true,
+            errors: ["Decision receipt failed."],
+          });
+        }
+      }
+      setDialogOpen(false);
     }
   }, []);
 
-  const handleGrant = useCallback(() => {
-    try {
-      const result = recordCloudEscalationOfferAndDecision(
-        window.localStorage,
-        activePacket,
-        "granted",
-      );
-      setLastResult(result);
-    } catch {
-      const result = recordCloudEscalationOfferAndDecision(
-        window.localStorage,
-        activePacket,
-        "blocked",
-      );
-      setLastResult(result);
-    }
-    setDialogOpen(false);
-  }, [activePacket]);
-
-  const handleDeny = useCallback(() => {
-    const result = recordCloudEscalationOfferAndDecision(
-      window.localStorage,
-      activePacket,
-      "denied",
-    );
-    setLastResult(result);
-    setDialogOpen(false);
-  }, [activePacket]);
-
-  const handleClose = useCallback(() => {
-    const result = recordCloudEscalationOfferAndDecision(
-      window.localStorage,
-      activePacket,
-      "cancelled",
-    );
-    setLastResult(result);
-    setDialogOpen(false);
-  }, [activePacket]);
+  const handleGrant = useCallback(() => recordDecision("granted"), [recordDecision]);
+  const handleDeny = useCallback(() => recordDecision("denied"), [recordDecision]);
+  const handleClose = useCallback(() => recordDecision("cancelled"), [recordDecision]);
 
   return (
     <div className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
@@ -134,14 +159,14 @@ export function CloudEscalationConsentDemo() {
         <div className="mt-1.5 flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => openVelumDialog("blocked")}
+            onClick={() => openVelumPreview(true)}
             className="rounded-lg border border-iris-200 bg-white px-3 py-2 text-sm font-medium text-iris-700 hover:bg-iris-50 dark:border-iris-700/60 dark:bg-ink-900 dark:text-iris-100"
           >
             Preview blocked by Velum
           </button>
           <button
             type="button"
-            onClick={() => openVelumDialog("reviewed")}
+            onClick={() => openVelumPreview(false)}
             className="rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700/60 dark:bg-ink-900 dark:text-emerald-100"
           >
             Preview after Velum review
@@ -156,7 +181,7 @@ export function CloudEscalationConsentDemo() {
             <button
               key={mode}
               type="button"
-              onClick={() => openGatewayDialog(mode)}
+              onClick={() => openGatewayPreview(mode)}
               className={`rounded-lg border px-3 py-2 text-sm font-medium ${
                 mode === "clean"
                   ? "border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700/60 dark:bg-ink-900 dark:text-emerald-100"
@@ -171,15 +196,15 @@ export function CloudEscalationConsentDemo() {
         </div>
       </div>
 
-      {gatewayPreview && (
+      {currentPreflight && !dialogOpen && currentPreflight.mode !== "velum-blocked" && currentPreflight.mode !== "velum-reviewed" && (
         <p className={`mt-3 rounded-lg px-3 py-2 text-xs font-medium ${
-          gatewayPreview.policy.allowed
+          currentPreflight.preflight.allowedToOfferCloud
             ? "border border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-700/60 dark:bg-emerald-900/20 dark:text-emerald-100"
-            : gatewayPreview.policy.blockedBy === "velum-required"
+            : currentPreflight.preflight.blockedBy === "velum-required"
               ? "border border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-700/60 dark:bg-amber-900/20 dark:text-amber-100"
               : "border border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-700/60 dark:bg-rose-900/20 dark:text-rose-100"
         }`}>
-          {gatewayPreview.statusLine}
+          {currentPreflight.statusLine}
         </p>
       )}
 
@@ -202,13 +227,15 @@ export function CloudEscalationConsentDemo() {
         </div>
       )}
 
-      <CloudEscalationConsentDialog
-        packet={activePacket}
-        open={dialogOpen}
-        onGrant={handleGrant}
-        onDeny={handleDeny}
-        onClose={handleClose}
-      />
+      {activePacket && (
+        <CloudEscalationConsentDialog
+          packet={activePacket}
+          open={dialogOpen}
+          onGrant={handleGrant}
+          onDeny={handleDeny}
+          onClose={handleClose}
+        />
+      )}
     </div>
   );
 }
