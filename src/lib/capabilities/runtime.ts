@@ -285,7 +285,7 @@ export function decideCapabilityRuntime(
         honestMessage:
           capability.honestMessages.localLimited ??
           capability.honestMessages.cloudOptional ??
-          "Local path will run; cloud could improve quality but is not used unless you opt in. Nothing has been sent.",
+          "Local path will run; cloud could improve quality but is not used unless you opt in. No cloud call was made.",
         reasons,
       });
     }
@@ -302,7 +302,7 @@ export function decideCapabilityRuntime(
         requiresVelumReview: capability.velumGated,
         honestMessage:
           capability.honestMessages.cloudOptional ??
-          "No local path is available. Cloud could run this but requires explicit consent. Nothing has been sent.",
+          "No local path is available. Cloud could run this but requires explicit consent and review. No cloud call was made.",
         reasons,
       });
     }
@@ -342,7 +342,7 @@ export function decideCapabilityRuntime(
       requiresVelumReview: capability.velumGated,
       honestMessage:
         capability.honestMessages.cloudRequired ??
-        "This capability requires a cloud provider that is not available locally. Nothing has been sent.",
+        "This capability requires a cloud provider that is not available locally. No cloud call was made.",
       reasons,
       escalationReason: reasons.length ? reasons.join(" ") : undefined,
     });

@@ -17,6 +17,7 @@ const config: LocalProviderConfig = {
   providerId: "local",
   endpoint: "http://local-only.test:11434",
   model: "llama3.2",
+  backendType: "ollama",
   cloudUsed: false,
   toolsUsed: false,
 };
@@ -54,7 +55,7 @@ describe("public release safety contract", () => {
 
   it("requires an explicit future unlock before any cloud provider can become default-active", () => {
     expect(cloudProvidersAreLockedByDefault()).toBe(true);
-    expect(getActiveProviders().map((provider) => provider.id)).toEqual(["ollama"]);
+    expect(getActiveProviders().map((provider) => provider.id)).toEqual(["ollama", "llama-cpp"]);
     for (const provider of PROVIDER_REGISTRY.filter((item) => item.type !== "local")) {
       expect(provider.enabledByDefault).toBe(false);
       expect(provider.cloudUnlockRequired).toBe(true);
@@ -78,7 +79,9 @@ describe("public release safety contract", () => {
     });
 
     const sent = JSON.parse(fetchImpl.mock.calls[0][1].body);
-    expect(sent.messages).toHaveLength(3);
+    expect(sent.messages).toHaveLength(4);
+    expect(sent.messages[0]).toMatchObject({ role: "system" });
+    expect(sent.messages[0].content).toMatch(/Public local-only mode/);
     expect(sent).not.toHaveProperty("tools");
     expect(sent).not.toHaveProperty("tool_choice");
     expect(sent).not.toHaveProperty("functions");
@@ -126,11 +129,11 @@ describe("public release safety contract", () => {
   });
 
   it("gives beginners copy-pasteable Ollama guidance when models are missing", async () => {
-    const fetchImpl = vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse({ models: [] }));
+    const fetchImpl = vi.spyOn(globalThis, "fetch").mockImplementation(async () => jsonResponse({ models: [] }));
     const response = await localModels();
     const body = await response.json();
 
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(fetchImpl).toHaveBeenCalled();
     expect(body.ok).toBe(true);
     expect(body.empty).toBe(true);
     expect(body.reason).toMatch(/ollama pull/i);
@@ -142,7 +145,7 @@ describe("public release safety contract", () => {
       refreshInProgress: false,
       streamingInProgress: false,
     });
-    expect(readiness.message).toMatch(/ollama pull/i);
+    expect(readiness.message).toMatch(/ollama|llama-server/i);
   });
 
   it("keeps malformed Archivum imports from replacing local entries", () => {
@@ -183,18 +186,21 @@ describe("public release safety contract", () => {
   });
 
   it("keeps Oculus local, refuses non-vision models clearly, and saves only analysis text", async () => {
-    const fetchImpl = vi.spyOn(globalThis, "fetch");
+    const fetchImpl = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+      jsonResponse({ message: { content: "A local screenshot analysis." } }),
+    );
     const rejected = await oculusAnalyze(new Request("http://test/api/oculus/analyze", {
       method: "POST",
       body: JSON.stringify({ imageBase64: "iVBORw0KGgo=", model: "llama3.2" }),
     }));
     const rejectedBody = await rejected.json();
-    expect(fetchImpl).not.toHaveBeenCalled();
+    // Detection probes may call fetch, but no POST model call should be made
+    const modelCalls = fetchImpl.mock.calls.filter(c => (c[1] as RequestInit | undefined)?.method === "POST");
+    expect(modelCalls).toHaveLength(0);
     expect(rejected.status).toBe(400);
     expect(rejectedBody.error.message).toMatch(/vision-capable local model/i);
     expect(rejectedBody.cloudUsed).toBe(false);
 
-    fetchImpl.mockResolvedValueOnce(jsonResponse({ message: { content: "A local screenshot analysis." } }));
     const accepted = await oculusAnalyze(new Request("http://test/api/oculus/analyze", {
       method: "POST",
       body: JSON.stringify({ imageBase64: "iVBORw0KGgo=", model: "qwen3-vl:4b" }),
@@ -257,5 +263,42 @@ describe("public release safety contract", () => {
     expect(oculus).toContain("Selected preview");
     expect(oculus).toContain("Analyze image locally");
     expect(oculus).toContain("Save analysis to Archivum");
+  });
+
+  it("keeps release copy honest about local backends and cloud consent", () => {
+    const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
+    const readme = read("README.md");
+    const setup = read("docs/LOCAL_MODEL_SETUP.md");
+    const localChat = read("docs/LOCAL_CHAT.md");
+    const matrix = read("docs/LOCAL_MODEL_CAPABILITY_MATRIX.md");
+    const checklist = read("docs/PUBLIC_LOCAL_RELEASE_CHECKLIST.md");
+    const nous = read("docs/NOUS_PUBLIC.md");
+    const buildPlan = read("docs/PUBLIC_BUILD_PLAN.md");
+    const settings = read("src/app/settings/page.tsx");
+    const colloquium = read("src/app/colloquium/ColloquiumClient.tsx");
+    const providerSetup = read("src/lib/providers/setup.ts");
+
+    expect(readme).toContain("Ollama is validated end-to-end");
+    expect(setup).toContain("`llama-server` binary still needs manual validation");
+    expect(setup).toContain("has not yet been validated");
+    expect(localChat).toContain("There is no cloud provider behind these chat routes");
+    expect(localChat).not.toContain("There is no other provider in the codebase");
+    expect(matrix).toContain("Real `llama-server` binary was not available");
+    expect(checklist).toContain("Full `llama-server` support is validated");
+    expect(checklist).toContain("Public Squidley does not use cloud providers without explicit consent");
+    expect(nous).toContain("Ollama is the validated default local provider");
+    expect(nous).toMatch(/real\s+`llama-server` binary still needs manual validation/);
+    expect(nous).not.toContain("Ollama is the only active default provider");
+    expect(buildPlan).toContain("real `llama-server` binary validation still pending");
+    expect(settings).toContain("OpenAI-compatible local backend (llama.cpp)");
+    expect(settings).toContain("Narrow local smoke only, not a benchmark or proof of safety.");
+    expect(settings).toContain("does not prove safety or general intelligence");
+    expect(settings).not.toContain("replySnippet");
+    expect(settings).not.toContain("prompt:");
+    expect(colloquium).toContain("llama-server support is pending real binary validation");
+    expect(colloquium).toContain("Cloud models would require an explicit future unlock and clear review first");
+    expect(providerSetup).toContain("real llama-server binary validation is still pending");
+    expect(providerSetup).toContain("npm run smoke:llama-server");
+    expect(`${readme}\n${setup}\n${matrix}`).not.toMatch(/works with llama-server using OpenAI-compatible API/);
   });
 });

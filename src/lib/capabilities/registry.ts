@@ -7,6 +7,13 @@
  * intentionally NOT derived from module fields, so a reviewer can audit each
  * row independently.
  *
+ * Provider ID note:
+ *   localRequirements use providerId "ollama" to mean "local model server".
+ *   Ollama is validated end-to-end. llama.cpp text support uses the
+ *   OpenAI-compatible local backend and still needs real llama-server binary
+ *   validation. The actual backend is distinguished by
+ *   LocalProviderConfig.backendType.
+ *
  * The runtime decision engine is out of scope here. This file only declares
  * contracts and the data behind them.
  */
@@ -36,7 +43,7 @@ export const CAPABILITIES: readonly Capability[] = [
     ],
     cloudRequirements: [],
     honestMessages: {
-      localReady: "Local chat is ready when an Ollama chat model is installed.",
+      localReady: "Local chat is ready when an Ollama chat model is installed, or when an OpenAI-compatible local text backend is configured. Real llama-server binary validation is still pending.",
       localLimited: "If only a small chat model is installed, replies may be brief or shallow.",
     },
     receiptActions: ["colloquium.local-chat"],

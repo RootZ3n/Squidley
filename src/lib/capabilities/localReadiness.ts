@@ -2,12 +2,22 @@
  * Local model capability readiness mapping.
  *
  * Pure, deterministic helpers that turn discovered local model information
- * (from Ollama /api/tags or equivalent) into AvailableProfile-style capability
- * profiles the capability runtime resolver can use.
+ * (from Ollama /api/tags or llama-server /v1/models) into AvailableProfile-
+ * style capability profiles the capability runtime resolver can use.
  *
  * This is heuristic local-readiness classification, not a benchmark or
  * guarantee. Beginner-facing copy should say "likely supports" or "available
  * locally," not "guaranteed excellent."
+ *
+ * Provider ID design note:
+ *   Both Ollama and llama-server models default to providerId "ollama" in
+ *   capability profiles. This is intentional: the capability registry uses
+ *   providerId "ollama" to mean "any local model server," and the Ratio
+ *   system, module registry, and receipt builders all depend on this value.
+ *   The actual backend type (Ollama vs llama-server) is tracked separately
+ *   via LocalProviderConfig.backendType and surfaced in health responses
+ *   and stream metadata. A future cleanup could introduce a
+ *   providerClass: "local" abstraction to make this distinction cleaner.
  *
  * Hard constraints:
  *   - No fetch. No provider calls. No cloud calls. No localStorage writes.
@@ -26,7 +36,9 @@ import type { AvailableProfile, CapabilityRuntimeInput } from "./runtime";
  */
 export interface LocalModelSnapshot {
   name: string;
-  /** Provider id. Defaults to "ollama" when omitted. */
+  /** Provider id. Defaults to "ollama" when omitted. Both Ollama and
+   *  llama-server models use "ollama" as the capability provider id,
+   *  since "ollama" in the capability registry means "any local model server." */
   providerId?: string;
   /** Model parameter count in billions, if known. */
   paramsB?: number;
@@ -67,6 +79,7 @@ const CODE_PATTERNS = [
   "codegemma",
   "starcoder",
   "codestral",
+  "qwen3-coder",
   "qwen2.5-coder",
   "qwen-coder",
   "codeqwen",

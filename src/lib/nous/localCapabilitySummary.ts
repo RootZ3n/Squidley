@@ -63,7 +63,7 @@ export function summarizeLocalCapabilities(
   const lines: string[] = [];
 
   if (models.length === 0) {
-    lines.push("No local models detected. Install a model with Ollama to get started.");
+    lines.push("No local models detected. Install a model with Ollama (ollama pull llama3.2) or start llama-server with a GGUF model file.");
   } else {
     lines.push(
       hasChat

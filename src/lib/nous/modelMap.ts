@@ -57,7 +57,7 @@ export function buildNousModuleMap(args: {
         cloudUnlockRequired: false,
         currentStatus: "active",
         explanation:
-          "Colloquium chats through your configured Ollama-compatible local model server. No cloud fallback is active.",
+          "Colloquium chats through your configured local model server. Ollama is validated end-to-end; llama.cpp text support uses an OpenAI-compatible local backend pending real llama-server binary validation. No cloud fallback is active.",
       } satisfies NousModuleCapability;
     }
 

@@ -55,7 +55,7 @@ const LOCAL_PROFILES: readonly PartialProfile[] = [
   },
 ];
 
-const CLOUD_PREPARED: Record<Exclude<ProviderId, "ollama">, RatioModelCapabilityProfile> = {
+const CLOUD_PREPARED: Record<Exclude<ProviderId, "ollama" | "llama-cpp">, RatioModelCapabilityProfile> = {
   openrouter: preparedCloud("openrouter", "aggregator", "OpenRouter is prepared as a future aggregator. Capability depends on the selected cloud model and remains locked now."),
   openai: preparedCloud("openai", "cloud", "OpenAI is prepared as a future cloud provider. Strong models may unlock advanced planning later, after explicit setup."),
   anthropic: preparedCloud("anthropic", "cloud", "Anthropic is prepared as a future cloud provider. Strong models may unlock advanced planning later, after explicit setup."),
@@ -69,7 +69,7 @@ export function resolveRatioModelCapability(args: {
   moduleId?: string;
 }): RatioModelCapabilityProfile {
   const modelId = args.modelId?.trim() || "unknown";
-  if (args.providerId !== "ollama") return CLOUD_PREPARED[args.providerId];
+  if (args.providerId !== "ollama" && args.providerId !== "llama-cpp") return CLOUD_PREPARED[args.providerId];
 
   if (isLikelyVisionModel(modelId)) {
     return {
@@ -134,7 +134,7 @@ function completeProfile(
 }
 
 function preparedCloud(
-  providerId: Exclude<ProviderId, "ollama">,
+  providerId: Exclude<ProviderId, "ollama" | "llama-cpp">,
   providerType: ProviderType,
   modelSummary: string,
 ): RatioModelCapabilityProfile {
