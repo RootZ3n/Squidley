@@ -42,6 +42,26 @@ interface LocalInfo {
   selectedModel: string;
   modelCount?: number;
   health: "checking" | "ready" | "unavailable";
+  backendType?: "ollama" | "llama-cpp";
+}
+
+type GauntletStatus = "PASS" | "TRY_VERIFY" | "NEEDS_CLOUD" | "BLOCKED";
+
+interface GauntletSummary {
+  latestByModelBackend: Array<{
+    backend: string;
+    model: string;
+    overall: GauntletStatus;
+    statusSummary: Record<GauntletStatus, number>;
+    completedAt: string;
+    taskResults: Array<{
+      label: string;
+      status: GauntletStatus;
+      reason: string;
+    }>;
+  }>;
+  rejectedReports: Array<{ fileName: string; reason: string }>;
+  warning: string;
 }
 
 const TOUR_LINKS = [
@@ -61,6 +81,7 @@ export default function SettingsPage() {
   const [sessionsDoc, setSessionsDoc] = useState<StoredChatSessionsDocument | null>(null);
   const [archivumDoc, setArchivumDoc] = useState<ArchivumDocument | null>(null);
   const [tabulariumDoc, setTabulariumDoc] = useState<TabulariumDocument | null>(null);
+  const [gauntletSummary, setGauntletSummary] = useState<GauntletSummary | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -78,19 +99,23 @@ export default function SettingsPage() {
 
     async function loadLocalInfo() {
       try {
-        const [healthResponse, modelsResponse] = await Promise.all([
+        const [healthResponse, modelsResponse, gauntletResponse] = await Promise.all([
           fetch("/api/local/health"),
           fetch("/api/local/models"),
+          fetch("/api/local/gauntlet"),
         ]);
         const health = await healthResponse.json();
         const models = await modelsResponse.json();
+        const gauntlet = await gauntletResponse.json();
         setLocalInfo({
           endpoint: health.endpoint ?? models.endpoint ?? "http://localhost:11434",
           configuredModel: models.configuredModel ?? models.defaultModel ?? "llama3.2",
           selectedModel,
           modelCount: health.modelCount,
           health: health.ok ? "ready" : "unavailable",
+          backendType: health.backendType ?? models.backendType ?? undefined,
         });
+        setGauntletSummary(normalizeGauntletSummary(gauntlet));
       } catch {
         setLocalInfo((prev) => ({ ...prev, health: "unavailable" }));
       }
@@ -213,16 +238,22 @@ export default function SettingsPage() {
       <section className="mt-6 grid gap-4 lg:grid-cols-2">
         <Panel title="Local Model">
           <p className="text-sm text-ink-500 dark:text-ink-300">
-            These values come from the configured local Ollama-compatible endpoint. Endpoint/model editing is read-only in this pass because chat API routes use server-side configuration.
+            These values come from your local model server. Ollama is validated end-to-end; the llama.cpp text path is an OpenAI-compatible local backend pending real llama-server binary validation.
           </p>
           <dl className="mt-4 space-y-2 text-sm">
             <InfoRow label="Health" value={localInfo.health} />
+            <InfoRow label="Backend" value={localInfo.backendType === "llama-cpp" ? "OpenAI-compatible local backend (llama.cpp)" : localInfo.backendType === "ollama" ? "Ollama" : "Auto-detecting"} />
             <InfoRow label="Endpoint" value={localInfo.endpoint} />
             <InfoRow label="Configured model" value={localInfo.configuredModel} />
             <InfoRow label="Selected model" value={localInfo.selectedModel || "Not selected yet"} />
             <InfoRow label="Discovered models" value={typeof localInfo.modelCount === "number" ? String(localInfo.modelCount) : "Unknown"} />
           </dl>
-          <p className="mt-3 text-xs text-ink-400">Public Squidley does not use cloud fallback here.</p>
+          <p className="mt-3 text-xs text-ink-400">
+            {localInfo.backendType === "llama-cpp"
+              ? "Using the llama.cpp/OpenAI-compatible text path. Real llama-server binary validation is still pending. Set SQUIDLEY_LOCAL_BACKEND in .env.local to change."
+              : "Public Squidley does not use cloud fallback here."
+            }
+          </p>
         </Panel>
 
         <Panel title="Tours & Onboarding">
@@ -242,6 +273,53 @@ export default function SettingsPage() {
               Reset welcome / first-run
             </button>
           </div>
+        </Panel>
+
+        <Panel title="Local Model Gauntlet">
+          <p className="text-sm text-ink-500 dark:text-ink-300">
+            This shows local smoke tests you ran on this machine. It helps estimate what a model may handle, but it does not prove safety or general intelligence.
+          </p>
+          <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-200">
+            Narrow local smoke only, not a benchmark or proof of safety.
+          </p>
+          {!gauntletSummary || gauntletSummary.latestByModelBackend.length === 0 ? (
+            <p className="mt-4 rounded-lg border border-dashed border-ink-200 bg-ink-50/70 p-3 text-sm text-ink-500 dark:border-ink-700 dark:bg-ink-900/40 dark:text-ink-300">
+              No local gauntlet reports found yet. Run <code className="font-mono">npm run gauntlet:local-model</code> to create a local report.
+            </p>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {gauntletSummary.latestByModelBackend.slice(0, 3).map((report) => (
+                <div key={`${report.backend}:${report.model}`} className="rounded-lg border border-ink-100 bg-ink-50/70 p-3 dark:border-ink-700/60 dark:bg-ink-900/40">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="font-mono text-xs font-semibold text-ink-800 dark:text-ink-100">{report.model}</p>
+                      <p className="text-xs text-ink-400">{report.backend} · Last tested {formatIsoDate(report.completedAt)}</p>
+                    </div>
+                    <span className="rounded-full border border-ink-200 px-2 py-1 font-mono text-xs text-ink-700 dark:border-ink-700 dark:text-ink-100">
+                      {report.overall}
+                    </span>
+                  </div>
+                  <p className="mt-2 font-mono text-xs text-ink-500 dark:text-ink-300">
+                    PASS {report.statusSummary.PASS} · TRY_VERIFY {report.statusSummary.TRY_VERIFY} · NEEDS_CLOUD {report.statusSummary.NEEDS_CLOUD} · BLOCKED {report.statusSummary.BLOCKED}
+                  </p>
+                  {report.taskResults.some((task) => task.status !== "PASS") && (
+                    <ul className="mt-2 space-y-1 text-xs text-ink-500 dark:text-ink-300">
+                      {report.taskResults.filter((task) => task.status !== "PASS").slice(0, 2).map((task) => (
+                        <li key={`${report.backend}:${report.model}:${task.label}`}>
+                          <span className="font-semibold">{task.label}</span>: {task.status} - {task.reason}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {gauntletSummary && gauntletSummary.rejectedReports.length > 0 && (
+            <p className="mt-3 text-xs text-amber-700 dark:text-amber-200">
+              Rejected report count: {gauntletSummary.rejectedReports.length}
+            </p>
+          )}
         </Panel>
 
         <Panel title="Local Chat Storage">
@@ -355,4 +433,19 @@ function downloadText(filename: string, content: string, type: string) {
 
 function formatMaybeDate(value: number | undefined): string {
   return typeof value === "number" ? new Date(value).toLocaleString() : "None";
+}
+
+function formatIsoDate(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Unknown" : date.toLocaleString();
+}
+
+function normalizeGauntletSummary(value: unknown): GauntletSummary | null {
+  if (typeof value !== "object" || value === null) return null;
+  const data = value as Partial<GauntletSummary>;
+  return {
+    latestByModelBackend: Array.isArray(data.latestByModelBackend) ? data.latestByModelBackend : [],
+    rejectedReports: Array.isArray(data.rejectedReports) ? data.rejectedReports : [],
+    warning: typeof data.warning === "string" ? data.warning : "Gauntlet PASS is not proof that a model is safe or generally capable.",
+  };
 }

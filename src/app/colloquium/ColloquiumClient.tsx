@@ -97,6 +97,7 @@ interface LocalHealthState {
   endpoint: string;
   modelCount?: number;
   reason?: string;
+  backendType?: "ollama" | "llama-cpp";
 }
 
 interface UiMessage {
@@ -132,7 +133,7 @@ const EXAMPLE_MESSAGES: readonly UiMessage[] = [
   {
     id: "ex-4",
     role: "assistant",
-    text: "Not in local-only mode. The badge near the top of the screen tells you which mode you are in. If we ever connect to a cloud model, the badge changes so you can see it at a glance.",
+    text: "No. In this public local release, the badge near the top of the screen tells you this is local-only. Cloud models would require an explicit future unlock and clear review first.",
     metrics: {
       source: "local",
       model: "example",
@@ -312,6 +313,7 @@ export default function ColloquiumClient() {
           endpoint: healthBody.endpoint ?? "http://localhost:11434",
           modelCount: healthBody.modelCount,
           reason: healthBody.reason,
+          backendType: healthBody.backendType ?? undefined,
         };
         const selection = resolveModelSelection({
           models: nextModels,
@@ -1421,10 +1423,11 @@ function LocalHealthBanner({
   }
 
   if (health.status === "ready") {
+    const backendLabel = health.backendType === "llama-cpp" ? "OpenAI-compatible local backend" : "Ollama";
     return (
       <StatusCallout
         tone="ok"
-        title="Local model server ready."
+        title={health.backendType === "llama-cpp" ? `${backendLabel} configured.` : `Local model server ready (${backendLabel}).`}
         body={
           typeof health.modelCount === "number"
             ? `${health.modelCount} local model${health.modelCount === 1 ? "" : "s"} found.`
@@ -1434,6 +1437,7 @@ function LocalHealthBanner({
           <>
             {selectionNote ? `${selectionNote} ` : ""}
             {readinessMessage} Public Squidley uses your local model server here, with no cloud fallback.
+            {health.backendType === "llama-cpp" ? " llama-server support is pending real binary validation." : ""}
           </>
         }
         action={refreshButton}
@@ -1451,13 +1455,17 @@ function LocalHealthBanner({
       }
       detail={
         <>
+          <div style={{ marginBottom: 6, fontWeight: 600, fontSize: 12, opacity: 0.7 }}>Option A: Ollama (easiest)</div>
           <div>ollama serve</div>
           <div>ollama pull llama3.2</div>
+          <div style={{ marginTop: 8, marginBottom: 6, fontWeight: 600, fontSize: 12, opacity: 0.7 }}>Option B: llama-server</div>
+          <div>llama-server -m your-model.gguf --port 8080</div>
+          <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>Set SQUIDLEY_LOCAL_BACKEND=llama-cpp in .env.local</div>
         </>
       }
       hint={
         <>
-          Start Ollama or check <code style={{ fontFamily: "var(--font-mono)" }}>SQUIDLEY_LOCAL_ENDPOINT</code>, then refresh models. No cloud fallback is used.
+          Start Ollama or an OpenAI-compatible local backend, then refresh models. Check <code style={{ fontFamily: "var(--font-mono)" }}>SQUIDLEY_LOCAL_ENDPOINT</code> if using a custom port. No cloud fallback is used.
         </>
       }
       action={refreshButton}
@@ -1477,6 +1485,7 @@ function LocalReadinessGuidance({
   selectionNote: string | null;
 }) {
   if (health.status === "ready" && modelCount === 0) {
+    const isLlamaCpp = health.backendType === "llama-cpp";
     return (
       <InlineCallout
         tone="info"
@@ -1485,7 +1494,7 @@ function LocalReadinessGuidance({
           modelsReason ??
           "Install one local model, then use Refresh models. Send stays disabled until a local model is available. No cloud fallback will be used."
         }
-        detail="ollama pull llama3.2"
+        detail={isLlamaCpp ? "llama-server -m your-model.gguf" : "ollama pull llama3.2"}
       />
     );
   }
@@ -1495,11 +1504,11 @@ function LocalReadinessGuidance({
       <InlineCallout
         tone="warn"
         title="Squidley tried to reach your local model server."
-        body="Start Ollama, pull a local model if needed, then use Refresh models. Send stays disabled until a local model is ready."
+        body="Start Ollama or an OpenAI-compatible local backend, pull/load a local model if needed, then use Refresh models. Send stays disabled until a local model is ready."
         detail={
           <>
-            <div>ollama serve</div>
-            <div>ollama pull llama3.2</div>
+            <div>ollama serve && ollama pull llama3.2</div>
+            <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>or: llama-server -m model.gguf --port 8080</div>
           </>
         }
       />
