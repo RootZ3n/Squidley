@@ -1,10 +1,14 @@
 import type { LocalProviderConfig } from "@/lib/providers/local";
+import { fetchLocalWithTimeout } from "@/lib/providers/local";
+import { llamaCppChatUrl, parseOpenAIStreamLine } from "@/lib/providers/llamacpp";
+import type { ResolvedBackendType } from "./handler";
 import {
   applyGatewayCautionToMessages,
   buildGatewayDecision,
   buildGatewayMetadata,
 } from "@/lib/security/promptGateway";
 import type { ChatErrorBody, ChatErrorCode, ChatMessage } from "./types";
+import { buildLocalChatMessages } from "./localSystemPrompt";
 import { validateChatRequest } from "./validate";
 
 export type StreamEvent =
@@ -16,6 +20,7 @@ export type StreamEvent =
       toolsUsed: false;
       model: string;
       startedAt: number;
+      backendType?: "ollama" | "llama-cpp";
       promptGateway?: Record<string, string | boolean | number>;
     }
   | { type: "delta"; text: string }
@@ -69,17 +74,47 @@ export function parseOllamaStreamLine(line: string): ParsedOllamaStreamChunk | n
   };
 }
 
+/**
+ * Unified stream line parser. Dispatches to Ollama or OpenAI parser
+ * based on the resolved backend type.
+ *
+ * Returns a normalized chunk with `content`, `done`, `promptEvalCount`,
+ * and `evalCount` regardless of which backend format was used.
+ */
+export function parseUpstreamStreamLine(
+  line: string,
+  backend: ResolvedBackendType,
+): ParsedOllamaStreamChunk | null {
+  if (backend === "llama-cpp") {
+    const chunk = parseOpenAIStreamLine(line);
+    if (!chunk) return null;
+    return {
+      content: chunk.content,
+      done: chunk.done,
+      promptEvalCount: chunk.promptTokens,
+      evalCount: chunk.completionTokens,
+    };
+  }
+  return parseOllamaStreamLine(line);
+}
+
 export async function openLocalChatStream(args: {
   body: unknown;
   config: LocalProviderConfig;
+  resolvedBackend?: ResolvedBackendType;
   fetchImpl?: typeof fetch;
   now?: () => number;
+  timeoutMs?: number;
 }): Promise<
-  | { ok: true; model: string; startedAt: number; upstream: Response; promptGateway?: Record<string, string | boolean | number> }
+  | { ok: true; model: string; startedAt: number; upstream: Response; backend: ResolvedBackendType; promptGateway?: Record<string, string | boolean | number> }
   | { ok: false; status: number; payload: ChatErrorBody }
 > {
   const fetchImpl = args.fetchImpl ?? fetch;
   const now = args.now ?? Date.now;
+  const backend: ResolvedBackendType =
+    args.resolvedBackend ??
+    (args.config.backendType === "llama-cpp" ? "llama-cpp" : "ollama");
+
   const validation = validateChatRequest(args.body);
   if (!validation.ok) {
     return {
@@ -115,34 +150,51 @@ export async function openLocalChatStream(args: {
       payload: error("prompt_gateway_blocked", gateway.recommendedUserMessage, gateway),
     };
   }
-  const upstreamMessages = applyGatewayCautionToMessages(messages, gateway);
+  const upstreamMessages = applyGatewayCautionToMessages(buildLocalChatMessages(messages), gateway);
+
+  // Build URL and body based on backend type
+  const { url, body } = buildStreamUpstreamRequest({
+    backend,
+    config: args.config,
+    model,
+    messages: upstreamMessages,
+  });
 
   let upstream: Response;
   try {
-    upstream = await fetchImpl(`${args.config.endpoint}/api/chat`, {
+    upstream = await fetchLocalWithTimeout(fetchImpl, url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model, messages: upstreamMessages, stream: true }),
-    });
-  } catch {
+      body: JSON.stringify(body),
+    }, args.timeoutMs);
+  } catch (e) {
+    const timedOut = e instanceof Error && e.name === "AbortError";
+    const serverHint = backend === "llama-cpp"
+      ? "Start llama-server or check SQUIDLEY_LOCAL_ENDPOINT, then try again."
+      : "Start Ollama or check SQUIDLEY_LOCAL_ENDPOINT, then try again.";
     return {
       ok: false,
       status: 503,
       payload: error(
         "local_provider_unreachable",
-        `Squidley tried to reach your local model server at ${args.config.endpoint}, but couldn't connect. Start Ollama or check SQUIDLEY_LOCAL_ENDPOINT, then try again.`,
+        timedOut
+          ? `Squidley's local model stream to ${args.config.endpoint} timed out. ${serverHint}`
+          : `Squidley tried to reach your local model server at ${args.config.endpoint}, but couldn't connect. ${serverHint}`,
       ),
     };
   }
 
   if (!upstream.ok || !upstream.body) {
     if (upstream.status === 404) {
+      const pullHint = backend === "ollama"
+        ? `Try \`ollama pull ${model}\`, or pick a different model.`
+        : "Check that llama-server was started with the correct model file.";
       return {
         ok: false,
         status: 404,
         payload: error(
           "local_provider_model_missing",
-          `The local server is running, but the model "${model}" isn't installed there. Try \`ollama pull ${model}\`, or pick a different model.`,
+          `The local server is running, but the model "${model}" isn't available. ${pullHint}`,
         ),
       };
     }
@@ -161,7 +213,38 @@ export async function openLocalChatStream(args: {
     model,
     startedAt: now(),
     upstream,
+    backend,
     ...(gateway.risk !== "low" ? { promptGateway: buildGatewayMetadata(gateway) } : {}),
+  };
+}
+
+function buildStreamUpstreamRequest(args: {
+  backend: ResolvedBackendType;
+  config: LocalProviderConfig;
+  model: string;
+  messages: ChatMessage[];
+}): { url: string; body: Record<string, unknown> } {
+  if (args.backend === "llama-cpp") {
+    return {
+      url: llamaCppChatUrl(args.config),
+      body: {
+        model: args.model,
+        messages: args.messages,
+        stream: true,
+      },
+    };
+  }
+
+  // Ollama — disable extended thinking so content arrives in message.content
+  // rather than message.thinking (which Squidley does not surface).
+  return {
+    url: `${args.config.endpoint}/api/chat`,
+    body: {
+      model: args.model,
+      messages: args.messages,
+      stream: true,
+      think: false,
+    },
   };
 }
 

@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { getLocalProviderConfig } from "@/lib/providers/local";
+import { detectLocalBackend } from "@/lib/providers/detection";
+import type { ResolvedBackendType } from "@/lib/chat/handler";
 import {
   encodeStreamEvent,
   openLocalChatStream,
-  parseOllamaStreamLine,
+  parseUpstreamStreamLine,
 } from "@/lib/chat/stream";
 
 export const runtime = "nodejs";
@@ -17,9 +19,23 @@ export async function POST(req: Request): Promise<Response> {
     body = null;
   }
 
+  const config = getLocalProviderConfig();
+
+  // Resolve backend before opening the stream
+  let resolvedBackend: ResolvedBackendType | undefined;
+  if (config.backendType === "llama-cpp") {
+    resolvedBackend = "llama-cpp";
+  } else if (config.backendType === "auto") {
+    const detection = await detectLocalBackend({ config });
+    if (detection.detected) {
+      resolvedBackend = detection.detected;
+    }
+  }
+
   const opened = await openLocalChatStream({
     body,
-    config: getLocalProviderConfig(),
+    config,
+    resolvedBackend,
   });
 
   if (!opened.ok) {
@@ -35,6 +51,7 @@ export async function POST(req: Request): Promise<Response> {
     return NextResponse.json(opened.payload, { status: opened.status });
   }
 
+  const backend = opened.backend;
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
   let buffer = "";
@@ -53,6 +70,7 @@ export async function POST(req: Request): Promise<Response> {
             toolsUsed: false,
             model: opened.model,
             startedAt: opened.startedAt,
+            backendType: backend,
             ...(opened.promptGateway ? { promptGateway: opened.promptGateway } : {}),
           }),
         ),
@@ -64,11 +82,14 @@ export async function POST(req: Request): Promise<Response> {
           const { value, done } = await reader.read();
           if (done) break;
           buffer += decoder.decode(value, { stream: true });
+
+          // OpenAI SSE uses \n\n between events; Ollama uses \n.
+          // Split on \n and handle both.
           const lines = buffer.split(/\r?\n/);
           buffer = lines.pop() ?? "";
 
           for (const line of lines) {
-            const parsed = parseOllamaStreamLine(line);
+            const parsed = parseUpstreamStreamLine(line, backend);
             if (!parsed) continue;
             if (typeof parsed.promptEvalCount === "number") {
               promptEvalCount = parsed.promptEvalCount;
@@ -85,7 +106,7 @@ export async function POST(req: Request): Promise<Response> {
         }
 
         if (buffer.trim().length > 0) {
-          const parsed = parseOllamaStreamLine(buffer);
+          const parsed = parseUpstreamStreamLine(buffer, backend);
           if (parsed?.content) {
             controller.enqueue(
               encoder.encode(encodeStreamEvent({ type: "delta", text: parsed.content })),

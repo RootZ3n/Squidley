@@ -15,7 +15,7 @@ export const LIMITS = {
   maxModelChars: 200,
 } as const;
 
-const VALID_ROLES: readonly ChatRole[] = ["user", "assistant", "system"];
+const VALID_HISTORY_ROLES: readonly ChatRole[] = ["user", "assistant"];
 
 export type ValidationResult =
   | { ok: true; value: ChatRequestBody }
@@ -76,10 +76,10 @@ export function validateChatRequest(input: unknown): ValidationResult {
         return { ok: false, error: `History item ${i} must be an object.` };
       }
       const it = item as Record<string, unknown>;
-      if (typeof it.role !== "string" || !VALID_ROLES.includes(it.role as ChatRole)) {
+      if (typeof it.role !== "string" || !VALID_HISTORY_ROLES.includes(it.role as ChatRole)) {
         return {
           ok: false,
-          error: `History item ${i} has an unsupported role.`,
+          error: `History item ${i} has an unsupported role. Client-supplied system messages are not accepted.`,
         };
       }
       if (typeof it.content !== "string") {
