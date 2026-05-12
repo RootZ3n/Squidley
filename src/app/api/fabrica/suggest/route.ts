@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { buildFabricaMessages, createFabricaReceiptSummary, validateFabricaRequest } from "@/lib/fabrica/suggestion";
 import { getLocalProviderConfig } from "@/lib/providers/local";
+import { detectLocalBackend } from "@/lib/providers/detection";
+import { llamaCppChatUrl, extractOpenAIReply } from "@/lib/providers/llamacpp";
+import type { ResolvedBackendType } from "@/lib/chat/handler";
 import {
   applyGatewayCautionToMessages,
   buildGatewayDecision,
@@ -25,11 +28,6 @@ export const dynamic = "force-dynamic";
  * implement a /api/fabrica/build endpoint, and add the corresponding Ratio call site.
  */
 
-interface OllamaChatResponse {
-  message?: { content?: unknown };
-  response?: unknown;
-}
-
 export async function POST(req: Request): Promise<Response> {
   let body: unknown;
   try {
@@ -44,6 +42,16 @@ export async function POST(req: Request): Promise<Response> {
   const config = getLocalProviderConfig();
   const model = parsed.value.model || config.model;
   const startedAt = Date.now();
+
+  // Resolve backend
+  let backend: ResolvedBackendType = "ollama";
+  if (config.backendType === "llama-cpp") {
+    backend = "llama-cpp";
+  } else if (config.backendType === "auto") {
+    const detection = await detectLocalBackend({ config });
+    if (detection.detected) backend = detection.detected;
+  }
+
   const gateway = buildGatewayDecision({
     route: "/api/fabrica/suggest",
     module: "fabrica",
@@ -65,21 +73,28 @@ export async function POST(req: Request): Promise<Response> {
   }
   const messages = applyGatewayCautionToMessages(buildFabricaMessages(parsed.value), gateway);
 
+  // Build URL and body based on backend
+  const { url, requestBody } = buildFabricaUpstreamRequest({
+    backend,
+    config,
+    model,
+    messages,
+  });
+
   let upstream: Response;
   try {
-    upstream = await fetch(`${config.endpoint}/api/chat`, {
+    upstream = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        stream: false,
-        messages,
-      }),
+      body: JSON.stringify(requestBody),
     });
   } catch {
+    const serverHint = backend === "llama-cpp"
+      ? "Start llama-server or check SQUIDLEY_LOCAL_ENDPOINT."
+      : "Start Ollama or check SQUIDLEY_LOCAL_ENDPOINT.";
     return error(
       "local_provider_unreachable",
-      `Squidley tried to reach your local model server at ${config.endpoint}, but couldn't connect.`,
+      `Squidley tried to reach your local model server at ${config.endpoint}, but couldn't connect. ${serverHint}`,
       503,
     );
   }
@@ -88,19 +103,14 @@ export async function POST(req: Request): Promise<Response> {
     return error("local_provider_error", `The local model server could not create a Fabrica suggestion (HTTP ${upstream.status}).`, 502);
   }
 
-  let data: OllamaChatResponse;
+  let data: unknown;
   try {
-    data = (await upstream.json()) as OllamaChatResponse;
+    data = await upstream.json();
   } catch {
     return error("local_provider_error", "The local model replied, but Squidley could not read the Fabrica suggestion.", 502);
   }
 
-  const suggestion =
-    typeof data.message?.content === "string"
-      ? data.message.content.trim()
-      : typeof data.response === "string"
-        ? data.response.trim()
-        : "";
+  const suggestion = extractSuggestion(data, backend);
 
   if (!suggestion) {
     return error("local_provider_error", "The local model did not return a Fabrica suggestion.", 502);
@@ -125,6 +135,55 @@ export async function POST(req: Request): Promise<Response> {
     fileSystemWrites: false,
     promptGateway: buildGatewayMetadata(gateway),
   });
+}
+
+// ---------------------------------------------------------------------------
+// Backend-specific helpers
+// ---------------------------------------------------------------------------
+
+function buildFabricaUpstreamRequest(args: {
+  backend: ResolvedBackendType;
+  config: { endpoint: string };
+  model: string;
+  messages: Array<{ role: string; content: string }>;
+}): { url: string; requestBody: Record<string, unknown> } {
+  if (args.backend === "llama-cpp") {
+    return {
+      url: llamaCppChatUrl(args.config as Parameters<typeof llamaCppChatUrl>[0]),
+      requestBody: {
+        model: args.model,
+        stream: false,
+        messages: args.messages,
+      },
+    };
+  }
+
+  // Ollama — disable extended thinking
+  return {
+    url: `${args.config.endpoint}/api/chat`,
+    requestBody: {
+      model: args.model,
+      stream: false,
+      think: false,
+      messages: args.messages,
+    },
+  };
+}
+
+function extractSuggestion(data: unknown, backend: ResolvedBackendType): string {
+  if (backend === "llama-cpp") {
+    return extractOpenAIReply(data).trim();
+  }
+
+  // Ollama format
+  const ollamaData = data as { message?: { content?: unknown }; response?: unknown } | null;
+  const content =
+    typeof ollamaData?.message?.content === "string"
+      ? ollamaData.message.content.trim()
+      : typeof ollamaData?.response === "string"
+        ? (ollamaData.response as string).trim()
+        : "";
+  return content;
 }
 
 function error(

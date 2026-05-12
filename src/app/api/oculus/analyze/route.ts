@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getLocalProviderConfig } from "@/lib/providers/local";
+import { detectLocalBackend } from "@/lib/providers/detection";
 import { isLikelyVisionModel } from "@/lib/oculus/helpers";
+import type { ResolvedBackendType } from "@/lib/chat/handler";
 import {
   buildGatewayDecision,
   buildGatewayMetadata,
@@ -28,6 +30,25 @@ export async function POST(req: Request): Promise<Response> {
 
   const config = getLocalProviderConfig();
   const model = parsed.model || config.model;
+
+  // Resolve backend
+  let backend: ResolvedBackendType = "ollama";
+  if (config.backendType === "llama-cpp") {
+    backend = "llama-cpp";
+  } else if (config.backendType === "auto") {
+    const detection = await detectLocalBackend({ config });
+    if (detection.detected) backend = detection.detected;
+  }
+
+  // Block vision for llama-cpp — image format is not validated
+  if (backend === "llama-cpp") {
+    return error(
+      "vision_not_supported",
+      "Oculus image analysis is not yet supported with llama-server. Ollama is required for local vision. Set SQUIDLEY_LOCAL_BACKEND=ollama to use a vision model.",
+      400,
+    );
+  }
+
   if (!isLikelyVisionModel(model)) {
     return error(
       "vision_model_required",
@@ -62,6 +83,7 @@ export async function POST(req: Request): Promise<Response> {
       body: JSON.stringify({
         model,
         stream: false,
+        think: false,
         messages: [
           {
             role: "system",

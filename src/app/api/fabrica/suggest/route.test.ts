@@ -1,6 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { POST } from "./route";
 
+/** Find the POST call to the model (not the GET detection probes). */
+function findModelCall(spy: { mock: { calls: unknown[][] } }): [string, RequestInit] | undefined {
+  for (const call of spy.mock.calls) {
+    const init = call[1] as RequestInit | undefined;
+    if (init?.method === "POST") return [call[0] as string, init];
+  }
+  return undefined;
+}
+
 describe("/api/fabrica/suggest prompt gateway", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -19,7 +28,9 @@ describe("/api/fabrica/suggest prompt gateway", () => {
       }),
     );
 
-    expect(fetchImpl).not.toHaveBeenCalled();
+    // Gateway blocks before any model call — but detection may have probed
+    const modelCall = findModelCall(fetchImpl);
+    expect(modelCall).toBeUndefined();
     expect(response.status).toBe(400);
     const body = await response.json();
     expect(body.error.code).toBe("prompt_gateway_blocked");
@@ -30,7 +41,7 @@ describe("/api/fabrica/suggest prompt gateway", () => {
   });
 
   it("allows suspicious source comments only with a model-facing caution", async () => {
-    const fetchImpl = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    const fetchImpl = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
       new Response(JSON.stringify({ message: { content: "const x = 1;" } }), { status: 200 }),
     );
 
@@ -46,7 +57,9 @@ describe("/api/fabrica/suggest prompt gateway", () => {
     );
 
     expect(response.status).toBe(200);
-    const sentBody = JSON.parse(fetchImpl.mock.calls[0][1]?.body as string);
+    const modelCall = findModelCall(fetchImpl);
+    expect(modelCall).toBeDefined();
+    const sentBody = JSON.parse(modelCall![1].body as string);
     expect(sentBody.messages[0]).toMatchObject({ role: "system" });
     expect(sentBody.messages[0].content).toMatch(/untrusted text/i);
     const body = await response.json();
