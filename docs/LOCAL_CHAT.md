@@ -1,9 +1,12 @@
 # Local Chat in Public Squidley
 
-Public Squidley's Colloquium module talks to a **local, Ollama-compatible
-chat server**. It does not call any cloud provider. There is no fallback,
-no silent provider switch, and no remote telemetry. If your local server
-is down, chat is down — that is the contract.
+Public Squidley's Colloquium module talks to a **local model server**. Ollama
+is validated end-to-end. The llama.cpp text path uses an OpenAI-compatible
+local backend and has been tested through Ollama's compatible endpoint; a real
+`llama-server` binary still needs manual validation. Colloquium does not call
+any cloud provider. There is no fallback, no silent provider switch, and no
+remote telemetry. If your local server is down, chat is down — that is the
+contract.
 
 ## What runs where
 
@@ -16,12 +19,14 @@ is down, chat is down — that is the contract.
 
 Colloquium uses:
 
-- `GET /api/local/health` to check the configured Ollama-compatible server.
-- `GET /api/local/models` to discover installed local models from `/api/tags`.
+- `GET /api/local/health` to check the configured local server.
+- `GET /api/local/models` to discover installed or loaded local models.
 - `POST /api/chat/stream` to stream local replies token-by-token.
 
 The older non-streaming `POST /api/chat` route remains local-only as an
-internal fallback path. There is no other provider in the codebase.
+internal fallback path. There is no cloud provider behind these chat routes;
+they use the configured local Ollama backend or the configured
+OpenAI-compatible local text backend.
 
 ## Quick start
 
@@ -51,8 +56,9 @@ No secrets are required.
 
 | Variable | Default | What it does |
 | --- | --- | --- |
-| `SQUIDLEY_LOCAL_ENDPOINT` | `http://localhost:11434` | Base URL of the Ollama-compatible server. Trailing slashes are stripped. |
+| `SQUIDLEY_LOCAL_ENDPOINT` | `http://localhost:11434` | Base URL of the local model server. Trailing slashes are stripped. |
 | `SQUIDLEY_LOCAL_MODEL` | `llama3.2` | Model name passed in each chat request. |
+| `SQUIDLEY_LOCAL_BACKEND` | `auto` | `auto`, `ollama`, or `llama-cpp`. `llama-cpp` uses an OpenAI-compatible local text API. |
 
 Examples:
 
@@ -123,8 +129,12 @@ saves that choice as the new shared Colloquium preference.
 
 ## Compatibility
 
-This pass targets Ollama's `/api/tags` and `/api/chat` endpoints. Any server
-that exposes the same endpoint shapes will work:
+Ollama support targets `/api/tags` and `/api/chat` and is validated
+end-to-end. The llama.cpp text path targets `/health`, `/v1/models`, and
+`/v1/chat/completions` through an OpenAI-compatible local API; real
+`llama-server` binary validation is still pending.
+
+Any Ollama-compatible server that exposes the same endpoint shapes should work:
 
 ```
 POST /api/chat
@@ -144,17 +154,18 @@ newline-delimited stream for the browser:
 
 The handler is small on purpose so the guarantee is auditable:
 
-- It only ever calls `${config.endpoint}/api/tags` and
-  `${config.endpoint}/api/chat`. There is no second
-  fetch, no retry against a different host, and no environment-driven
-  fallback.
+- It only calls the configured local endpoint for the selected backend:
+  Ollama `/api/tags` and `/api/chat`, or llama.cpp/OpenAI-compatible
+  `/health`, `/v1/models`, and `/v1/chat/completions`. There is no retry
+  against a cloud host and no cloud fallback.
 - Every response (success or error) carries `cloudUsed: false` and
   `toolsUsed: false`.
 - The Colloquium UI shows a green "Local-only" badge in the header at
   all times in this pass.
 
 There are unit tests covering this in `src/lib/chat/handler.test.ts`,
-`src/lib/chat/stream.test.ts`, and `src/lib/providers/ollama.test.ts`.
+`src/lib/chat/stream.test.ts`, `src/lib/providers/ollama.test.ts`, and the
+llama.cpp backend tests.
 
 ## Prompt Gateway
 

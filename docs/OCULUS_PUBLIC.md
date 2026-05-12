@@ -46,7 +46,8 @@ This detection is a hint, not a guarantee. If no likely vision model is found,
 the Analyze button stays disabled with an explanation.
 
 When analysis runs, Oculus sends the selected image to the configured local
-Ollama-compatible endpoint only. There is no cloud fallback.
+Ollama endpoint only. There is no cloud fallback. llama.cpp/llama-server vision
+is unsupported in this release and is blocked by the API route.
 
 Before the local vision request is made, Prompt Gateway checks the text prompt.
 Oculus also tells the local vision model that the image is untrusted and that

@@ -57,5 +57,7 @@ need the network, not why they avoid it.
 
 Colloquium's chat is wired to a local-only adapter — see
 [`LOCAL_CHAT.md`](LOCAL_CHAT.md). The adapter contacts only the
-configured local Ollama-compatible endpoint, with no cloud fallback,
-and exposes `cloudUsed: false` / `toolsUsed: false` on every receipt.
+configured local model endpoint, with no cloud fallback, and exposes
+`cloudUsed: false` / `toolsUsed: false` on every receipt. Ollama is validated
+end-to-end; the llama.cpp/OpenAI-compatible text path is implemented while real
+`llama-server` binary validation is pending.

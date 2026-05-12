@@ -67,13 +67,16 @@ shared preference for that module.
 Public Squidley includes provider metadata for:
 
 - Ollama-compatible local server
+- llama.cpp / `llama-server` OpenAI-compatible local text server
 - OpenRouter
 - OpenAI
 - Anthropic
 - Google Gemini
 
-Ollama is the only active default provider. Cloud providers are prepared as
-metadata only and are locked by default.
+Ollama is the validated default local provider. The llama.cpp text path is
+implemented through an OpenAI-compatible local backend, but a real
+`llama-server` binary still needs manual validation. Cloud providers are
+prepared as metadata only and are locked by default.
 
 ## Cloud Unlock Status
 

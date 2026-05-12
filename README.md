@@ -11,8 +11,10 @@ lab system and it is not an autonomous coding agent.
 ## What It Is
 
 - **Beginner-friendly**: guided tours and plain-language module copy.
-- **Local-first**: core workflows use browser storage and a local
-  Ollama-compatible model server.
+- **Local-first**: core workflows use browser storage and a local model server.
+  Ollama is validated end-to-end. The llama.cpp text path uses an
+  OpenAI-compatible local backend; real `llama-server` binary validation is
+  still pending.
 - **Safe-by-default**: no surprise cloud calls, no shell execution, no
   background agents, no automatic file writes.
 - **Transparent**: Tabularium receipts and Nous model/provider maps explain what
@@ -116,8 +118,11 @@ Cloud-unlock modules are visible as future/advanced concepts, but remain locked.
 
 ## Safety and Privacy Notes
 
-- Colloquium, Oculus, and Fabrica call only the configured local
-  Ollama-compatible endpoint.
+- Colloquium and Fabrica call only the configured local model endpoint.
+  Ollama is validated end-to-end; the llama.cpp/OpenAI-compatible text path is
+  implemented and tested through Ollama's compatible endpoint.
+- Oculus local vision is Ollama-only in this release. llama.cpp/llama-server
+  vision is unsupported until real binary vision validation is completed.
 - Velum runs deterministic checks in the browser and does not call a model.
 - Archivum, Tabularium, chat sessions, and Nous preferences are browser-local.
 - Receipts avoid storing full source text, full generated output, image data, or
@@ -129,6 +134,9 @@ Cloud-unlock modules are visible as future/advanced concepts, but remain locked.
 ## Known Caveats
 
 - Oculus vision depends on local Ollama vision model reliability.
+- Real `llama-server` binary validation is pending. Do not claim full
+  llama-server support yet; claim implemented OpenAI-compatible local text
+  backend support instead.
 - Cloud providers are prepared/locked metadata only.
 - No accounts, cloud sync, backend database, agents, tools, or shell execution.
 - Storage is browser-local only.
@@ -143,6 +151,7 @@ does not equal execution. See [docs/TRUST_MODEL.md](docs/TRUST_MODEL.md).
 ## Documentation
 
 - [docs/PUBLIC_RELEASE_CHECKLIST.md](docs/PUBLIC_RELEASE_CHECKLIST.md) — release/demo checklist.
+- [docs/PUBLIC_LOCAL_RELEASE_CHECKLIST.md](docs/PUBLIC_LOCAL_RELEASE_CHECKLIST.md) — local-model release honesty checklist.
 - [RELEASE_NOTES.md](RELEASE_NOTES.md) — v0.1.0 release notes.
 - [docs/LOCAL_MODEL_SETUP.md](docs/LOCAL_MODEL_SETUP.md) — Ollama and local model setup.
 - [docs/LOCAL_SERVICE.md](docs/LOCAL_SERVICE.md) — run Public Squidley as a local user service.

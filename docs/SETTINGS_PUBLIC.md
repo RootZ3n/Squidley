@@ -8,6 +8,7 @@ manage what this browser stores for Squidley.
 Settings shows read-only local model information:
 
 - active local endpoint
+- backend type: Ollama, auto-detecting, or OpenAI-compatible local backend
 - configured/default model
 - currently selected model when known
 - local server health

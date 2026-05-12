@@ -32,9 +32,12 @@ your file system.
 
 ## Local Model Use
 
-Fabrica uses the configured Ollama-compatible local model server. It reads the
-Fabrica model preference from Nous when one is saved. If no Fabrica preference
-is saved, it falls back through local preferences/defaults.
+Fabrica uses the configured local model server. Ollama is validated
+end-to-end. The llama.cpp/OpenAI-compatible text path is implemented and tested
+through Ollama's compatible endpoint; a real `llama-server` binary still needs
+manual validation. Fabrica reads the Fabrica model preference from Nous when
+one is saved. If no Fabrica preference is saved, it falls back through local
+preferences/defaults.
 
 No cloud fallback is used.
 

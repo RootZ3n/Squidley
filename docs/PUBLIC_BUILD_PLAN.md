@@ -23,7 +23,7 @@
 | **Ratio (ASI)** | Working | Decision engine, module policies, provider capabilities, UI decisions, unlock levels, 14 files |
 | **Tour system** | Working | 7 module tours with step definitions, tested (colloquium: 8 tests, others: 3 each) |
 | **Prompt gateway** | Working | 281-line deterministic security layer, tested |
-| **Provider registry** | Working | Ollama active, 4 cloud providers prepared/locked |
+| **Provider registry** | Working | Ollama validated, llama.cpp local text path implemented with real binary validation pending, cloud providers prepared/locked |
 | **Tests** | Passing | 47 files, 312 tests, all green |
 | **Typecheck** | Clean | tsc --noEmit passes |
 | **Docs** | Extensive | 21 markdown docs covering every module, architecture, limitations |
@@ -39,8 +39,10 @@
 ### What this means
 
 Public Squidley is **substantially built**. The core local-chat-with-Ollama
-loop, all 7 planned modules, the tour system, the receipt system, the prompt
-gateway, and the adaptive intelligence layer all exist and pass tests.
+loop is validated, the llama.cpp/OpenAI-compatible local text path is
+implemented with real `llama-server` binary validation still pending, and all
+7 planned modules, the tour system, the receipt system, the prompt gateway,
+and the adaptive intelligence layer all exist and pass tests.
 
 This is not a skeleton — it's a real app with ~14K lines of source and 312
 tests. The gap is not "build the features" but "verify end-to-end demo path
