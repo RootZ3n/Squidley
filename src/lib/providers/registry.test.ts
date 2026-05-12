@@ -8,8 +8,10 @@ import {
 } from "./registry";
 
 describe("provider registry", () => {
-  it("keeps Ollama active as the only enabled default provider", () => {
-    expect(getActiveProviders().map((provider) => provider.id)).toEqual(["ollama"]);
+  it("keeps Ollama and llama-cpp active as the enabled local providers", () => {
+    const active = getActiveProviders().map((provider) => provider.id);
+    expect(active).toContain("ollama");
+    expect(active).toContain("llama-cpp");
     expect(getProviderById("ollama")).toMatchObject({
       type: "local",
       enabledByDefault: true,
@@ -18,6 +20,16 @@ describe("provider registry", () => {
       supportedApiStyle: "ollama-chat",
       status: "active",
     });
+    expect(getProviderById("llama-cpp")).toMatchObject({
+      type: "local",
+      enabledByDefault: true,
+      cloudUnlockRequired: false,
+      baseUrlDefault: "http://localhost:8080",
+      supportedApiStyle: "openai-chat-compatible",
+      status: "active",
+    });
+    expect(getProviderById("llama-cpp")?.beginnerDescription).toMatch(/real llama-server binary validation is still pending/i);
+    expect(getProviderById("llama-cpp")?.supportsVision).toBe(false);
   });
 
   it("keeps cloud providers locked by default", () => {

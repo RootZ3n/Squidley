@@ -10,6 +10,7 @@ export interface LocalModelInfo {
 export interface LocalHealthPayload {
   ok: boolean;
   provider: "local";
+  backendType?: "ollama";
   endpoint: string;
   modelCount?: number;
   errorCode?: "local_provider_unreachable" | "local_provider_error";
@@ -143,6 +144,7 @@ export async function probeLocalHealth(args: {
   return {
     ok: true,
     provider: "local",
+    backendType: "ollama",
     endpoint,
     modelCount: normalizeOllamaTags(body).length,
     cloudUsed: false,

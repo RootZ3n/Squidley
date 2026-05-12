@@ -1,4 +1,4 @@
-export type ProviderId = "ollama" | "openrouter" | "openai" | "anthropic" | "google-gemini";
+export type ProviderId = "ollama" | "llama-cpp" | "openrouter" | "openai" | "anthropic" | "google-gemini";
 export type ProviderType = "local" | "cloud" | "aggregator";
 export type ProviderAuthType = "none" | "api-key";
 export type ProviderApiStyle =
@@ -38,6 +38,21 @@ export const PROVIDER_REGISTRY: readonly ProviderRegistryEntry[] = [
     supportsVision: true,
     beginnerDescription:
       "Runs on your computer. Public Squidley uses this for local chat and local image analysis when a matching model is available.",
+    status: "active",
+  },
+  {
+    id: "llama-cpp",
+    displayName: "llama-server (llama.cpp)",
+    type: "local",
+    enabledByDefault: true,
+    cloudUnlockRequired: false,
+    baseUrlDefault: "http://localhost:8080",
+    authType: "none",
+    supportedApiStyle: "openai-chat-compatible",
+    supportsStreaming: true,
+    supportsVision: false,
+    beginnerDescription:
+      "A lightweight local inference server from llama.cpp. Squidley has an OpenAI-compatible local text path for it; real llama-server binary validation is still pending, and Oculus vision is not supported.",
     status: "active",
   },
   {

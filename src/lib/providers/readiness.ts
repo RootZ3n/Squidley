@@ -97,7 +97,7 @@ export function getModelReadiness(args: {
     return {
       kind: "no-models",
       canSend: false,
-      message: "Your local model server is running, but no local models are installed yet. Try `ollama pull llama3.2`, then refresh models.",
+      message: "Your local model server is running, but no models are loaded. For Ollama: `ollama pull llama3.2`. For llama-server: start it with a GGUF model file.",
     };
   }
 
@@ -105,7 +105,7 @@ export function getModelReadiness(args: {
     return {
       kind: "selected-model-missing",
       canSend: false,
-      message: `The selected model is not available locally. Try \`ollama pull ${args.selectedModel || "llama3.2"}\`, or choose an installed model.`,
+      message: `The selected model "${args.selectedModel || "llama3.2"}" is not available locally. For Ollama: \`ollama pull ${args.selectedModel || "llama3.2"}\`. For llama-server: start with the correct model file.`,
     };
   }
 

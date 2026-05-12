@@ -11,6 +11,7 @@ const config: LocalProviderConfig = {
   providerId: "local",
   endpoint: "http://test-local:11434",
   model: "llama3.2",
+  backendType: "ollama",
   cloudUsed: false,
   toolsUsed: false,
 };
@@ -131,6 +132,7 @@ describe("local health probe", () => {
     expect(health).toEqual({
       ok: true,
       provider: "local",
+      backendType: "ollama",
       endpoint: "http://test-local:11434",
       modelCount: 2,
       cloudUsed: false,
