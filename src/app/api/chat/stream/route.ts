@@ -15,6 +15,8 @@ import { validateLocalAnswer } from "@/lib/chat/answerValidator";
 import { buildStreamFallback } from "@/lib/chat/answerReliability";
 import { detectInspectionIntent } from "@/lib/chat/inspectionIntent";
 import { handleFileInspectionRequest } from "@/lib/chat/fileInspectionChat";
+import { detectPlanningIntent } from "@/lib/planning";
+import { runPlanningForChat } from "@/lib/chat/planningChat";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -99,6 +101,47 @@ export async function POST(req: Request): Promise<Response> {
           }),
         );
         return new Response(events.join(""), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/x-ndjson; charset=utf-8",
+            "Cache-Control": "no-store",
+          },
+        });
+      }
+
+      // Structured Planning intercept: deterministic plan + provenance.
+      // Emits exactly: meta? → plan → done. No deltas, no fake progress.
+      const planningIntent = detectPlanningIntent(message);
+      if (planningIntent) {
+        const inspectedFiles =
+          (body as { inspectedFiles?: readonly { path: string; packedContent: string }[] })
+            .inspectedFiles ?? [];
+        const startedAt = Date.now();
+        const outcome = runPlanningForChat({ message, inspectedFiles });
+        const completedAt = Date.now();
+        const lines = [
+          encodeStreamEvent({
+            type: "plan",
+            reply: outcome.reply,
+            plan: outcome.summary,
+            provenance: {
+              known: outcome.provenance.known,
+              inferred: outcome.provenance.inferred,
+              assumed: outcome.provenance.assumed,
+              missing: outcome.provenance.missing,
+              suggestedNextInspections: outcome.provenance.suggestedNextInspections,
+            },
+            cloudUsed: false,
+            localOnly: true,
+            ok: outcome.ok,
+          }),
+          encodeStreamEvent({
+            type: "done",
+            completedAt,
+            durationMs: Math.max(0, completedAt - startedAt),
+          }),
+        ].join("");
+        return new Response(lines, {
           status: 200,
           headers: {
             "Content-Type": "application/x-ndjson; charset=utf-8",

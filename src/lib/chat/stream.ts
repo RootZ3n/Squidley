@@ -100,6 +100,36 @@ export type StreamEvent =
       localOnly: true;
       ok: boolean;
     }
+  | {
+      /** Emitted (instead of meta/delta) when the Structured Planning
+       *  Layer handled this turn. Carries the rendered reply, the
+       *  structured plan summary, and the provenance projection. */
+      type: "plan";
+      reply: string;
+      plan: {
+        id: string;
+        userGoal: string;
+        confidence: "high" | "medium" | "low";
+        confidenceReasoning: string;
+        riskLevel: "safe" | "review" | "elevated" | "blocked";
+        stepCount: number;
+        requiresApproval: boolean;
+        suggestedNextInspections: readonly string[];
+        receiptActions: readonly string[];
+        cloudUsed: false;
+        localOnly: true;
+      };
+      provenance: {
+        known: readonly string[];
+        inferred: readonly string[];
+        assumed: readonly string[];
+        missing: readonly string[];
+        suggestedNextInspections: readonly string[];
+      };
+      cloudUsed: false;
+      localOnly: true;
+      ok: boolean;
+    }
   | (ChatErrorBody & { type: "error" });
 
 export interface ParsedOllamaStreamChunk {

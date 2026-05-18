@@ -125,6 +125,25 @@ interface UiMessage {
     ok: boolean;
     kind?: "validated" | "retried-ok" | "fallback";
   };
+  /** Inspected file payload kept on the assistant turn so the UI can
+   *  forward it as evidence to later planning requests. Set when a
+   *  `file_inspection` stream event with status="completed" arrives. */
+  inspectedFile?: { path: string; packedContent: string };
+  /** Structured plan + provenance rendered as a compact panel under
+   *  the assistant reply. Set when a `plan` stream event arrives. */
+  planNote?: {
+    id: string;
+    confidence: "high" | "medium" | "low";
+    confidenceReasoning: string;
+    riskLevel: "safe" | "review" | "elevated" | "blocked";
+    stepCount: number;
+    requiresApproval: boolean;
+    suggestedNextInspections: readonly string[];
+    known: readonly string[];
+    inferred: readonly string[];
+    assumed: readonly string[];
+    missing: readonly string[];
+  };
   /** Approval-required panel for read-only file inspection. The user
    *  clicks Approve to build an approval token and re-send the original
    *  message; click Decline to dismiss. */
@@ -567,6 +586,13 @@ export default function ColloquiumClient() {
             ...(options.inspectionApproval
               ? { inspectionApproval: options.inspectionApproval }
               : {}),
+            ...(() => {
+              const inspected = messages
+                .filter((m) => m.role === "assistant" && m.inspectedFile)
+                .map((m) => m.inspectedFile!)
+                .slice(-8);
+              return inspected.length > 0 ? { inspectedFiles: inspected } : {};
+            })(),
           }),
         });
       } catch {
@@ -697,6 +723,40 @@ export default function ColloquiumClient() {
                   ? {
                       ...m,
                       text: event.reply,
+                      ...(event.status === "completed" && event.path
+                        ? {
+                            inspectedFile: {
+                              path: event.path,
+                              packedContent: event.reply,
+                            },
+                          }
+                        : {}),
+                    }
+                  : m,
+              ),
+            );
+          } else if (event.type === "plan") {
+            reply = event.reply;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId
+                  ? {
+                      ...m,
+                      text: event.reply,
+                      planNote: {
+                        id: event.plan.id,
+                        confidence: event.plan.confidence,
+                        confidenceReasoning: event.plan.confidenceReasoning,
+                        riskLevel: event.plan.riskLevel,
+                        stepCount: event.plan.stepCount,
+                        requiresApproval: event.plan.requiresApproval,
+                        suggestedNextInspections:
+                          event.plan.suggestedNextInspections,
+                        known: event.provenance.known,
+                        inferred: event.provenance.inferred,
+                        assumed: event.provenance.assumed,
+                        missing: event.provenance.missing,
+                      },
                     }
                   : m,
               ),
@@ -1916,6 +1976,117 @@ function MessageBubble({
               <span style={{ marginLeft: 6 }}>
                 (cloud was offered, never used — your call)
               </span>
+            )}
+          </div>
+        )}
+        {message.role === "assistant" && message.planNote && (
+          <div
+            role="region"
+            aria-label="Plan and provenance"
+            style={{
+              marginTop: 8,
+              padding: "12px 14px",
+              borderRadius: 12,
+              border: "1px solid rgba(56,189,248,0.45)",
+              background: "rgba(56,189,248,0.06)",
+              color: "#e0f2fe",
+              fontSize: 13,
+              lineHeight: 1.55,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+              <strong style={{ fontWeight: 600 }}>Plan</strong>
+              <span
+                style={{
+                  padding: "2px 8px",
+                  borderRadius: 4,
+                  background:
+                    message.planNote.confidence === "high"
+                      ? "rgba(74,222,128,0.2)"
+                      : message.planNote.confidence === "medium"
+                      ? "rgba(251,191,36,0.2)"
+                      : "rgba(248,113,113,0.2)",
+                  color:
+                    message.planNote.confidence === "high"
+                      ? "#86efac"
+                      : message.planNote.confidence === "medium"
+                      ? "#fcd34d"
+                      : "#fca5a5",
+                  fontSize: 11,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                }}
+              >
+                Confidence: {message.planNote.confidence}
+              </span>
+              <span
+                style={{
+                  padding: "2px 8px",
+                  borderRadius: 4,
+                  background: "rgba(148,163,184,0.18)",
+                  color: "#cbd5e1",
+                  fontSize: 11,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                }}
+              >
+                Risk: {message.planNote.riskLevel}
+              </span>
+            </div>
+            <div style={{ marginBottom: 6, opacity: 0.85 }}>
+              {message.planNote.confidenceReasoning}
+            </div>
+            {message.planNote.known.length > 0 && (
+              <div style={{ marginBottom: 6 }}>
+                <strong>Known (from inspected files / receipts):</strong>
+                <ul style={{ margin: "4px 0 0 18px", padding: 0 }}>
+                  {message.planNote.known.map((k, i) => (
+                    <li key={i}>{k}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {message.planNote.inferred.length > 0 && (
+              <div style={{ marginBottom: 6 }}>
+                <strong>Inferred:</strong>
+                <ul style={{ margin: "4px 0 0 18px", padding: 0 }}>
+                  {message.planNote.inferred.map((k, i) => (
+                    <li key={i}>{k}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {message.planNote.assumed.length > 0 && (
+              <div style={{ marginBottom: 6 }}>
+                <strong>Assumed:</strong>
+                <ul style={{ margin: "4px 0 0 18px", padding: 0 }}>
+                  {message.planNote.assumed.map((k, i) => (
+                    <li key={i}>{k}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {message.planNote.missing.length > 0 && (
+              <div style={{ marginBottom: 6 }}>
+                <strong>Missing:</strong>
+                <ul style={{ margin: "4px 0 0 18px", padding: 0 }}>
+                  {message.planNote.missing.map((k, i) => (
+                    <li key={i}>{k}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {message.planNote.suggestedNextInspections.length > 0 && (
+              <div style={{ marginBottom: 4 }}>
+                <strong>Suggested next inspections (with your approval):</strong>
+                <ul style={{ margin: "4px 0 0 18px", padding: 0 }}>
+                  {message.planNote.suggestedNextInspections.map((p, i) => (
+                    <li key={i}>
+                      <code style={{ fontSize: 12 }}>{p}</code>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </div>
         )}

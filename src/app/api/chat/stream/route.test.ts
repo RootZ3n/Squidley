@@ -394,3 +394,102 @@ describe("/api/chat/stream — file inspection (approval-gated)", () => {
     fetchImpl.mockRestore();
   });
 });
+
+describe("/api/chat/stream — structured planning", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("planning intent emits exactly one plan event then done — no model fetch", async () => {
+    const fetchImpl = vi.spyOn(globalThis, "fetch");
+    const response = await POST(
+      new Request("http://test/api/chat/stream", {
+        method: "POST",
+        body: JSON.stringify({ message: "make a plan to fix the build" }),
+      }),
+    );
+    const events = await readAllEvents(response.body!);
+    expect(events.find((e) => e.type === "plan")).toBeDefined();
+    expect(events.some((e) => e.type === "done")).toBe(true);
+    expect(events.some((e) => e.type === "delta")).toBe(false);
+    expect(events.some((e) => e.type === "meta")).toBe(false);
+    expect(
+      fetchImpl.mock.calls.find(
+        (c) => (c[1] as RequestInit | undefined)?.method === "POST",
+      ),
+    ).toBeUndefined();
+  });
+
+  it("plan event is deterministic: plan → done, in that order", async () => {
+    vi.spyOn(globalThis, "fetch");
+    const response = await POST(
+      new Request("http://test/api/chat/stream", {
+        method: "POST",
+        body: JSON.stringify({ message: "what is the plan?" }),
+      }),
+    );
+    const order = (await readAllEvents(response.body!)).map((e) => e.type);
+    expect(order[0]).toBe("plan");
+    expect(order[order.length - 1]).toBe("done");
+  });
+
+  it("plan event provenance never includes uninspected files as KNOWN", async () => {
+    vi.spyOn(globalThis, "fetch");
+    const response = await POST(
+      new Request("http://test/api/chat/stream", {
+        method: "POST",
+        body: JSON.stringify({
+          message: "how would you fix src/a.ts and src/b.ts?",
+          inspectedFiles: [
+            { path: "src/a.ts", packedContent: "export const a = 1;" },
+          ],
+        }),
+      }),
+    );
+    const events = await readAllEvents(response.body!);
+    const planEv = events.find((e) => e.type === "plan");
+    expect(planEv).toBeDefined();
+    if (planEv && planEv.type === "plan") {
+      const knownStr = planEv.provenance.known.join(" | ");
+      expect(knownStr).toContain("src/a.ts");
+      expect(knownStr).not.toContain("src/b.ts");
+      expect(planEv.cloudUsed).toBe(false);
+      expect(planEv.localOnly).toBe(true);
+    }
+  });
+
+  it("casual stream chat is not converted to a plan", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      if ((init as RequestInit | undefined)?.method !== "POST") {
+        return new Response(JSON.stringify({ models: [{ name: "llama3.2" }] }));
+      }
+      return new Response(
+        new ReadableStream({
+          start(c) {
+            const enc = new TextEncoder();
+            c.enqueue(
+              enc.encode(
+                JSON.stringify({ message: { content: "hi!" }, done: false }) + "\n",
+              ),
+            );
+            c.enqueue(
+              enc.encode(
+                JSON.stringify({ message: { content: "" }, done: true }) + "\n",
+              ),
+            );
+            c.close();
+          },
+        }),
+        { status: 200 },
+      );
+    });
+    const response = await POST(
+      new Request("http://test/api/chat/stream", {
+        method: "POST",
+        body: JSON.stringify({ message: "hi squidley" }),
+      }),
+    );
+    const events = await readAllEvents(response.body!);
+    expect(events.some((e) => e.type === "plan")).toBe(false);
+  });
+});

@@ -22,6 +22,14 @@ export interface ChatRequestBody {
    * to a single path and has a short TTL — see fileApproval.ts.
    */
   inspectionApproval?: unknown;
+  /**
+   * Evidence the client gathered from prior approved inspections in
+   * this conversation. Each entry is a `(path, packedContent)` pair
+   * that the planner may reference as KNOWN evidence. The planner
+   * never reads files itself; if a file is not in this list, it can
+   * only be `inferred`, `assumed`, or `missing`.
+   */
+  inspectedFiles?: readonly { path: string; packedContent: string }[];
 }
 
 export interface ChatErrorBody {
@@ -128,6 +136,35 @@ export interface ChatSuccessBody {
     redactionsApplied?: readonly { category: string; count: number }[];
     cloudUsed: false;
     localOnly: true;
+  };
+  /**
+   * Structured plan + provenance, present when the message triggered
+   * the Structured Planning Layer. The plan is deterministic and
+   * evidence-backed (see lib/planning).
+   */
+  plan?: {
+    id: string;
+    userGoal: string;
+    confidence: "high" | "medium" | "low";
+    confidenceReasoning: string;
+    riskLevel: "safe" | "review" | "elevated" | "blocked";
+    stepCount: number;
+    requiresApproval: boolean;
+    suggestedNextInspections: readonly string[];
+    receiptActions: readonly string[];
+    cloudUsed: false;
+    localOnly: true;
+  };
+  /**
+   * Beginner-friendly provenance projection of `plan`. Always present
+   * when `plan` is. Contains known/inferred/assumed/missing buckets.
+   */
+  planProvenance?: {
+    known: readonly string[];
+    inferred: readonly string[];
+    assumed: readonly string[];
+    missing: readonly string[];
+    suggestedNextInspections: readonly string[];
   };
 }
 

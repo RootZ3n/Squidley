@@ -24,6 +24,8 @@ import { detectChatAnswerIntent } from "@/lib/chat/answerIntent";
 import { wrapLocalAnswer } from "@/lib/chat/answerReliability";
 import { detectInspectionIntent } from "@/lib/chat/inspectionIntent";
 import { handleFileInspectionRequest } from "@/lib/chat/fileInspectionChat";
+import { detectPlanningIntent } from "@/lib/planning";
+import { runPlanningForChat } from "@/lib/chat/planningChat";
 import type { ChatRequestBody } from "@/lib/chat/types";
 
 export const runtime = "nodejs";
@@ -115,6 +117,43 @@ export async function POST(req: Request): Promise<Response> {
             summary: outcome.summary,
             cloudUsed: false,
             localOnly: true,
+          },
+        });
+      }
+
+      // Structured planning intercept: "make a plan", "how would you
+      // fix this?", "what files are involved?" — produces a
+      // deterministic, evidence-backed plan with provenance. Never
+      // reads files itself; only consumes prior inspected evidence.
+      const planningIntent = detectPlanningIntent(message);
+      if (planningIntent) {
+        const inspectedFiles =
+          (body as { inspectedFiles?: readonly { path: string; packedContent: string }[] })
+            .inspectedFiles ?? [];
+        const startedAt = Date.now();
+        const outcome = runPlanningForChat({
+          message,
+          inspectedFiles,
+        });
+        const completedAt = Date.now();
+        return NextResponse.json({
+          ok: outcome.ok,
+          provider: "local" as const,
+          cloudUsed: false as const,
+          toolsUsed: false as const,
+          model: "planning_layer",
+          reply: outcome.reply,
+          startedAt,
+          completedAt,
+          durationMs: Math.max(0, completedAt - startedAt),
+          responseMode: "local_model" as const,
+          plan: outcome.summary,
+          planProvenance: {
+            known: outcome.provenance.known,
+            inferred: outcome.provenance.inferred,
+            assumed: outcome.provenance.assumed,
+            missing: outcome.provenance.missing,
+            suggestedNextInspections: outcome.provenance.suggestedNextInspections,
           },
         });
       }

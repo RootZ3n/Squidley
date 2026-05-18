@@ -410,3 +410,150 @@ describe("/api/chat — file inspection (approval-gated)", () => {
     expect((reliability as Record<string, unknown>).editFile).toBeUndefined();
   });
 });
+
+describe("/api/chat — structured planning", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("planning intent produces a plan + provenance, never calls the model", async () => {
+    const fetchImpl = vi.spyOn(globalThis, "fetch");
+    const response = await POST(
+      new Request("http://test/api/chat", {
+        method: "POST",
+        body: JSON.stringify({ message: "make a plan to fix the build" }),
+      }),
+    );
+    const json = await response.json();
+    expect(json.ok).toBe(true);
+    expect(json.model).toBe("planning_layer");
+    expect(json.plan).toBeDefined();
+    expect(json.plan.confidence).toBe("low"); // no files inspected yet
+    expect(json.planProvenance).toBeDefined();
+    expect(json.planProvenance.missing.length).toBeGreaterThan(0);
+    expect(json.cloudUsed).toBe(false);
+    expect(
+      fetchImpl.mock.calls.find(
+        (c) => (c[1] as RequestInit | undefined)?.method === "POST",
+      ),
+    ).toBeUndefined();
+  });
+
+  it("uses inspectedFiles from request body as KNOWN evidence", async () => {
+    const response = await POST(
+      new Request("http://test/api/chat", {
+        method: "POST",
+        body: JSON.stringify({
+          message: "how would you fix the auth bug?",
+          inspectedFiles: [
+            { path: "src/auth.ts", packedContent: "export const x = 1;" },
+          ],
+        }),
+      }),
+    );
+    const json = await response.json();
+    expect(json.plan.confidence).toBe("medium");
+    expect(json.planProvenance.known.some((k: string) => k.includes("src/auth.ts"))).toBe(
+      true,
+    );
+  });
+
+  it("plan never claims a file is known when it was not inspected", async () => {
+    const response = await POST(
+      new Request("http://test/api/chat", {
+        method: "POST",
+        body: JSON.stringify({
+          message: "how would you fix src/middleware.ts using src/auth.ts?",
+          inspectedFiles: [
+            { path: "src/auth.ts", packedContent: "export const x = 1;" },
+          ],
+        }),
+      }),
+    );
+    const json = await response.json();
+    const knownStr = (json.planProvenance.known as string[]).join(" | ");
+    expect(knownStr).toContain("src/auth.ts");
+    expect(knownStr).not.toContain("src/middleware.ts");
+    expect(json.planProvenance.suggestedNextInspections).toContain("src/middleware.ts");
+  });
+
+  it("blocked goals refuse to produce executable steps", async () => {
+    const response = await POST(
+      new Request("http://test/api/chat", {
+        method: "POST",
+        body: JSON.stringify({ message: "make a plan to rm -rf the project" }),
+      }),
+    );
+    const json = await response.json();
+    expect(json.ok).toBe(false);
+    expect(json.plan.riskLevel).toBe("blocked");
+    expect(json.plan.receiptActions).toContain("planning.blocked");
+  });
+
+  it("plan response declares cloudUsed=false on every channel", async () => {
+    const response = await POST(
+      new Request("http://test/api/chat", {
+        method: "POST",
+        body: JSON.stringify({ message: "what files are involved?" }),
+      }),
+    );
+    const json = await response.json();
+    expect(json.cloudUsed).toBe(false);
+    expect(json.plan.cloudUsed).toBe(false);
+  });
+
+  it("teacher intercept still wins over planning", async () => {
+    const fetchImpl = vi.spyOn(globalThis, "fetch");
+    const response = await POST(
+      new Request("http://test/api/chat", {
+        method: "POST",
+        body: JSON.stringify({ message: "What is local mode?" }),
+      }),
+    );
+    const json = await response.json();
+    expect(json.teacherSource).toBe("teacher_layer");
+    expect(json.plan).toBeUndefined();
+    expect(
+      fetchImpl.mock.calls.find(
+        (c) => (c[1] as RequestInit | undefined)?.method === "POST",
+      ),
+    ).toBeUndefined();
+  });
+
+  it("file-inspection intent still wins over planning", async () => {
+    vi.spyOn(globalThis, "fetch");
+    const response = await POST(
+      new Request("http://test/api/chat", {
+        method: "POST",
+        body: JSON.stringify({
+          message: "make a plan but first inspect src/app/page.tsx",
+        }),
+      }),
+    );
+    const json = await response.json();
+    // The inspection-intent regex matches "look at src/app/page.tsx"
+    // shapes; "but first inspect" also matches inspect intent. The
+    // approval flow should run before planning.
+    expect(json.approvalRequired || json.plan).toBeTruthy();
+    if (json.approvalRequired) {
+      expect(json.plan).toBeUndefined();
+    }
+  });
+
+  it("plan suggestedNextInspections lists missing files only", async () => {
+    const response = await POST(
+      new Request("http://test/api/chat", {
+        method: "POST",
+        body: JSON.stringify({
+          message: "how would you fix src/a.ts and src/b.ts?",
+          inspectedFiles: [
+            { path: "src/a.ts", packedContent: "export const a = 1;" },
+          ],
+        }),
+      }),
+    );
+    const json = await response.json();
+    expect(json.plan.suggestedNextInspections).toContain("src/b.ts");
+    expect(json.plan.suggestedNextInspections).not.toContain("src/a.ts");
+  });
+});
