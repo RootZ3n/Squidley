@@ -7,6 +7,9 @@ import {
   openLocalChatStream,
   parseUpstreamStreamLine,
 } from "@/lib/chat/stream";
+import { detectHallucinatedToolActions } from "@/lib/chat/honestyAnnotation";
+import { detectChatReliabilityIntent } from "@/lib/chat/reliabilityIntent";
+import { runReliabilityForChat } from "@/lib/chat/reliabilityChat";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +23,49 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const config = getLocalProviderConfig();
+
+  // Reliability Layer intercept: respond with a single reliability event
+  // (no upstream model call) for narrow troubleshooting intents.
+  if (body && typeof body === "object" && "message" in body) {
+    const message = (body as { message?: unknown }).message;
+    if (typeof message === "string") {
+      const intentMatch = detectChatReliabilityIntent(message);
+      if (intentMatch) {
+        const startedAt = Date.now();
+        const outcome = await runReliabilityForChat({
+          intent: intentMatch.intent,
+          message,
+          config,
+        });
+        const completedAt = Date.now();
+        const lines = [
+          encodeStreamEvent({
+            type: "reliability",
+            intent: outcome.summary.intent,
+            reply: outcome.reply,
+            summary: outcome.summary.summary,
+            stepCount: outcome.summary.stepCount,
+            cloudSuggested: outcome.summary.cloudSuggested,
+            cloudUsed: false,
+            localOnly: true,
+            ok: outcome.summary.ok,
+          }),
+          encodeStreamEvent({
+            type: "done",
+            completedAt,
+            durationMs: Math.max(0, completedAt - startedAt),
+          }),
+        ].join("");
+        return new Response(lines, {
+          status: 200,
+          headers: {
+            "Content-Type": "application/x-ndjson; charset=utf-8",
+            "Cache-Control": "no-store",
+          },
+        });
+      }
+    }
+  }
 
   // Resolve backend before opening the stream
   let resolvedBackend: ResolvedBackendType | undefined;
@@ -57,6 +103,9 @@ export async function POST(req: Request): Promise<Response> {
   let buffer = "";
   let evalCount: number | undefined;
   let promptEvalCount: number | undefined;
+  // Accumulate the model's reply so we can run the honesty annotator before
+  // emitting the `done` event. The original reply is NOT modified.
+  let accumulatedReply = "";
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -71,6 +120,7 @@ export async function POST(req: Request): Promise<Response> {
             model: opened.model,
             startedAt: opened.startedAt,
             backendType: backend,
+            responseMode: "local_model",
             ...(opened.promptGateway ? { promptGateway: opened.promptGateway } : {}),
           }),
         ),
@@ -98,6 +148,7 @@ export async function POST(req: Request): Promise<Response> {
               evalCount = parsed.evalCount;
             }
             if (parsed.content.length > 0) {
+              accumulatedReply += parsed.content;
               controller.enqueue(
                 encoder.encode(encodeStreamEvent({ type: "delta", text: parsed.content })),
               );
@@ -108,6 +159,7 @@ export async function POST(req: Request): Promise<Response> {
         if (buffer.trim().length > 0) {
           const parsed = parseUpstreamStreamLine(buffer, backend);
           if (parsed?.content) {
+            accumulatedReply += parsed.content;
             controller.enqueue(
               encoder.encode(encodeStreamEvent({ type: "delta", text: parsed.content })),
             );
@@ -118,6 +170,24 @@ export async function POST(req: Request): Promise<Response> {
           if (typeof parsed?.evalCount === "number") {
             evalCount = parsed.evalCount;
           }
+        }
+
+        // Run honesty annotator on the accumulated reply. If the model
+        // claimed a tool action this build cannot perform, emit a
+        // user-visible correction BEFORE the `done` event. The reply
+        // text itself was not modified.
+        const honesty = detectHallucinatedToolActions(accumulatedReply);
+        if (honesty.userVisibleHonestyMessage) {
+          controller.enqueue(
+            encoder.encode(
+              encodeStreamEvent({
+                type: "honesty",
+                message: honesty.userVisibleHonestyMessage,
+                hallucinatedActions: honesty.hallucinatedActions,
+                unavailableTools: honesty.unavailableTools,
+              }),
+            ),
+          );
         }
 
         const completedAt = Date.now();

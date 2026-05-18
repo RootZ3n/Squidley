@@ -22,14 +22,42 @@ export type StreamEvent =
       startedAt: number;
       backendType?: "ollama" | "llama-cpp";
       promptGateway?: Record<string, string | boolean | number>;
+      /** Provenance for this answer. Always "local_model" in this build —
+       *  no tool execution surface exists. */
+      responseMode?: "local_model";
     }
   | { type: "delta"; text: string }
+  | {
+      /** Emitted before `done` when the accumulated model reply implied a
+       *  tool action that this build cannot actually perform. The original
+       *  reply is preserved; this event carries Squidley's user-visible
+       *  correction. */
+      type: "honesty";
+      message: string;
+      hallucinatedActions: readonly string[];
+      unavailableTools: readonly string[];
+    }
   | {
       type: "done";
       completedAt: number;
       durationMs: number;
       promptEvalCount?: number;
       evalCount?: number;
+    }
+  | {
+      /** Emitted (instead of meta/delta/done) when a request was handled
+       *  by the Small Model Reliability Layer. The full beginner-readable
+       *  reply travels in `reply`; the structured `summary` mirrors the
+       *  non-stream `reliability` field on ChatSuccessBody. */
+      type: "reliability";
+      intent: "summarize_error" | "health_check";
+      reply: string;
+      summary: string;
+      stepCount: number;
+      cloudSuggested: boolean;
+      cloudUsed: false;
+      localOnly: true;
+      ok: boolean;
     }
   | (ChatErrorBody & { type: "error" });
 
