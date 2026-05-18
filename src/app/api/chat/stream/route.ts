@@ -13,6 +13,8 @@ import { runReliabilityForChat } from "@/lib/chat/reliabilityChat";
 import { detectChatAnswerIntent } from "@/lib/chat/answerIntent";
 import { validateLocalAnswer } from "@/lib/chat/answerValidator";
 import { buildStreamFallback } from "@/lib/chat/answerReliability";
+import { detectInspectionIntent } from "@/lib/chat/inspectionIntent";
+import { handleFileInspectionRequest } from "@/lib/chat/fileInspectionChat";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,6 +39,74 @@ export async function POST(req: Request): Promise<Response> {
   if (body && typeof body === "object" && "message" in body) {
     const message = (body as { message?: unknown }).message;
     if (typeof message === "string") {
+      // File-inspection intercept: never streams file contents without
+      // approval, never falls through to the model pretending it read
+      // the file. Emits exactly one approval_required or
+      // file_inspection event followed by `done`.
+      const inspectionIntent = detectInspectionIntent(message);
+      if (inspectionIntent) {
+        const inspectionApproval = (body as { inspectionApproval?: unknown })
+          .inspectionApproval;
+        const startedAt = Date.now();
+        const outcome = await handleFileInspectionRequest({
+          message,
+          path: inspectionIntent.path,
+          approval: inspectionApproval,
+        });
+        const completedAt = Date.now();
+        const events: string[] = [];
+        if (outcome.status === "approval-required" && outcome.approvalRequest) {
+          events.push(
+            encodeStreamEvent({
+              type: "approval_required",
+              action: outcome.approvalRequest.action,
+              path: outcome.approvalRequest.path,
+              reason: outcome.approvalRequest.reason,
+              riskLevel: outcome.approvalRequest.riskLevel,
+              willRead: outcome.approvalRequest.willRead,
+              willNotRead: outcome.approvalRequest.willNotRead,
+              secretRedaction: outcome.approvalRequest.secretRedaction,
+              safetyRules: outcome.approvalRequest.safetyRules,
+              expiresInMs: outcome.approvalRequest.expiresInMs,
+              cloudUsed: false,
+              localOnly: true,
+            }),
+          );
+        } else if (
+          outcome.status === "completed" ||
+          outcome.status === "blocked" ||
+          outcome.status === "denied" ||
+          outcome.status === "needs-path"
+        ) {
+          events.push(
+            encodeStreamEvent({
+              type: "file_inspection",
+              status: outcome.status,
+              ...(outcome.path ? { path: outcome.path } : {}),
+              reply: outcome.reply,
+              summary: outcome.summary,
+              cloudUsed: false,
+              localOnly: true,
+              ok: outcome.ok,
+            }),
+          );
+        }
+        events.push(
+          encodeStreamEvent({
+            type: "done",
+            completedAt,
+            durationMs: Math.max(0, completedAt - startedAt),
+          }),
+        );
+        return new Response(events.join(""), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/x-ndjson; charset=utf-8",
+            "Cache-Control": "no-store",
+          },
+        });
+      }
+
       wrapAnswer = detectChatAnswerIntent(message) !== null;
       const intentMatch = detectChatReliabilityIntent(message);
       if (intentMatch) {

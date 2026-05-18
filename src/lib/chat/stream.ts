@@ -69,6 +69,37 @@ export type StreamEvent =
       /** Tabularium action ids the reliability layer emitted for this turn. */
       receiptActions?: readonly string[];
     }
+  | {
+      /** Emitted (instead of meta/delta) when the user asked to read a
+       *  file but no valid approval was supplied. No file content is
+       *  ever sent on this event. */
+      type: "approval_required";
+      action: "inspect_one_file_safely";
+      path: string;
+      reason: string;
+      riskLevel: "low" | "medium" | "high";
+      willRead: string;
+      willNotRead: readonly string[];
+      secretRedaction: { applied: true; disclaimer: string };
+      safetyRules: readonly string[];
+      expiresInMs: number;
+      cloudUsed: false;
+      localOnly: true;
+    }
+  | {
+      /** Emitted (instead of meta/delta) when file inspection ran and
+       *  produced a packed summary. Carries the same shape the non-
+       *  stream `fileInspection` field uses. */
+      type: "file_inspection";
+      status: "completed" | "blocked" | "denied" | "needs-path";
+      path?: string;
+      reply: string;
+      summary: string;
+      redactionsApplied?: readonly { category: string; count: number }[];
+      cloudUsed: false;
+      localOnly: true;
+      ok: boolean;
+    }
   | (ChatErrorBody & { type: "error" });
 
 export interface ParsedOllamaStreamChunk {

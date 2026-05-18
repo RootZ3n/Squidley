@@ -125,6 +125,25 @@ interface UiMessage {
     ok: boolean;
     kind?: "validated" | "retried-ok" | "fallback";
   };
+  /** Approval-required panel for read-only file inspection. The user
+   *  clicks Approve to build an approval token and re-send the original
+   *  message; click Decline to dismiss. */
+  approvalRequest?: {
+    action: "inspect_one_file_safely";
+    path: string;
+    reason: string;
+    riskLevel: "low" | "medium" | "high";
+    willRead: string;
+    willNotRead: readonly string[];
+    secretRedaction: { applied: true; disclaimer: string };
+    safetyRules: readonly string[];
+    expiresInMs: number;
+    /** The original user message that triggered the approval request.
+     *  Resending it with an approval token is how the inspection runs. */
+    originalMessage: string;
+    /** UI state: "pending" until user clicks Approve / Decline. */
+    state: "pending" | "approved" | "declined";
+  };
 }
 
 const EXAMPLE_MESSAGES: readonly UiMessage[] = [
@@ -420,7 +439,17 @@ export default function ColloquiumClient() {
 
   // ---- Send ---------------------------------------------------------------
   const send = useCallback(
-    async (text: string) => {
+    async (
+      text: string,
+      options: {
+        inspectionApproval?: {
+          action: "inspect_one_file_safely";
+          path: string;
+          approvedAt: number;
+          approvalId: string;
+        };
+      } = {},
+    ) => {
       const trimmed = text.trim();
       if (trimmed.length === 0 || pending || selectedModel.length === 0) return;
 
@@ -535,6 +564,9 @@ export default function ColloquiumClient() {
             message: trimmed,
             history,
             model: selectedModel,
+            ...(options.inspectionApproval
+              ? { inspectionApproval: options.inspectionApproval }
+              : {}),
           }),
         });
       } catch {
@@ -629,6 +661,46 @@ export default function ColloquiumClient() {
                   : m,
               ),
             );
+          } else if (event.type === "approval_required") {
+            // The user asked to read a file. Show the approval panel
+            // under the assistant placeholder. No content has been
+            // read yet — the panel's Approve button is the read gate.
+            reply = "";
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId
+                  ? {
+                      ...m,
+                      text: "",
+                      approvalRequest: {
+                        action: event.action,
+                        path: event.path,
+                        reason: event.reason,
+                        riskLevel: event.riskLevel,
+                        willRead: event.willRead,
+                        willNotRead: event.willNotRead,
+                        secretRedaction: event.secretRedaction,
+                        safetyRules: event.safetyRules,
+                        expiresInMs: event.expiresInMs,
+                        originalMessage: trimmed,
+                        state: "pending",
+                      },
+                    }
+                  : m,
+              ),
+            );
+          } else if (event.type === "file_inspection") {
+            reply = event.reply;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId
+                  ? {
+                      ...m,
+                      text: event.reply,
+                    }
+                  : m,
+              ),
+            );
           } else if (event.type === "error") {
             let safetyReceiptHref: string | undefined;
             if (event.promptGateway) {
@@ -690,6 +762,49 @@ export default function ColloquiumClient() {
     },
     [messages, pending, selectedModel],
   );
+
+  const handleApproveInspection = useCallback(
+    (messageId: string) => {
+      const target = messages.find((m) => m.id === messageId);
+      if (!target || !target.approvalRequest) return;
+      if (target.approvalRequest.state !== "pending") return;
+      const approval = {
+        action: "inspect_one_file_safely" as const,
+        path: target.approvalRequest.path,
+        approvedAt: Date.now(),
+        approvalId: `appr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      };
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId && m.approvalRequest
+            ? {
+                ...m,
+                approvalRequest: { ...m.approvalRequest, state: "approved" },
+              }
+            : m,
+        ),
+      );
+      void send(target.approvalRequest.originalMessage, {
+        inspectionApproval: approval,
+      });
+    },
+    [messages, send],
+  );
+
+  const handleDeclineInspection = useCallback((messageId: string) => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId && m.approvalRequest
+          ? {
+              ...m,
+              text:
+                "Squidley did not read the file. You can ask again when you're ready, or rephrase the question.",
+              approvalRequest: { ...m.approvalRequest, state: "declined" },
+            }
+          : m,
+      ),
+    );
+  }, []);
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -1007,6 +1122,8 @@ export default function ColloquiumClient() {
                   message={m}
                   activeTarget={activeTarget}
                   isExample={showingExamples}
+                  onApproveInspection={handleApproveInspection}
+                  onDeclineInspection={handleDeclineInspection}
                 />
               ))}
               <div ref={threadEndRef} />
@@ -1654,10 +1771,14 @@ function MessageBubble({
   message,
   activeTarget,
   isExample,
+  onApproveInspection,
+  onDeclineInspection,
 }: {
   message: UiMessage;
   activeTarget: string | null;
   isExample: boolean;
+  onApproveInspection?: (messageId: string) => void;
+  onDeclineInspection?: (messageId: string) => void;
 }) {
   if (message.role === "error") {
     const palette = STATUS_PALETTE.warn;
@@ -1795,6 +1916,111 @@ function MessageBubble({
               <span style={{ marginLeft: 6 }}>
                 (cloud was offered, never used — your call)
               </span>
+            )}
+          </div>
+        )}
+        {message.role === "assistant" && message.approvalRequest && (
+          <div
+            role="region"
+            aria-label="Squidley wants approval to read a file"
+            style={{
+              marginTop: 8,
+              padding: "12px 14px",
+              borderRadius: 12,
+              border: "1px solid rgba(167,139,250,0.45)",
+              background: "rgba(167,139,250,0.08)",
+              color: "#ddd6fe",
+              fontSize: 13,
+              lineHeight: 1.55,
+            }}
+          >
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>
+              Squidley wants to read this file
+            </div>
+            <div style={{ marginBottom: 8 }}>
+              Reading is not the same as editing. Squidley will not change the
+              file. You can decline at any time.
+            </div>
+            <div style={{ marginBottom: 6 }}>
+              <span
+                style={{
+                  display: "inline-block",
+                  padding: "2px 8px",
+                  marginRight: 6,
+                  borderRadius: 4,
+                  background: "rgba(74,222,128,0.18)",
+                  color: "#86efac",
+                  fontSize: 11,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                }}
+              >
+                Read-only
+              </span>
+              <code style={{ fontSize: 12 }}>{message.approvalRequest.path}</code>
+            </div>
+            <div style={{ marginBottom: 6 }}>
+              <strong>Will read:</strong> {message.approvalRequest.willRead}
+            </div>
+            <div style={{ marginBottom: 6 }}>
+              <strong>Will not read:</strong>
+              <ul style={{ margin: "4px 0 0 18px", padding: 0 }}>
+                {message.approvalRequest.willNotRead.map((line, i) => (
+                  <li key={i}>{line}</li>
+                ))}
+              </ul>
+            </div>
+            <div style={{ marginBottom: 8, fontSize: 12, opacity: 0.85 }}>
+              {message.approvalRequest.secretRedaction.disclaimer}
+            </div>
+            {message.approvalRequest.state === "pending" ? (
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => onApproveInspection?.(message.id)}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 6,
+                    border: "1px solid rgba(74,222,128,0.5)",
+                    background: "rgba(74,222,128,0.18)",
+                    color: "#bbf7d0",
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  Approve and read once
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDeclineInspection?.(message.id)}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 6,
+                    border: "1px solid rgba(148,163,184,0.45)",
+                    background: "rgba(148,163,184,0.12)",
+                    color: "#cbd5e1",
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  Decline
+                </button>
+              </div>
+            ) : (
+              <div
+                style={{
+                  fontSize: 12,
+                  fontStyle: "italic",
+                  color:
+                    message.approvalRequest.state === "approved"
+                      ? "#bbf7d0"
+                      : "#cbd5e1",
+                }}
+              >
+                {message.approvalRequest.state === "approved"
+                  ? "Approved. Squidley is reading the file once and will not change it."
+                  : "Declined. The file was not read."}
+              </div>
             )}
           </div>
         )}

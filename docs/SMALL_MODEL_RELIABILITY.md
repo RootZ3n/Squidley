@@ -99,17 +99,125 @@ This contract is enforced by `integration.test.ts` and
 `escalation.test.ts`: every receipt is asserted to have
 `cloudUsed === false` on every path.
 
-## Limitations
+## Read-only approval model (file inspection)
 
-- The reliability runner is not yet called from `/api/chat` or
-  `/api/chat/stream`. Phase 1–8 deliver a clean, tested module that can
-  be opted into later without touching production chat.
+Squidley Public can inspect project files from chat — once, read-only,
+and only after the user clicks **Approve**. The pipeline is:
+
+1. **Intent detection** (`inspectionIntent.ts`): conservative regexes
+   match phrases like "what does src/app/page.tsx do?", "inspect this
+   file: package.json", "summarize docs/readme.md". A path is extracted
+   from the message; if intent matched but no path was found, Squidley
+   asks the user to name one rather than guessing.
+2. **Approval request** (`fileApproval.ts` + chat adapter): when no
+   token is supplied, the response carries an `approvalRequired` body
+   (non-stream) or an `approval_required` event (stream). The
+   Colloquium UI renders a card with the path, what will / will not be
+   read, the secret-redaction disclaimer, and Approve / Decline
+   buttons. No file content is read until Approve is clicked.
+3. **Token + resend**: clicking Approve builds a single-use approval
+   `{ action, path, approvedAt, approvalId }` and resends the
+   original message. The token is bound to the path and expires after
+   10 minutes (`FILE_APPROVAL_TTL_MS`).
+4. **Path safety** (`fileSafety.ts`): the path is checked against
+   strict rules (see below). If anything is off, the request is
+   `blocked` and the file is not opened.
+5. **Stat + read** (`safeFileInspection.ts`): the file is `stat`-ed for
+   size; anything over `MAX_INSPECT_FILE_BYTES` (256 KB) is rejected,
+   never silently truncated. Read happens via an injected
+   `FileInspectionReader` interface that has **only** `stat` and
+   `readFile` methods — no `writeFile`, `appendFile`, `unlink`, etc.
+6. **Redaction** (`secretRedaction.ts`): before context packing, the
+   contents are scanned for obvious secret patterns (OpenAI/Anthropic
+   `sk-` tokens, GitHub `ghp_*`/`github_pat_*` tokens, Slack `xox*`,
+   AWS access key ids, PEM private keys, JWTs, `Authorization: Bearer`
+   headers, and sensitive `KEY=value` env-style assignments).
+7. **Pack** (`contextPacker.ts`): the redacted content goes through the
+   existing token budgeter. Truncation notes and omissions are
+   disclosed in the reply, never silently dropped.
+8. **Receipts** (Tabularium): every transition emits a `system` module
+   receipt with `cloudUsed: false` and `read_only: true`. The seven
+   action ids are:
+   ```
+   reliability.file-inspection-requested
+   reliability.file-inspection-approved
+   reliability.file-inspection-denied
+   reliability.file-inspection-blocked
+   reliability.file-inspection-redacted
+   reliability.file-inspection-packed
+   reliability.file-inspection-completed
+   ```
+
+### Blocked paths
+
+The path-safety layer refuses to even attempt a read when any of these
+hold:
+
+- The path is empty / non-string.
+- The path contains `..` anywhere (rejected before resolution).
+- The path is absolute but outside the configured project root.
+- After resolution the path is outside the project root.
+- Any segment is in `node_modules`, `.git`, `.next`, `dist`, `build`,
+  `coverage`, `out`, `.cache`, `.turbo`, `.vercel`, `tmp`, `.pnpm-store`,
+  or `.yarn`.
+- The basename matches a blocked pattern: `.env*`, `.npmrc`, `.netrc`,
+  `.htpasswd`, `aws-credentials`, `id_rsa*`, `id_ed25519*`, `*.pem`,
+  `*.key`, `*.cer`, `*.crt`, `*.p12`, `*.pfx`, `*.keystore`,
+  `known_hosts`, `authorized_keys`, `secrets*`, `credentials*`, `*.lock`.
+- The extension is not one of: `.ts .tsx .js .jsx .json .md .mdx .css
+  .scss .html .yml .yaml .txt`.
+- The file size is greater than 256 KB.
+
+### Redaction limitations (honest)
+
+Secret redaction is **best-effort**. It catches obvious / common
+patterns. It will:
+
+- **Miss** hand-rolled custom token formats.
+- **Miss** encoded or obfuscated secrets.
+- **Miss** multi-line keys that don't use PEM markers.
+- **Possibly over-redact** strings that look key-shaped but aren't.
+
+If a file might contain secrets and you are not sure, **do not approve
+the read**. Path-safety blocks `.env`, key files, and credentials
+outright — there is no approval that unblocks them.
+
+### Why writing remains disabled
+
+The chat surface still has no write path. `make_small_text_change_and_verify`
+is a typed stub gated behind `ToolEnvironment.allowWriteOperations`, and
+the Node reader exported from `fileInspectionChat.ts` exposes only
+`stat` and `readFile`. A future approval-gated tiny-edit workflow is
+sketched in the roadmap below but is **not implemented**.
+
+### Future step: approval-gated tiny edit workflow
+
+When (if) we enable real text edits from chat, we plan to reuse the same
+approval model with extra constraints:
+
+1. Edit approval requires both the path AND a hash of the exact
+   `find` / `replace` pair the user approved.
+2. The edit tool reads → applies the exact patch → re-reads to verify
+   the change matches what was approved.
+3. A `verify` callback (e.g., a test run) must return OK before the
+   edit is considered committed.
+4. Receipts include before/after hash so a tampering attempt is
+   detectable in the audit log.
+
+None of that is wired today. The current stub returns "edit-tool
+disabled" and writes nothing.
+
+## Other limitations
+
+- The reliability runner wraps `/api/chat` and `/api/chat/stream` only
+  for the narrow intents listed above (health-check, summarize-error,
+  code-explanation wrap, file inspection). Other chat falls through
+  unchanged.
 - The code-graph indexer uses conservative regex only — no real
-  TypeScript AST parsing. It is meant as a "which file is likely
-  relevant" hint, not a fully-resolved symbol graph.
+  TypeScript AST parsing.
 - The edit-and-verify tool is a typed stub. The contract is in place
-  (`allowWriteOperations` + `writeFile`), but no production caller flips
-  the flag and no UI approval surface exists yet.
+  (`allowWriteOperations` + `writeFile`), but no production caller
+  flips the flag.
 - Token budgeting uses character counts as a deterministic proxy for
   tokens. We do **not** pretend to count tokens for an arbitrary model
   tokenizer.
@@ -146,9 +254,14 @@ plain object — UI is free to style it.
 
 ## Changelog
 
-- Add `src/lib/reliability/` module: types, context packer, compound
-  tools, runner, decompose, escalation, code-graph scaffold, copy.
-- Add `docs/teacher-kb/15-small-model-reliability.md` lesson.
-- Register optional `small-model-reliability` lesson in the teacher
-  registry (not required-for-release).
-- 69 new tests; full suite stays green at 1653 passing.
+- `95000e4` — Add `src/lib/reliability/` module: types, context packer,
+  compound tools, runner, decompose, escalation, code-graph scaffold,
+  copy. 69 new tests.
+- `7f29267` — Wire reliability layer into chat for `health_check` and
+  `summarize_error` intents. 21 new tests.
+- `8b6e794` — Wrap local model answers for code-explanation /
+  debugging intents with 1-retry + honest fallback. 43 new tests.
+- _this commit_ — Approval-gated, read-only file inspection. Path
+  safety, secret redaction, approval tokens, chat intent, route +
+  stream wiring, minimal UI panel with real Approve / Decline buttons.
+  79 new tests; full suite stays green at 1796 passing.

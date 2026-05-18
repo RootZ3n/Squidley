@@ -293,3 +293,120 @@ describe("/api/chat — answer-wrap (Phase 3)", () => {
     expect(json.reliability?.intent).toBe("health_check");
   });
 });
+
+describe("/api/chat — file inspection (approval-gated)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("file-inspection intent without approval returns approvalRequired, no model call", async () => {
+    const fetchImpl = vi.spyOn(globalThis, "fetch");
+    const response = await POST(
+      new Request("http://test/api/chat", {
+        method: "POST",
+        body: JSON.stringify({ message: "what does src/app/page.tsx do?" }),
+      }),
+    );
+    const json = await response.json();
+    expect(json.ok).toBe(true);
+    expect(json.model).toBe("file_inspection_layer");
+    expect(json.approvalRequired).toBeDefined();
+    expect(json.approvalRequired.action).toBe("inspect_one_file_safely");
+    expect(json.approvalRequired.path).toBe("src/app/page.tsx");
+    expect(json.cloudUsed).toBe(false);
+    // No POST to local model.
+    expect(
+      fetchImpl.mock.calls.find(
+        (c) => (c[1] as RequestInit | undefined)?.method === "POST",
+      ),
+    ).toBeUndefined();
+  });
+
+  it("intent without an extracted path asks the user to name a file", async () => {
+    const fetchImpl = vi.spyOn(globalThis, "fetch");
+    const response = await POST(
+      new Request("http://test/api/chat", {
+        method: "POST",
+        body: JSON.stringify({ message: "summarize this markdown file" }),
+      }),
+    );
+    const json = await response.json();
+    expect(json.fileInspection?.status).toBe("needs-path");
+    expect(json.reply).toMatch(/name the file/);
+    expect(
+      fetchImpl.mock.calls.find(
+        (c) => (c[1] as RequestInit | undefined)?.method === "POST",
+      ),
+    ).toBeUndefined();
+  });
+
+  it("traversal path is blocked, never reads anything", async () => {
+    const fetchImpl = vi.spyOn(globalThis, "fetch");
+    const response = await POST(
+      new Request("http://test/api/chat", {
+        method: "POST",
+        body: JSON.stringify({
+          message: "inspect ../etc/passwd.ts",
+          inspectionApproval: {
+            action: "inspect_one_file_safely",
+            path: "../etc/passwd.ts",
+            approvedAt: Date.now(),
+            approvalId: "fake",
+          },
+        }),
+      }),
+    );
+    const json = await response.json();
+    // The intent extractor rejects ".." so we end up in needs-path or
+    // blocked — either way, no file content is in the reply.
+    expect(["needs-path", "blocked"]).toContain(json.fileInspection?.status);
+    expect(json.reply).not.toMatch(/root:/);
+    expect(
+      fetchImpl.mock.calls.find(
+        (c) => (c[1] as RequestInit | undefined)?.method === "POST",
+      ),
+    ).toBeUndefined();
+  });
+
+  it("teacher intercept still wins over file inspection", async () => {
+    const fetchImpl = vi.spyOn(globalThis, "fetch");
+    const response = await POST(
+      new Request("http://test/api/chat", {
+        method: "POST",
+        // This is a teacher question; teacher answer should win.
+        body: JSON.stringify({ message: "What is local mode?" }),
+      }),
+    );
+    const json = await response.json();
+    expect(json.teacherSource).toBe("teacher_layer");
+    expect(json.approvalRequired).toBeUndefined();
+    expect(json.fileInspection).toBeUndefined();
+    expect(
+      fetchImpl.mock.calls.find(
+        (c) => (c[1] as RequestInit | undefined)?.method === "POST",
+      ),
+    ).toBeUndefined();
+  });
+
+  it("approval response never sets cloudUsed=true", async () => {
+    vi.spyOn(globalThis, "fetch");
+    const response = await POST(
+      new Request("http://test/api/chat", {
+        method: "POST",
+        body: JSON.stringify({ message: "inspect src/app/page.tsx" }),
+      }),
+    );
+    const json = await response.json();
+    expect(json.cloudUsed).toBe(false);
+  });
+
+  it("no write APIs are exposed via the inspection adapter", async () => {
+    // Structural: the FileInspectionReader interface in the public
+    // reliability index has no write methods. This guards against
+    // future drift.
+    const reliability = await import("@/lib/reliability");
+    expect(typeof reliability.safeFileInspect).toBe("function");
+    expect((reliability as Record<string, unknown>).writeFile).toBeUndefined();
+    expect((reliability as Record<string, unknown>).editFile).toBeUndefined();
+  });
+});

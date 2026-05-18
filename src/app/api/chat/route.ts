@@ -22,6 +22,8 @@ import { detectChatReliabilityIntent } from "@/lib/chat/reliabilityIntent";
 import { runReliabilityForChat } from "@/lib/chat/reliabilityChat";
 import { detectChatAnswerIntent } from "@/lib/chat/answerIntent";
 import { wrapLocalAnswer } from "@/lib/chat/answerReliability";
+import { detectInspectionIntent } from "@/lib/chat/inspectionIntent";
+import { handleFileInspectionRequest } from "@/lib/chat/fileInspectionChat";
 import type { ChatRequestBody } from "@/lib/chat/types";
 
 export const runtime = "nodejs";
@@ -68,6 +70,52 @@ export async function POST(req: Request): Promise<Response> {
           durationMs: Math.max(0, completedAt - startedAt),
           responseMode: "local_model",
           reliability: outcome.summary,
+        });
+      }
+
+      // File-inspection intercept: "what does X.tsx do" / "inspect file"
+      // — requires explicit approval, refuses without it. Reads
+      // exactly one file, redacts secrets, returns a packed summary.
+      const inspectionIntent = detectInspectionIntent(message);
+      if (inspectionIntent) {
+        const inspectionApproval = (body as { inspectionApproval?: unknown })
+          .inspectionApproval;
+        const startedAt = Date.now();
+        const outcome = await handleFileInspectionRequest({
+          message,
+          path: inspectionIntent.path,
+          approval: inspectionApproval,
+        });
+        const completedAt = Date.now();
+        const base = {
+          ok: outcome.ok,
+          provider: "local" as const,
+          cloudUsed: false as const,
+          toolsUsed: false as const,
+          model: "file_inspection_layer",
+          reply: outcome.reply,
+          startedAt,
+          completedAt,
+          durationMs: Math.max(0, completedAt - startedAt),
+          responseMode: "local_model" as const,
+        };
+        if (outcome.status === "approval-required" && outcome.approvalRequest) {
+          return NextResponse.json({
+            ...base,
+            ok: true,
+            approvalRequired: outcome.approvalRequest,
+          });
+        }
+        return NextResponse.json({
+          ...base,
+          ok: true,
+          fileInspection: {
+            status: outcome.status,
+            ...(outcome.path ? { path: outcome.path } : {}),
+            summary: outcome.summary,
+            cloudUsed: false,
+            localOnly: true,
+          },
         });
       }
 

@@ -16,6 +16,12 @@ export interface ChatRequestBody {
   model?: string;
   /** Prior conversation in chronological order (excluding the new message). */
   history?: ChatMessage[];
+  /**
+   * Optional approval token for read-only file inspection. Only consumed
+   * when the message has a file-inspection intent. The token is bound
+   * to a single path and has a short TTL — see fileApproval.ts.
+   */
+  inspectionApproval?: unknown;
 }
 
 export interface ChatErrorBody {
@@ -93,6 +99,35 @@ export interface ChatSuccessBody {
     decomposition?: readonly string[];
     /** Tabularium action ids the reliability layer emitted for this turn. */
     receiptActions?: readonly string[];
+  };
+  /**
+   * Approval-required response body. Present when the user asked for
+   * file inspection but no valid approval was supplied. The UI renders
+   * this as an approval card and re-sends the message with an approval
+   * token if the user clicks Approve. Reading is NOT performed yet.
+   */
+  approvalRequired?: {
+    action: "inspect_one_file_safely";
+    path: string;
+    reason: string;
+    riskLevel: "low" | "medium" | "high";
+    willRead: string;
+    willNotRead: readonly string[];
+    secretRedaction: { applied: true; disclaimer: string };
+    safetyRules: readonly string[];
+    expiresInMs: number;
+  };
+  /**
+   * Structured outcome of a completed/blocked/denied file inspection.
+   * Absent on casual chat and on approval-required responses.
+   */
+  fileInspection?: {
+    status: "completed" | "blocked" | "denied" | "needs-path";
+    path?: string;
+    summary: string;
+    redactionsApplied?: readonly { category: string; count: number }[];
+    cloudUsed: false;
+    localOnly: true;
   };
 }
 

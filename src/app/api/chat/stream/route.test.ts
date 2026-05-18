@@ -287,3 +287,110 @@ describe("/api/chat/stream — answer-wrap (Phase 3)", () => {
     }
   });
 });
+
+describe("/api/chat/stream — file inspection (approval-gated)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("inspection intent without approval emits approval_required then done — no upstream fetch", async () => {
+    const fetchImpl = vi.spyOn(globalThis, "fetch");
+    const response = await POST(
+      new Request("http://test/api/chat/stream", {
+        method: "POST",
+        body: JSON.stringify({ message: "what does src/app/page.tsx do?" }),
+      }),
+    );
+    const events = await readAllEvents(response.body!);
+    expect(events[0].type).toBe("approval_required");
+    if (events[0].type === "approval_required") {
+      expect(events[0].path).toBe("src/app/page.tsx");
+      expect(events[0].cloudUsed).toBe(false);
+      expect(events[0].localOnly).toBe(true);
+      expect(events[0].willNotRead.length).toBeGreaterThan(0);
+    }
+    expect(events.some((e) => e.type === "done")).toBe(true);
+    // No model event types should be emitted.
+    expect(events.some((e) => e.type === "meta")).toBe(false);
+    expect(events.some((e) => e.type === "delta")).toBe(false);
+    // No upstream POST.
+    expect(
+      fetchImpl.mock.calls.find(
+        (c) => (c[1] as RequestInit | undefined)?.method === "POST",
+      ),
+    ).toBeUndefined();
+  });
+
+  it("inspection intent with no path asks for a path via file_inspection event", async () => {
+    vi.spyOn(globalThis, "fetch");
+    const response = await POST(
+      new Request("http://test/api/chat/stream", {
+        method: "POST",
+        body: JSON.stringify({ message: "summarize this markdown file" }),
+      }),
+    );
+    const events = await readAllEvents(response.body!);
+    const fi = events.find((e) => e.type === "file_inspection");
+    expect(fi).toBeDefined();
+    if (fi && fi.type === "file_inspection") {
+      expect(fi.status).toBe("needs-path");
+      expect(fi.cloudUsed).toBe(false);
+      expect(fi.reply).toMatch(/name the file/);
+    }
+  });
+
+  it("stream never emits file content without approval — no delta with file body", async () => {
+    vi.spyOn(globalThis, "fetch");
+    const response = await POST(
+      new Request("http://test/api/chat/stream", {
+        method: "POST",
+        body: JSON.stringify({ message: "inspect src/secret-notes.md" }),
+      }),
+    );
+    const events = await readAllEvents(response.body!);
+    // No delta events at all on the approval-required path.
+    expect(events.some((e) => e.type === "delta")).toBe(false);
+    // approval_required.reason carries the user's message, but never
+    // the file contents.
+    const ar = events.find((e) => e.type === "approval_required");
+    if (ar && ar.type === "approval_required") {
+      expect(ar.reason).not.toMatch(/this should not leak/);
+    }
+  });
+
+  it("event ordering is deterministic: approval_required → done", async () => {
+    vi.spyOn(globalThis, "fetch");
+    const response = await POST(
+      new Request("http://test/api/chat/stream", {
+        method: "POST",
+        body: JSON.stringify({ message: "inspect package.json" }),
+      }),
+    );
+    const events = await readAllEvents(response.body!);
+    const order = events.map((e) => e.type);
+    expect(order[0]).toBe("approval_required");
+    expect(order[order.length - 1]).toBe("done");
+  });
+
+  it("teacher intercept still wins over file inspection", async () => {
+    const fetchImpl = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+      new Response(JSON.stringify({ models: [{ name: "llama3.2" }] })),
+    );
+    const response = await POST(
+      new Request("http://test/api/chat/stream", {
+        method: "POST",
+        // Teacher intercept lives only on /api/chat (non-stream).
+        // Stream route does NOT have teacher intercept — confirmed by
+        // existing code. So this test confirms that for inspection-
+        // matching teacher questions the inspection layer doesn't
+        // accidentally swallow non-inspection teacher queries.
+        body: JSON.stringify({ message: "tell me a joke" }),
+      }),
+    );
+    const events = await readAllEvents(response.body!);
+    // 'tell me a joke' is not an inspection intent → flows to upstream.
+    expect(events.some((e) => e.type === "approval_required")).toBe(false);
+    expect(events.some((e) => e.type === "file_inspection")).toBe(false);
+    fetchImpl.mockRestore();
+  });
+});

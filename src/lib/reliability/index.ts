@@ -110,3 +110,56 @@ export {
   summarizeReliabilityResultForBeginner,
 } from "./copy";
 export type { ReliabilityCard } from "./copy";
+
+// File-inspection (read-only, approval-gated)
+export {
+  ALLOWED_INSPECT_EXTENSIONS,
+  BLOCKED_DIR_SEGMENTS,
+  FILE_INSPECTION_SAFETY_RULES,
+  MAX_INSPECT_FILE_BYTES,
+  checkInspectPath,
+} from "./fileSafety";
+export type {
+  CheckPathOptions,
+  PathSafetyError,
+  PathSafetyOk,
+  PathSafetyReason,
+  PathSafetyResult,
+} from "./fileSafety";
+
+export {
+  SECRET_REDACTION_DISCLAIMER,
+  redactSecrets,
+} from "./secretRedaction";
+export type {
+  RedactionApplied,
+  RedactionResult,
+  SecretRedactionCategory,
+} from "./secretRedaction";
+
+export {
+  FILE_APPROVAL_ACTION,
+  FILE_APPROVAL_TTL_MS,
+  buildFileInspectionApproval,
+  checkFileInspectionApproval,
+} from "./fileApproval";
+export type {
+  ApprovalCheckOptions,
+  ApprovalCheckResult,
+  ApprovalError,
+  ApprovalOk,
+  FileInspectionApproval,
+} from "./fileApproval";
+
+export {
+  resolveInspectionRoot,
+  safeFileInspect,
+} from "./safeFileInspection";
+export type {
+  FileInspectionReader,
+  FileInspectionReceiptAction,
+  InspectFileOptions,
+  InspectionApprovalRequest,
+  InspectionOutcome,
+  InspectionOutcomeStatus,
+} from "./safeFileInspection";
