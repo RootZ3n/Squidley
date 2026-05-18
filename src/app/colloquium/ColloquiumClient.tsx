@@ -115,13 +115,15 @@ interface UiMessage {
    *  reply text itself is unchanged. */
   honestyMessage?: string;
   /** Beginner-readable note from the Small Model Reliability Layer when it
-   *  handled this turn (health-check or error-summary). Absent for normal
-   *  chat. */
+   *  handled this turn (health-check, error-summary, or local-answer
+   *  validation/retry/fallback for the "wrap" intent). Absent for normal
+   *  first-try-success chat. */
   reliabilityNote?: {
-    intent: "summarize_error" | "health_check";
+    intent: "summarize_error" | "health_check" | "wrap";
     summary: string;
     cloudSuggested: boolean;
     ok: boolean;
+    kind?: "validated" | "retried-ok" | "fallback";
   };
 }
 
@@ -606,8 +608,9 @@ export default function ColloquiumClient() {
             );
           } else if (event.type === "reliability") {
             // The Small Model Reliability Layer handled this turn.
-            // Replace the assistant reply with the reliability reply and
-            // attach a small beginner-readable note.
+            // For wrap-intent fallbacks the stream may have produced no
+            // deltas; replace the assistant reply with the reliability
+            // reply and attach a small beginner-readable note.
             reply = event.reply;
             setMessages((prev) =>
               prev.map((m) =>
@@ -620,6 +623,7 @@ export default function ColloquiumClient() {
                         summary: event.summary,
                         cloudSuggested: event.cloudSuggested,
                         ok: event.ok,
+                        ...(event.kind ? { kind: event.kind } : {}),
                       },
                     }
                   : m,
@@ -1780,6 +1784,10 @@ function MessageBubble({
             <strong style={{ fontWeight: 600 }}>
               {message.reliabilityNote.intent === "health_check"
                 ? "Local health check:"
+                : message.reliabilityNote.intent === "wrap"
+                ? message.reliabilityNote.kind === "retried-ok"
+                  ? "Re-asked the local model:"
+                  : "Local model could not answer:"
                 : "Reliability layer:"}
             </strong>{" "}
             {message.reliabilityNote.summary}

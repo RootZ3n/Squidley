@@ -67,17 +67,32 @@ export interface ChatSuccessBody {
   unavailableTools?: readonly string[];
   /**
    * Beginner-readable summary emitted when the Small Model Reliability
-   * Layer handled this request (e.g. health-check or error-summary intent).
-   * Absent for normal chat. Never carries raw content — only a summary.
+   * Layer handled this request. Absent for normal chat that passed
+   * validation on first try. Never carries raw content — only a summary.
+   *
+   * Three intents:
+   *   - "summarize_error" / "health_check": handled fully by reliability
+   *     layer (no upstream model call).
+   *   - "wrap": local model was called for code-explanation / debugging,
+   *     and validation/retry/fallback machinery was applied. Only set
+   *     when something other than first-try success happened.
    */
   reliability?: {
-    intent: "summarize_error" | "health_check";
+    intent: "summarize_error" | "health_check" | "wrap";
     summary: string;
     stepCount: number;
     cloudSuggested: boolean;
     cloudUsed: false;
     localOnly: true;
     ok: boolean;
+    /** Only present for intent="wrap". */
+    kind?: "validated" | "retried-ok" | "fallback";
+    /** Only present for intent="wrap". */
+    retries?: number;
+    /** Only present for intent="wrap" with kind="fallback". */
+    decomposition?: readonly string[];
+    /** Tabularium action ids the reliability layer emitted for this turn. */
+    receiptActions?: readonly string[];
   };
 }
 

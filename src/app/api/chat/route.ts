@@ -20,6 +20,9 @@ import { getLocalProviderConfig } from "@/lib/providers/local";
 import { tryTeacherAnswer, teacherResultToPayload } from "@/lib/teacher/chatIntegration";
 import { detectChatReliabilityIntent } from "@/lib/chat/reliabilityIntent";
 import { runReliabilityForChat } from "@/lib/chat/reliabilityChat";
+import { detectChatAnswerIntent } from "@/lib/chat/answerIntent";
+import { wrapLocalAnswer } from "@/lib/chat/answerReliability";
+import type { ChatRequestBody } from "@/lib/chat/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -66,6 +69,20 @@ export async function POST(req: Request): Promise<Response> {
           responseMode: "local_model",
           reliability: outcome.summary,
         });
+      }
+
+      // Answer-wrap intercept: code-explanation / debugging / "why did
+      // this fail?" — calls the local model, then validates. On first-
+      // try success the response shape is UNCHANGED (no reliability
+      // field), so casual code chat is unaffected.
+      const answerIntent = detectChatAnswerIntent(message);
+      if (answerIntent) {
+        const config = getLocalProviderConfig();
+        const wrapped = await wrapLocalAnswer({
+          body: body as ChatRequestBody,
+          config,
+        });
+        return NextResponse.json(wrapped.payload, { status: wrapped.status });
       }
     }
   }

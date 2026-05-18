@@ -10,6 +10,9 @@ import {
 import { detectHallucinatedToolActions } from "@/lib/chat/honestyAnnotation";
 import { detectChatReliabilityIntent } from "@/lib/chat/reliabilityIntent";
 import { runReliabilityForChat } from "@/lib/chat/reliabilityChat";
+import { detectChatAnswerIntent } from "@/lib/chat/answerIntent";
+import { validateLocalAnswer } from "@/lib/chat/answerValidator";
+import { buildStreamFallback } from "@/lib/chat/answerReliability";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,11 +27,17 @@ export async function POST(req: Request): Promise<Response> {
 
   const config = getLocalProviderConfig();
 
+  // Detect whether this is a wrap-intent (code-explanation, debugging).
+  // The wrap path streams as usual but validates AFTER the upstream
+  // `done`. No retry in stream mode — keeps event ordering deterministic.
+  let wrapAnswer = false;
+
   // Reliability Layer intercept: respond with a single reliability event
   // (no upstream model call) for narrow troubleshooting intents.
   if (body && typeof body === "object" && "message" in body) {
     const message = (body as { message?: unknown }).message;
     if (typeof message === "string") {
+      wrapAnswer = detectChatAnswerIntent(message) !== null;
       const intentMatch = detectChatReliabilityIntent(message);
       if (intentMatch) {
         const startedAt = Date.now();
@@ -188,6 +197,22 @@ export async function POST(req: Request): Promise<Response> {
               }),
             ),
           );
+        }
+
+        // Wrap-intent validation: code-explanation/debugging requests
+        // get checked for empty / refusal / fake-success / tool-noise.
+        // If validation fails, emit a `reliability` event with an
+        // honest fallback and decomposition. No retry in stream mode —
+        // event ordering stays deterministic (meta → 0..n delta →
+        // honesty? → reliability? → done).
+        if (wrapAnswer) {
+          const validation = validateLocalAnswer(accumulatedReply);
+          if (!validation.ok && validation.reason) {
+            const fallback = buildStreamFallback({ reason: validation.reason });
+            controller.enqueue(
+              encoder.encode(encodeStreamEvent(fallback.reliabilityPayload)),
+            );
+          }
         }
 
         const completedAt = Date.now();

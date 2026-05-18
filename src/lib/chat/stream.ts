@@ -46,11 +46,13 @@ export type StreamEvent =
     }
   | {
       /** Emitted (instead of meta/delta/done) when a request was handled
-       *  by the Small Model Reliability Layer. The full beginner-readable
-       *  reply travels in `reply`; the structured `summary` mirrors the
-       *  non-stream `reliability` field on ChatSuccessBody. */
+       *  by the Small Model Reliability Layer, OR emitted AFTER a stream
+       *  that did not produce a valid answer (intent="wrap"). The full
+       *  beginner-readable reply travels in `reply`; the structured
+       *  `summary` mirrors the non-stream `reliability` field on
+       *  ChatSuccessBody. */
       type: "reliability";
-      intent: "summarize_error" | "health_check";
+      intent: "summarize_error" | "health_check" | "wrap";
       reply: string;
       summary: string;
       stepCount: number;
@@ -58,6 +60,14 @@ export type StreamEvent =
       cloudUsed: false;
       localOnly: true;
       ok: boolean;
+      /** Only present for intent="wrap". */
+      kind?: "validated" | "retried-ok" | "fallback";
+      /** Only present for intent="wrap". */
+      retries?: number;
+      /** Only present for intent="wrap" with kind="fallback". */
+      decomposition?: readonly string[];
+      /** Tabularium action ids the reliability layer emitted for this turn. */
+      receiptActions?: readonly string[];
     }
   | (ChatErrorBody & { type: "error" });
 
