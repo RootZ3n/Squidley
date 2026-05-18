@@ -130,6 +130,86 @@ export type StreamEvent =
       localOnly: true;
       ok: boolean;
     }
+  | {
+      /** Emitted in Phase A of the tiny-edit workflow. Carries the
+       *  diff preview + four-hash approval request. NOTHING has been
+       *  written to disk. */
+      type: "edit_preview";
+      action: "tiny_edit";
+      path: string;
+      originalSnippet: string;
+      proposedSnippet: string;
+      originalHash: string;
+      proposedHash: string;
+      fileHash: string;
+      summary: string;
+      reason: string;
+      confidence: "high" | "medium" | "low";
+      riskLevel: "safe" | "review" | "elevated" | "blocked";
+      expiresInMs: number;
+      limitations: readonly string[];
+      diffPreview: {
+        path: string;
+        lines: readonly string[];
+        bytesRemoved: number;
+        bytesAdded: number;
+        linesChanged: number;
+      };
+      reply: string;
+      cloudUsed: false;
+      localOnly: true;
+    }
+  | {
+      /** Emitted in Phase B of the tiny-edit workflow when a write
+       *  was attempted (regardless of whether verification ultimately
+       *  passed). */
+      type: "edit_applied";
+      path: string;
+      bytesRemoved: number;
+      bytesAdded: number;
+      cloudUsed: false;
+      localOnly: true;
+    }
+  | {
+      /** Verification outcome — emitted after `edit_applied`. */
+      type: "verification";
+      path: string;
+      verificationStatus: "passed" | "failed";
+      failureReason?: string;
+      checks: readonly { id: string; description: string; passed: boolean }[];
+      cloudUsed: false;
+      localOnly: true;
+    }
+  | {
+      /** Emitted between `verification` (failed) and `done` when the
+       *  apply engine rolls back. */
+      type: "rollback";
+      path: string;
+      reason: string;
+      cloudUsed: false;
+      localOnly: true;
+    }
+  | {
+      /** Final structured outcome for a tiny-edit Phase B run, even
+       *  on success — carries the same shape as the non-stream
+       *  `edit` field. */
+      type: "edit_result";
+      status:
+        | "approval-required"
+        | "blocked"
+        | "applied-verified"
+        | "applied-rolled-back"
+        | "denied";
+      path: string;
+      applied: boolean;
+      rolledBack: boolean;
+      reply: string;
+      summary: string;
+      failureReason?: string;
+      cloudUsed: false;
+      localOnly: true;
+      ok: boolean;
+    }
   | (ChatErrorBody & { type: "error" });
 
 export interface ParsedOllamaStreamChunk {

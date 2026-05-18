@@ -17,6 +17,8 @@ import { detectInspectionIntent } from "@/lib/chat/inspectionIntent";
 import { handleFileInspectionRequest } from "@/lib/chat/fileInspectionChat";
 import { detectPlanningIntent } from "@/lib/planning";
 import { runPlanningForChat } from "@/lib/chat/planningChat";
+import { detectEditIntent } from "@/lib/chat/editIntent";
+import { handleEditingChatRequest } from "@/lib/chat/editingChat";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -93,6 +95,152 @@ export async function POST(req: Request): Promise<Response> {
             }),
           );
         }
+        events.push(
+          encodeStreamEvent({
+            type: "done",
+            completedAt,
+            durationMs: Math.max(0, completedAt - startedAt),
+          }),
+        );
+        return new Response(events.join(""), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/x-ndjson; charset=utf-8",
+            "Cache-Control": "no-store",
+          },
+        });
+      }
+
+      // Tiny-edit intercept: emit deterministic event chain:
+      //   edit_preview → done                (Phase A — no token)
+      //   edit_applied → verification → done (Phase B — verified)
+      //   edit_applied → verification → rollback → done (Phase B — rolled back)
+      const bodyTyped = body as {
+        editProposal?: {
+          path: string;
+          originalSnippet: string;
+          proposedSnippet: string;
+          reason?: string;
+        };
+        editApproval?: unknown;
+        inspectedFiles?: readonly { path: string; packedContent: string }[];
+      };
+      const editIntent = detectEditIntent(message);
+      const editProposal =
+        bodyTyped.editProposal ??
+        (editIntent && editIntent.parsed
+          ? {
+              path: editIntent.parsed.path,
+              originalSnippet: editIntent.parsed.originalSnippet,
+              proposedSnippet: editIntent.parsed.proposedSnippet,
+            }
+          : undefined);
+      if (editProposal) {
+        const inspectedPaths = (bodyTyped.inspectedFiles ?? []).map(
+          (f) => f.path,
+        );
+        const startedAt = Date.now();
+        const outcome = await handleEditingChatRequest({
+          message,
+          editProposal,
+          approval: bodyTyped.editApproval,
+          inspectedPaths,
+        });
+        const completedAt = Date.now();
+        const events: string[] = [];
+        if (
+          outcome.status === "approval-required" &&
+          outcome.approvalRequest &&
+          outcome.diffPreview
+        ) {
+          events.push(
+            encodeStreamEvent({
+              type: "edit_preview",
+              action: outcome.approvalRequest.action,
+              path: outcome.approvalRequest.path,
+              originalSnippet: outcome.approvalRequest.originalSnippet,
+              proposedSnippet: outcome.approvalRequest.proposedSnippet,
+              originalHash: outcome.approvalRequest.originalHash,
+              proposedHash: outcome.approvalRequest.proposedHash,
+              fileHash: outcome.approvalRequest.fileHash,
+              summary: outcome.approvalRequest.summary,
+              reason: outcome.approvalRequest.reason,
+              confidence: outcome.approvalRequest.confidence,
+              riskLevel: outcome.approvalRequest.riskLevel,
+              expiresInMs: outcome.approvalRequest.expiresInMs,
+              limitations: outcome.approvalRequest.limitations,
+              diffPreview: {
+                path: outcome.diffPreview.path,
+                lines: outcome.diffPreview.lines,
+                bytesRemoved: outcome.diffPreview.bytesRemoved,
+                bytesAdded: outcome.diffPreview.bytesAdded,
+                linesChanged: outcome.diffPreview.linesChanged,
+              },
+              reply: outcome.reply,
+              cloudUsed: false,
+              localOnly: true,
+            }),
+          );
+        } else if (
+          outcome.status === "applied-verified" ||
+          outcome.status === "applied-rolled-back"
+        ) {
+          events.push(
+            encodeStreamEvent({
+              type: "edit_applied",
+              path: outcome.path,
+              bytesRemoved: outcome.diffPreview?.bytesRemoved ?? 0,
+              bytesAdded: outcome.diffPreview?.bytesAdded ?? 0,
+              cloudUsed: false,
+              localOnly: true,
+            }),
+          );
+          if (outcome.verification) {
+            events.push(
+              encodeStreamEvent({
+                type: "verification",
+                path: outcome.path,
+                verificationStatus: outcome.verification.verificationStatus,
+                ...(outcome.verification.failureReason
+                  ? { failureReason: outcome.verification.failureReason }
+                  : {}),
+                checks: outcome.verification.checks.map((c) => ({
+                  id: c.id,
+                  description: c.description,
+                  passed: c.passed,
+                })),
+                cloudUsed: false,
+                localOnly: true,
+              }),
+            );
+          }
+          if (outcome.status === "applied-rolled-back") {
+            events.push(
+              encodeStreamEvent({
+                type: "rollback",
+                path: outcome.path,
+                reason: outcome.failureReason ?? "verification failed",
+                cloudUsed: false,
+                localOnly: true,
+              }),
+            );
+          }
+        }
+        events.push(
+          encodeStreamEvent({
+            type: "edit_result",
+            status: outcome.status,
+            path: outcome.path,
+            applied: outcome.applied,
+            rolledBack: outcome.rolledBack,
+            reply: outcome.reply,
+            summary: outcome.summary,
+            ...(outcome.failureReason ? { failureReason: outcome.failureReason } : {}),
+            cloudUsed: false,
+            localOnly: true,
+            ok: outcome.ok,
+          }),
+        );
         events.push(
           encodeStreamEvent({
             type: "done",

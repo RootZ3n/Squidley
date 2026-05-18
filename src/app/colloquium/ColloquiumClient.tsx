@@ -144,6 +144,57 @@ interface UiMessage {
     assumed: readonly string[];
     missing: readonly string[];
   };
+  /** Tiny-edit approval-required panel — distinct from the read-only
+   *  inspection approval. Carries the diff preview + the four hashes
+   *  the server bound the approval to. Approve resends the message
+   *  with `editApproval` populated; Decline dismisses. */
+  editApprovalRequest?: {
+    action: "tiny_edit";
+    path: string;
+    originalSnippet: string;
+    proposedSnippet: string;
+    originalHash: string;
+    proposedHash: string;
+    fileHash: string;
+    summary: string;
+    reason: string;
+    confidence: "high" | "medium" | "low";
+    riskLevel: "safe" | "review" | "elevated" | "blocked";
+    expiresInMs: number;
+    limitations: readonly string[];
+    diffPreview: {
+      path: string;
+      lines: readonly string[];
+      bytesRemoved: number;
+      bytesAdded: number;
+      linesChanged: number;
+    };
+    /** Carries the original (path, original, proposed) so Approve can
+     *  resend without parsing them out of the user's message. */
+    proposalInput: {
+      path: string;
+      originalSnippet: string;
+      proposedSnippet: string;
+      reason?: string;
+    };
+    state: "pending" | "approved" | "declined";
+  };
+  /** Outcome of an applied tiny edit — appears below the assistant
+   *  reply with a green-or-red status and the verification details. */
+  editResult?: {
+    status:
+      | "approval-required"
+      | "blocked"
+      | "applied-verified"
+      | "applied-rolled-back"
+      | "denied";
+    path: string;
+    applied: boolean;
+    rolledBack: boolean;
+    summary: string;
+    failureReason?: string;
+    checks: readonly { id: string; description: string; passed: boolean }[];
+  };
   /** Approval-required panel for read-only file inspection. The user
    *  clicks Approve to build an approval token and re-send the original
    *  message; click Decline to dismiss. */
@@ -467,6 +518,21 @@ export default function ColloquiumClient() {
           approvedAt: number;
           approvalId: string;
         };
+        editProposal?: {
+          path: string;
+          originalSnippet: string;
+          proposedSnippet: string;
+          reason?: string;
+        };
+        editApproval?: {
+          action: "tiny_edit";
+          path: string;
+          originalHash: string;
+          proposedHash: string;
+          fileHash: string;
+          approvedAt: number;
+          approvalId: string;
+        };
       } = {},
     ) => {
       const trimmed = text.trim();
@@ -586,6 +652,8 @@ export default function ColloquiumClient() {
             ...(options.inspectionApproval
               ? { inspectionApproval: options.inspectionApproval }
               : {}),
+            ...(options.editProposal ? { editProposal: options.editProposal } : {}),
+            ...(options.editApproval ? { editApproval: options.editApproval } : {}),
             ...(() => {
               const inspected = messages
                 .filter((m) => m.role === "assistant" && m.inspectedFile)
@@ -735,6 +803,81 @@ export default function ColloquiumClient() {
                   : m,
               ),
             );
+          } else if (event.type === "edit_preview") {
+            reply = event.reply;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId
+                  ? {
+                      ...m,
+                      text: event.reply,
+                      editApprovalRequest: {
+                        action: event.action,
+                        path: event.path,
+                        originalSnippet: event.originalSnippet,
+                        proposedSnippet: event.proposedSnippet,
+                        originalHash: event.originalHash,
+                        proposedHash: event.proposedHash,
+                        fileHash: event.fileHash,
+                        summary: event.summary,
+                        reason: event.reason,
+                        confidence: event.confidence,
+                        riskLevel: event.riskLevel,
+                        expiresInMs: event.expiresInMs,
+                        limitations: event.limitations,
+                        diffPreview: event.diffPreview,
+                        proposalInput: {
+                          path: event.path,
+                          originalSnippet: event.originalSnippet,
+                          proposedSnippet: event.proposedSnippet,
+                          reason: event.reason,
+                        },
+                        state: "pending",
+                      },
+                    }
+                  : m,
+              ),
+            );
+          } else if (event.type === "edit_result") {
+            reply = event.reply;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId
+                  ? {
+                      ...m,
+                      text: event.reply,
+                      editResult: {
+                        status: event.status,
+                        path: event.path,
+                        applied: event.applied,
+                        rolledBack: event.rolledBack,
+                        summary: event.summary,
+                        ...(event.failureReason
+                          ? { failureReason: event.failureReason }
+                          : {}),
+                        checks: [],
+                      },
+                    }
+                  : m,
+              ),
+            );
+          } else if (event.type === "edit_applied" || event.type === "rollback") {
+            // Informational events. The composite state lives on
+            // editResult; nothing to render separately here.
+          } else if (event.type === "verification") {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId && m.editResult
+                  ? {
+                      ...m,
+                      editResult: {
+                        ...m.editResult,
+                        checks: event.checks,
+                      },
+                    }
+                  : m,
+              ),
+            );
           } else if (event.type === "plan") {
             reply = event.reply;
             setMessages((prev) =>
@@ -850,6 +993,65 @@ export default function ColloquiumClient() {
     },
     [messages, send],
   );
+
+  const handleApproveEdit = useCallback(
+    (messageId: string) => {
+      const target = messages.find((m) => m.id === messageId);
+      if (!target || !target.editApprovalRequest) return;
+      if (target.editApprovalRequest.state !== "pending") return;
+      const req = target.editApprovalRequest;
+      const approval = {
+        action: "tiny_edit" as const,
+        path: req.path,
+        originalHash: req.originalHash,
+        proposedHash: req.proposedHash,
+        fileHash: req.fileHash,
+        approvedAt: Date.now(),
+        approvalId: `edit-appr-${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2, 8)}`,
+      };
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId && m.editApprovalRequest
+            ? {
+                ...m,
+                editApprovalRequest: {
+                  ...m.editApprovalRequest,
+                  state: "approved",
+                },
+              }
+            : m,
+        ),
+      );
+      void send(
+        `apply tiny edit to ${req.path}`,
+        {
+          editProposal: req.proposalInput,
+          editApproval: approval,
+        },
+      );
+    },
+    [messages, send],
+  );
+
+  const handleDeclineEdit = useCallback((messageId: string) => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId && m.editApprovalRequest
+          ? {
+              ...m,
+              text:
+                "Squidley did not apply the edit. Nothing was written to disk.",
+              editApprovalRequest: {
+                ...m.editApprovalRequest,
+                state: "declined",
+              },
+            }
+          : m,
+      ),
+    );
+  }, []);
 
   const handleDeclineInspection = useCallback((messageId: string) => {
     setMessages((prev) =>
@@ -1184,6 +1386,8 @@ export default function ColloquiumClient() {
                   isExample={showingExamples}
                   onApproveInspection={handleApproveInspection}
                   onDeclineInspection={handleDeclineInspection}
+                  onApproveEdit={handleApproveEdit}
+                  onDeclineEdit={handleDeclineEdit}
                 />
               ))}
               <div ref={threadEndRef} />
@@ -1833,12 +2037,16 @@ function MessageBubble({
   isExample,
   onApproveInspection,
   onDeclineInspection,
+  onApproveEdit,
+  onDeclineEdit,
 }: {
   message: UiMessage;
   activeTarget: string | null;
   isExample: boolean;
   onApproveInspection?: (messageId: string) => void;
   onDeclineInspection?: (messageId: string) => void;
+  onApproveEdit?: (messageId: string) => void;
+  onDeclineEdit?: (messageId: string) => void;
 }) {
   if (message.role === "error") {
     const palette = STATUS_PALETTE.warn;
@@ -2192,6 +2400,169 @@ function MessageBubble({
                   ? "Approved. Squidley is reading the file once and will not change it."
                   : "Declined. The file was not read."}
               </div>
+            )}
+          </div>
+        )}
+        {message.role === "assistant" && message.editApprovalRequest && (
+          <div
+            role="region"
+            aria-label="Tiny edit approval"
+            style={{
+              marginTop: 8,
+              padding: "12px 14px",
+              borderRadius: 12,
+              border: "1px solid rgba(244,114,182,0.45)",
+              background: "rgba(244,114,182,0.08)",
+              color: "#fbcfe8",
+              fontSize: 13,
+              lineHeight: 1.55,
+            }}
+          >
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>
+              Squidley wants to make a tiny edit
+            </div>
+            <div style={{ marginBottom: 6 }}>
+              Editing is not the same as automatic. This applies one
+              targeted text replacement and then re-reads the file to
+              verify. Squidley rolls back if anything looks wrong.
+            </div>
+            <div style={{ marginBottom: 6 }}>
+              <span
+                style={{
+                  display: "inline-block",
+                  padding: "2px 8px",
+                  marginRight: 6,
+                  borderRadius: 4,
+                  background: "rgba(244,114,182,0.18)",
+                  color: "#fbcfe8",
+                  fontSize: 11,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                }}
+              >
+                Tiny edit
+              </span>
+              <code style={{ fontSize: 12 }}>{message.editApprovalRequest.path}</code>
+              <span style={{ marginLeft: 8, fontSize: 11, opacity: 0.85 }}>
+                {message.editApprovalRequest.diffPreview.bytesRemoved}b removed,
+                {" "}
+                {message.editApprovalRequest.diffPreview.bytesAdded}b added
+              </span>
+            </div>
+            <pre
+              style={{
+                margin: "6px 0",
+                padding: "8px 10px",
+                borderRadius: 6,
+                background: "rgba(0,0,0,0.25)",
+                color: "#fce7f3",
+                fontSize: 12,
+                lineHeight: 1.45,
+                overflowX: "auto",
+                whiteSpace: "pre",
+              }}
+            >
+              {message.editApprovalRequest.diffPreview.lines.join("\n")}
+            </pre>
+            <div style={{ marginBottom: 8, fontSize: 12, opacity: 0.85 }}>
+              {message.editApprovalRequest.reason || "—"}
+            </div>
+            {message.editApprovalRequest.state === "pending" ? (
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => onApproveEdit?.(message.id)}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 6,
+                    border: "1px solid rgba(244,114,182,0.5)",
+                    background: "rgba(244,114,182,0.22)",
+                    color: "#fce7f3",
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  Approve this edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDeclineEdit?.(message.id)}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 6,
+                    border: "1px solid rgba(148,163,184,0.45)",
+                    background: "rgba(148,163,184,0.12)",
+                    color: "#cbd5e1",
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  Decline
+                </button>
+              </div>
+            ) : (
+              <div
+                style={{
+                  fontSize: 12,
+                  fontStyle: "italic",
+                  color:
+                    message.editApprovalRequest.state === "approved"
+                      ? "#fce7f3"
+                      : "#cbd5e1",
+                }}
+              >
+                {message.editApprovalRequest.state === "approved"
+                  ? "Approved. Squidley is applying the edit and verifying it now."
+                  : "Declined. Nothing was written to disk."}
+              </div>
+            )}
+          </div>
+        )}
+        {message.role === "assistant" && message.editResult && (
+          <div
+            role="region"
+            aria-label="Tiny edit result"
+            style={{
+              marginTop: 8,
+              padding: "10px 12px",
+              borderRadius: 12,
+              border:
+                message.editResult.status === "applied-verified"
+                  ? "1px solid rgba(74,222,128,0.4)"
+                  : "1px solid rgba(251,113,133,0.4)",
+              background:
+                message.editResult.status === "applied-verified"
+                  ? "rgba(74,222,128,0.08)"
+                  : "rgba(251,113,133,0.08)",
+              color:
+                message.editResult.status === "applied-verified"
+                  ? "#bbf7d0"
+                  : "#fecdd3",
+              fontSize: 13,
+              lineHeight: 1.5,
+            }}
+          >
+            <strong>
+              {message.editResult.status === "applied-verified"
+                ? "Edit applied and verified"
+                : message.editResult.status === "applied-rolled-back"
+                ? "Edit applied — rolled back after verification failed"
+                : "Edit refused"}
+            </strong>
+            <div style={{ marginTop: 4 }}>{message.editResult.summary}</div>
+            {message.editResult.failureReason && (
+              <div style={{ marginTop: 4, fontSize: 12, opacity: 0.9 }}>
+                Reason: {message.editResult.failureReason}
+              </div>
+            )}
+            {message.editResult.checks.length > 0 && (
+              <ul style={{ margin: "6px 0 0 18px", padding: 0, fontSize: 12 }}>
+                {message.editResult.checks.map((c) => (
+                  <li key={c.id}>
+                    {c.passed ? "✓" : "✗"} {c.description}
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         )}

@@ -30,6 +30,23 @@ export interface ChatRequestBody {
    * only be `inferred`, `assumed`, or `missing`.
    */
   inspectedFiles?: readonly { path: string; packedContent: string }[];
+  /**
+   * Structured tiny-edit proposal supplied by the UI. When present,
+   * the chat route routes the message through the tiny-edit workflow
+   * (Phase A if `editApproval` is absent, Phase B if it is present).
+   */
+  editProposal?: {
+    path: string;
+    originalSnippet: string;
+    proposedSnippet: string;
+    reason?: string;
+  };
+  /**
+   * Approval token for a tiny edit. Bound to the four hashes
+   * (path / originalHash / proposedHash / fileHash). Without this
+   * token, no write happens.
+   */
+  editApproval?: unknown;
 }
 
 export interface ChatErrorBody {
@@ -165,6 +182,59 @@ export interface ChatSuccessBody {
     assumed: readonly string[];
     missing: readonly string[];
     suggestedNextInspections: readonly string[];
+  };
+  /**
+   * Approval-required body for a tiny edit. Present when the user
+   * asked Squidley to make an edit but did not supply an approval
+   * token. The UI renders a diff-preview + Approve/Decline panel. No
+   * file content has been written.
+   */
+  editApprovalRequired?: {
+    action: "tiny_edit";
+    path: string;
+    originalSnippet: string;
+    proposedSnippet: string;
+    originalHash: string;
+    proposedHash: string;
+    fileHash: string;
+    summary: string;
+    reason: string;
+    confidence: "high" | "medium" | "low";
+    riskLevel: "safe" | "review" | "elevated" | "blocked";
+    expiresInMs: number;
+    limitations: readonly string[];
+    diffPreview: {
+      path: string;
+      lines: readonly string[];
+      bytesRemoved: number;
+      bytesAdded: number;
+      linesChanged: number;
+    };
+  };
+  /**
+   * Structured outcome of an applied/blocked/denied tiny edit. Absent
+   * on casual chat and on `editApprovalRequired` responses.
+   */
+  edit?: {
+    status:
+      | "approval-required"
+      | "blocked"
+      | "applied-verified"
+      | "applied-rolled-back"
+      | "denied";
+    path: string;
+    applied: boolean;
+    rolledBack: boolean;
+    summary: string;
+    failureReason?: string;
+    verification?: {
+      verificationStatus: "passed" | "failed";
+      failureReason?: string;
+      checks: readonly { id: string; description: string; passed: boolean }[];
+    };
+    receiptActions: readonly string[];
+    cloudUsed: false;
+    localOnly: true;
   };
 }
 

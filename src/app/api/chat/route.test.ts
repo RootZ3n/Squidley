@@ -557,3 +557,205 @@ describe("/api/chat — structured planning", () => {
     expect(json.plan.suggestedNextInspections).not.toContain("src/a.ts");
   });
 });
+
+describe("/api/chat — tiny edit workflow", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("Phase A: editProposal routes to tiny_edit_layer and never fetches the model", async () => {
+    const fetchImpl = vi.spyOn(globalThis, "fetch");
+    // The file does not exist on disk, so the result is `blocked`,
+    // but the important invariants are: (a) the model was not called,
+    // (b) the response carries `edit` or `editApprovalRequired`, and
+    // (c) cloudUsed=false.
+    const response = await POST(
+      new Request("http://test/api/chat", {
+        method: "POST",
+        body: JSON.stringify({
+          message: "tiny edit",
+          editProposal: {
+            path: "src/lib/__no_such_file__.ts",
+            originalSnippet: "abcd",
+            proposedSnippet: "wxyz",
+          },
+          inspectedFiles: [
+            {
+              path: "src/lib/__no_such_file__.ts",
+              packedContent: "abcd more content",
+            },
+          ],
+        }),
+      }),
+    );
+    const json = await response.json();
+    expect(json.model).toBe("tiny_edit_layer");
+    expect(json.cloudUsed).toBe(false);
+    expect(json.edit || json.editApprovalRequired).toBeTruthy();
+    expect(
+      fetchImpl.mock.calls.find(
+        (c) => (c[1] as RequestInit | undefined)?.method === "POST",
+      ),
+    ).toBeUndefined();
+  });
+
+  it("blocks edit when path was not previously inspected", async () => {
+    const fetchImpl = vi.spyOn(globalThis, "fetch");
+    const response = await POST(
+      new Request("http://test/api/chat", {
+        method: "POST",
+        body: JSON.stringify({
+          message: "tiny edit",
+          editProposal: {
+            path: "src/x.ts",
+            originalSnippet: "abcd",
+            proposedSnippet: "wxyz",
+          },
+          // No inspectedFiles.
+        }),
+      }),
+    );
+    const json = await response.json();
+    expect(json.edit?.status).toBe("blocked");
+    expect(json.edit?.applied).toBe(false);
+    expect(json.edit?.summary.toLowerCase()).toMatch(/inspection|inspected/);
+    expect(
+      fetchImpl.mock.calls.find(
+        (c) => (c[1] as RequestInit | undefined)?.method === "POST",
+      ),
+    ).toBeUndefined();
+  });
+
+  it("blocks edit on .env even with prior 'inspection' claim", async () => {
+    vi.spyOn(globalThis, "fetch");
+    const response = await POST(
+      new Request("http://test/api/chat", {
+        method: "POST",
+        body: JSON.stringify({
+          message: "tiny edit",
+          editProposal: {
+            path: ".env",
+            originalSnippet: "abcdef",
+            proposedSnippet: "ghijkl",
+          },
+          inspectedFiles: [{ path: ".env", packedContent: "x" }],
+        }),
+      }),
+    );
+    const json = await response.json();
+    expect(json.edit?.status).toBe("blocked");
+    expect(json.edit?.applied).toBe(false);
+  });
+
+  it("blocks edit traversal", async () => {
+    vi.spyOn(globalThis, "fetch");
+    const response = await POST(
+      new Request("http://test/api/chat", {
+        method: "POST",
+        body: JSON.stringify({
+          message: "tiny edit",
+          editProposal: {
+            path: "../etc/passwd",
+            originalSnippet: "abcd",
+            proposedSnippet: "wxyz",
+          },
+          inspectedFiles: [{ path: "../etc/passwd", packedContent: "x" }],
+        }),
+      }),
+    );
+    const json = await response.json();
+    expect(json.edit?.status).toBe("blocked");
+  });
+
+  it("edit responses always declare cloudUsed=false", async () => {
+    vi.spyOn(globalThis, "fetch");
+    const response = await POST(
+      new Request("http://test/api/chat", {
+        method: "POST",
+        body: JSON.stringify({
+          message: "tiny edit",
+          editProposal: {
+            path: "src/x.ts",
+            originalSnippet: "abcd",
+            proposedSnippet: "wxyz",
+          },
+        }),
+      }),
+    );
+    const json = await response.json();
+    expect(json.cloudUsed).toBe(false);
+    if (json.edit) expect(json.edit.cloudUsed).toBe(false);
+    if (json.editApprovalRequired) {
+      // The approval body itself does not carry cloudUsed, but the
+      // outer response does.
+      expect(json.cloudUsed).toBe(false);
+    }
+  });
+
+  it("teacher intercept still wins over editing", async () => {
+    const fetchImpl = vi.spyOn(globalThis, "fetch");
+    const response = await POST(
+      new Request("http://test/api/chat", {
+        method: "POST",
+        body: JSON.stringify({
+          message: "What is local mode?",
+          editProposal: {
+            path: "src/x.ts",
+            originalSnippet: "abcd",
+            proposedSnippet: "wxyz",
+          },
+          inspectedFiles: [{ path: "src/x.ts", packedContent: "abcd" }],
+        }),
+      }),
+    );
+    const json = await response.json();
+    expect(json.teacherSource).toBe("teacher_layer");
+    expect(json.edit).toBeUndefined();
+    expect(json.editApprovalRequired).toBeUndefined();
+    expect(
+      fetchImpl.mock.calls.find(
+        (c) => (c[1] as RequestInit | undefined)?.method === "POST",
+      ),
+    ).toBeUndefined();
+  });
+
+  it("file-inspection intent still wins over editing", async () => {
+    vi.spyOn(globalThis, "fetch");
+    const response = await POST(
+      new Request("http://test/api/chat", {
+        method: "POST",
+        body: JSON.stringify({
+          message: "what does src/x.ts do?",
+          editProposal: {
+            path: "src/x.ts",
+            originalSnippet: "abcd",
+            proposedSnippet: "wxyz",
+          },
+          inspectedFiles: [{ path: "src/x.ts", packedContent: "abcd" }],
+        }),
+      }),
+    );
+    const json = await response.json();
+    expect(json.approvalRequired || json.fileInspection).toBeTruthy();
+    expect(json.edit).toBeUndefined();
+    expect(json.editApprovalRequired).toBeUndefined();
+  });
+
+  it("casual chat remains unaffected (no editProposal, no edit intent)", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+      new Response(JSON.stringify({ message: { content: "hi back" } }), {
+        status: 200,
+      }),
+    );
+    const response = await POST(
+      new Request("http://test/api/chat", {
+        method: "POST",
+        body: JSON.stringify({ message: "hello there" }),
+      }),
+    );
+    const json = await response.json();
+    expect(json.ok).toBe(true);
+    expect(json.edit).toBeUndefined();
+    expect(json.editApprovalRequired).toBeUndefined();
+  });
+});

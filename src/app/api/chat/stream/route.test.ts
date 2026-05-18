@@ -458,6 +458,35 @@ describe("/api/chat/stream — structured planning", () => {
     }
   });
 
+  it("edit intercept emits deterministic event sequence and never fetches model", async () => {
+    const fetchImpl = vi.spyOn(globalThis, "fetch");
+    const response = await POST(
+      new Request("http://test/api/chat/stream", {
+        method: "POST",
+        body: JSON.stringify({
+          message: "tiny edit",
+          editProposal: {
+            path: "src/x.ts",
+            originalSnippet: "abcd",
+            proposedSnippet: "wxyz",
+          },
+          // No inspectedFiles → must be blocked, no write.
+        }),
+      }),
+    );
+    const events = await readAllEvents(response.body!);
+    expect(events.some((e) => e.type === "edit_result")).toBe(true);
+    expect(events.some((e) => e.type === "done")).toBe(true);
+    // Phase A or B — never delta/meta.
+    expect(events.some((e) => e.type === "delta")).toBe(false);
+    expect(events.some((e) => e.type === "meta")).toBe(false);
+    expect(
+      fetchImpl.mock.calls.find(
+        (c) => (c[1] as RequestInit | undefined)?.method === "POST",
+      ),
+    ).toBeUndefined();
+  });
+
   it("casual stream chat is not converted to a plan", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
       if ((init as RequestInit | undefined)?.method !== "POST") {

@@ -26,6 +26,8 @@ import { detectInspectionIntent } from "@/lib/chat/inspectionIntent";
 import { handleFileInspectionRequest } from "@/lib/chat/fileInspectionChat";
 import { detectPlanningIntent } from "@/lib/planning";
 import { runPlanningForChat } from "@/lib/chat/planningChat";
+import { detectEditIntent } from "@/lib/chat/editIntent";
+import { handleEditingChatRequest } from "@/lib/chat/editingChat";
 import type { ChatRequestBody } from "@/lib/chat/types";
 
 export const runtime = "nodejs";
@@ -115,6 +117,120 @@ export async function POST(req: Request): Promise<Response> {
             status: outcome.status,
             ...(outcome.path ? { path: outcome.path } : {}),
             summary: outcome.summary,
+            cloudUsed: false,
+            localOnly: true,
+          },
+        });
+      }
+
+      // Tiny-edit intercept: structured editProposal supplied by the
+      // UI (or a natural-language "make a tiny edit" message) triggers
+      // a Phase A approval request or, with editApproval, a Phase B
+      // apply+verify+rollback. NEVER falls through to the model.
+      const bodyTyped = body as {
+        editProposal?: {
+          path: string;
+          originalSnippet: string;
+          proposedSnippet: string;
+          reason?: string;
+        };
+        editApproval?: unknown;
+        inspectedFiles?: readonly { path: string; packedContent: string }[];
+      };
+      const editIntent = detectEditIntent(message);
+      const editProposal =
+        bodyTyped.editProposal ?? editIntent?.parsed
+          ? bodyTyped.editProposal ??
+            (editIntent && editIntent.parsed
+              ? {
+                  path: editIntent.parsed.path,
+                  originalSnippet: editIntent.parsed.originalSnippet,
+                  proposedSnippet: editIntent.parsed.proposedSnippet,
+                }
+              : undefined)
+          : undefined;
+      if (editProposal) {
+        const inspectedPaths = (bodyTyped.inspectedFiles ?? []).map(
+          (f) => f.path,
+        );
+        const startedAt = Date.now();
+        const outcome = await handleEditingChatRequest({
+          message,
+          editProposal,
+          approval: bodyTyped.editApproval,
+          inspectedPaths,
+        });
+        const completedAt = Date.now();
+        const base = {
+          ok: outcome.ok,
+          provider: "local" as const,
+          cloudUsed: false as const,
+          toolsUsed: false as const,
+          model: "tiny_edit_layer",
+          reply: outcome.reply,
+          startedAt,
+          completedAt,
+          durationMs: Math.max(0, completedAt - startedAt),
+          responseMode: "local_model" as const,
+        };
+        if (
+          outcome.status === "approval-required" &&
+          outcome.approvalRequest &&
+          outcome.diffPreview
+        ) {
+          return NextResponse.json({
+            ...base,
+            ok: true,
+            editApprovalRequired: {
+              action: "tiny_edit" as const,
+              path: outcome.approvalRequest.path,
+              originalSnippet: outcome.approvalRequest.originalSnippet,
+              proposedSnippet: outcome.approvalRequest.proposedSnippet,
+              originalHash: outcome.approvalRequest.originalHash,
+              proposedHash: outcome.approvalRequest.proposedHash,
+              fileHash: outcome.approvalRequest.fileHash,
+              summary: outcome.approvalRequest.summary,
+              reason: outcome.approvalRequest.reason,
+              confidence: outcome.approvalRequest.confidence,
+              riskLevel: outcome.approvalRequest.riskLevel,
+              expiresInMs: outcome.approvalRequest.expiresInMs,
+              limitations: outcome.approvalRequest.limitations,
+              diffPreview: {
+                path: outcome.diffPreview.path,
+                lines: outcome.diffPreview.lines,
+                bytesRemoved: outcome.diffPreview.bytesRemoved,
+                bytesAdded: outcome.diffPreview.bytesAdded,
+                linesChanged: outcome.diffPreview.linesChanged,
+              },
+            },
+          });
+        }
+        return NextResponse.json({
+          ...base,
+          ok: outcome.ok,
+          edit: {
+            status: outcome.status,
+            path: outcome.path,
+            applied: outcome.applied,
+            rolledBack: outcome.rolledBack,
+            summary: outcome.summary,
+            ...(outcome.failureReason ? { failureReason: outcome.failureReason } : {}),
+            ...(outcome.verification
+              ? {
+                  verification: {
+                    verificationStatus: outcome.verification.verificationStatus,
+                    ...(outcome.verification.failureReason
+                      ? { failureReason: outcome.verification.failureReason }
+                      : {}),
+                    checks: outcome.verification.checks.map((c) => ({
+                      id: c.id,
+                      description: c.description,
+                      passed: c.passed,
+                    })),
+                  },
+                }
+              : {}),
+            receiptActions: outcome.receiptActions,
             cloudUsed: false,
             localOnly: true,
           },
