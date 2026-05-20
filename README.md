@@ -1,45 +1,102 @@
 # Squidley Public
 
-Squidley Public is a beginner-friendly, **local-first**, companion-guided AI
-workspace. It teaches users from inside the app and keeps the public demo honest
-about what is local, what uses a model, what is saved in the browser, and what
-is not implemented yet.
+> **Product status: NOT RELEASE READY**
+> Local Mode foundation is audited and includes narrow approval-gated tool
+> execution (file inspection, tiny edits) plus structured planning. Cloud
+> Mode is architecture only — no adapters wired. Full teaching, broad tool
+> execution, and autonomous workflows are not yet implemented. See
+> [docs/PUBLIC_SQUIDLEY_RELEASE_PLAN.md](docs/PUBLIC_SQUIDLEY_RELEASE_PLAN.md)
+> and [docs/CAPABILITY_TAXONOMY.md](docs/CAPABILITY_TAXONOMY.md).
 
-This repository is the standalone public Squidley product. It is not a private
-lab system and it is not an autonomous coding agent.
+Squidley is a **local-first teaching + planning assistant**. She starts on
+your machine, teaches every concept step by step, plans tasks deterministically,
+and — for narrow, approval-gated tools — actually executes. She is **not** an
+autonomous cloud agent. Cloud Mode and broad tool execution are planned
+phases.
 
-## What It Is
+Public Squidley is more than local chat: it includes a teacher, a planner, a
+small-model reliability layer, narrow approval-gated file inspection, and
+narrow approval-gated tiny edits. It is **not** a multi-file editor, not a
+shell, not a web browser, and not yet a cloud-capable agent.
 
-- **Beginner-friendly**: guided tours and plain-language module copy.
-- **Local-first**: core workflows use browser storage and a local model server.
-  Ollama is validated end-to-end. The llama.cpp text path uses an
-  OpenAI-compatible local backend; real `llama-server` binary validation is
-  still pending.
-- **Safe-by-default**: no surprise cloud calls, no shell execution, no
-  background agents, no automatic file writes.
-- **Transparent**: Tabularium receipts and Nous model/provider maps explain what
-  happened.
-- **Adaptive**: Ratio, Squidley's Adaptive System Intelligence layer, decides
-  which behavior is safe for the current model, provider, unlock level, and
-  permissions. Small Ratio notes now appear across module pages, with Nous as
-  the full map.
-- **Modular**: the public app uses a small core and module-owned features.
-  Core provides contracts and orchestration; modules own their UI, storage,
-  tours, receipts, handoffs, and docs.
+## What Squidley Will Be
 
-## What It Is Not
+- **A teacher first**: Squidley teaches you what local models are, what cloud
+  providers are, what tools do, what approvals protect, and what receipts prove.
+  Teaching is first-class architecture with a concept registry, lesson
+  curriculum, runtime teaching hooks, and a self-explanation engine.
+  See [docs/TEACHER_FIRST_DOCTRINE.md](docs/TEACHER_FIRST_DOCTRINE.md).
+- **Local-first start**: your first experience is private, free, on your own
+  machine. Nothing leaves your device until you explicitly enable Cloud Mode.
+- **Cloud-capable**: when you are ready, Squidley connects to cloud providers
+  for more powerful models, tools, and autonomous workflows.
+- **Honest**: every answer says exactly what produced it. Squidley never
+  pretends to have done something she did not do.
+- **Approval-gated**: risky actions (file write, shell, network) require
+  explicit approval. Cloud calls require consent.
+- **Receipt-backed**: every action produces an auditable receipt.
 
-- No cloud unlock or cloud fallback.
-- No API key collection.
-- No accounts, billing, auth, or sync.
-- No backend database.
-- No telemetry upload.
-- No vector database, embeddings, or RAG.
-- No agents, tools, shell execution, or repo-wide edits.
+## What Is Built Today
 
-## Quick Start
+Capability tiers below use the canonical taxonomy:
+[docs/CAPABILITY_TAXONOMY.md](docs/CAPABILITY_TAXONOMY.md). See
+[docs/MODE_CAPABILITY_MATRIX.md](docs/MODE_CAPABILITY_MATRIX.md) for the
+seven-question column view.
 
-Install dependencies and pull the default local model:
+### Use freely (LOCAL_READY)
+- Local model chat via Ollama or llama-server. Ollama is validated end-to-end
+- Streaming chat with provenance footer
+- Teacher chat: beginner questions answered deterministically from the concept
+  registry, no model call needed
+- Structured planning: deterministic, evidence-typed plans that never execute
+- Honesty annotation for hallucinated tool claims
+- Receipts (Tabularium, browser-local), notes (Archivum, browser-local),
+  diagnostics (Nous)
+- Egress guard blocking all non-local fetch
+- Velum deterministic text review (heuristic — not a guarantee of safety)
+- Mode resolver (local/cloud separation); cloud provider registry (architecture,
+  all NOT_IMPLEMENTED)
+
+### Use after approval (LOCAL_LIMITED)
+- **Approval-gated file inspection** — read one file at a time, ≤256 KB,
+  path-bound approval token, secrets redacted before the model sees them
+- **Approval-gated tiny edits** — replace exactly one snippet in one
+  already-inspected file, 4 KB max diff, hash-bound approval token, in-memory
+  backup, automatic rollback on verification failure
+- **Local image analysis (Oculus)** — works with vision-capable local models;
+  refuses non-vision models clearly
+
+### Use, quality varies (LOCAL_PARTIAL)
+- Small-model reliability layer: bounded compound-tool runs for small local
+  models (max 6 steps, max 2 retries, no shell, no broad file access; cloud
+  escalation may be suggested but never auto-run)
+- Single-file code suggestion (Fabrica) — suggestions only, no file write
+- llama.cpp / llama-server backend — real-binary validation pending
+- Advanced planning quality on small models
+
+### Teaching layer (Phase 2C complete; polish ongoing)
+- First-run onboarding wizard (7-step guided introduction)
+- Concept registry (30+ concepts), lesson curriculum (14 lessons), knowledge
+  base (16 markdown modules including "What Squidley Can Actually Do Today"),
+  runtime teaching hooks (21 events)
+- Teacher UI at `/teacher`: learning path, concept glossary, ask panel, settings
+- Teach-while-chatting toggle, in-context teaching cards, explain-this helpers
+- 74 zero-experience simulation tests verifying beginner answer honesty
+- 1584+ tests total, release verification pipeline
+
+### What Is Not Built Yet (NOT_IMPLEMENTED / CLOUD_PLANNED)
+- **Cloud Mode** (Phase 3 — CLOUD_PLANNED): provider adapters, cloud chat,
+  consent flow, cloud receipts. See [docs/CLOUD_MODE.md](docs/CLOUD_MODE.md).
+  Setting an API key alone does not unlock Cloud Mode.
+- **Broad tool execution** (Phase 4 — PARTIAL): narrow approval-gated file
+  inspection and tiny edits ship today. General file read/write, shell, web
+  search, multi-file edit, and project-wide inspection are NOT_IMPLEMENTED.
+  See [docs/AUTONOMOUS_TOOL_POLICY.md](docs/AUTONOMOUS_TOOL_POLICY.md).
+- **Autonomous workflows** (Phase 5 — NOT_IMPLEMENTED): multi-step execution
+  loops, approval checkpoints across many steps.
+- **Release candidate** (Phase 6): all phases complete, tested with beginners.
+
+## Quick Start (Development)
 
 ```bash
 npm install
@@ -47,131 +104,102 @@ ollama pull llama3.2
 npm run dev
 ```
 
-Open:
-
-```text
-http://localhost:3000
-```
-
-If Ollama is not already running:
-
-```bash
-ollama serve
-```
+Open `http://localhost:3000`. If Ollama is not running: `ollama serve`.
 
 Defaults:
-
 ```text
 SQUIDLEY_LOCAL_ENDPOINT=http://localhost:11434
 SQUIDLEY_LOCAL_MODEL=llama3.2
-NEXT_PUBLIC_BUG_REPORT_EMAIL=bugs@example.com
 ```
 
-See [.env.example](.env.example) and
-[docs/LOCAL_MODEL_SETUP.md](docs/LOCAL_MODEL_SETUP.md).
+This starts Local Mode only. Cloud Mode requires `SQUIDLEY_MODE=cloud` plus a
+configured cloud provider — but no cloud adapters are implemented yet.
 
-## First Demo Path
+## Operating Modes
 
-1. Start the app.
-2. Click **Start Tour** on the welcome page.
-3. Chat in **Colloquium** with a local model.
-4. Review text in **Velum** before sharing it.
-5. Save a note in **Archivum**.
-6. Check **Tabularium** receipts.
-7. View **Nous** to see model/provider status.
-8. Try **Fabrica** for a single-file suggestion.
+### Local Mode (default)
+Everything runs on your machine. No cloud calls, no tool execution, no API keys
+needed. This is the audited foundation. API keys alone do not enable Cloud Mode.
+See [docs/LOCAL_MODE.md](docs/LOCAL_MODE.md).
 
-## Screenshots
-
-Screenshots are not committed yet. Suggested demo captures:
-
-- Welcome: `docs/screenshots/welcome.png`
-- Colloquium local chat: `docs/screenshots/colloquium.png`
-- Modules on mobile: `docs/screenshots/modules-mobile.png`
+### Cloud Mode (planned, architecture only)
+Explicit opt-in via `SQUIDLEY_MODE=cloud`. Will support cloud AI providers, tool
+execution, and autonomous workflows when implemented. Currently architecture-
+only: no cloud adapters exist. See [docs/CLOUD_MODE.md](docs/CLOUD_MODE.md).
 
 ## Current Modules
 
-| Module | What it does in Public Squidley |
+| Module | What it does now |
 | --- | --- |
-| Colloquium | Local-only streaming chat with local model discovery and sessions. |
+| Colloquium | Local-only streaming chat with model discovery and sessions. |
 | Velum | Deterministic client-side text review and redaction helper. |
-| Archivum / More Input | Browser-local notes, tags, search/filter/edit, import/export bundles. |
-| Oculus | Manual image preview and optional local vision analysis. Images are not stored by default. |
-| Fabrica | Beginner single-file suggestion workshop. No shell, tools, repo-wide edits, or file writes. |
-| Tabularium | Browser-local receipts explaining what happened and what stayed local. |
-| Nous | Module/model map, Ratio adaptive intelligence, local model preferences, and locked provider metadata. |
-| Settings | Local control center for tours, storage summaries, and clear/export controls. |
-| Modules | Public module gallery with core local and locked cloud-unlock modules. |
-
-Cloud-unlock modules are visible as future/advanced concepts, but remain locked.
+| Archivum / More Input | Browser-local notes, tags, search/filter/edit, import/export. |
+| Oculus | Manual image preview and optional local vision analysis. |
+| Fabrica | Beginner single-file code suggestion workshop. No file writes. |
+| Tabularium | Browser-local receipts showing what happened and what stayed local. |
+| Nous | Module/model map, capability status, locked provider metadata. |
+| Settings | Local control center for tours, storage, and export. |
 
 ## Scripts
 
-| Command | What it does |
+| Command | Purpose |
 | --- | --- |
-| `npm run dev` | Start the Next.js dev server. |
-| `npm run build` | Production build. |
-| `npm run start` | Run the production build. |
-| `npm run lint` | ESLint via `next lint`. |
-| `npm run typecheck` | TypeScript `--noEmit` typecheck. |
-| `npm test` | Run Vitest unit tests once. |
+| `npm run dev` | Next.js dev server |
+| `npm run build` | Production build |
+| `npm test` | Vitest test suite |
+| `npm run typecheck` | TypeScript check |
+| `npm run diagnostic` | Release-readiness diagnostic |
+| `npm run prove:local-only` | Local-only egress proof |
+| `npm run verify:release` | Full verification pipeline (subsystem gate) |
 
-## Safety and Privacy Notes
+**Note**: `verify:release` verifies the Local Mode subsystem. It does not mean
+the full product is ready to ship.
 
-- Colloquium and Fabrica call only the configured local model endpoint.
-  Ollama is validated end-to-end; the llama.cpp/OpenAI-compatible text path is
-  implemented and tested through Ollama's compatible endpoint.
-- Oculus local vision is Ollama-only in this release. llama.cpp/llama-server
-  vision is unsupported until real binary vision validation is completed.
-- Velum runs deterministic checks in the browser and does not call a model.
-- Archivum, Tabularium, chat sessions, and Nous preferences are browser-local.
-- Receipts avoid storing full source text, full generated output, image data, or
-  secrets.
-- Bug reports open a prefilled email. Squidley does not upload telemetry or
-  attach logs, local storage, prompts, documents, or images automatically.
-- Clearing browser storage can remove local Squidley data.
+## Safety and Privacy (Local Mode)
 
-## Known Caveats
+- All fetch calls go to localhost only. Cloud endpoints are rejected.
+- No cloud SDK in dependencies.
+- `cloudUsed: false` and `toolsUsed: false` are type-level constants.
+- Receipts never store raw user content.
+- No telemetry, no background agents, no automatic file writes.
 
-- Oculus vision depends on local Ollama vision model reliability.
-- Real `llama-server` binary validation is pending. Do not claim full
-  llama-server support yet; claim implemented OpenAI-compatible local text
-  backend support instead.
-- Cloud providers are prepared/locked metadata only.
-- No accounts, cloud sync, backend database, agents, tools, or shell execution.
-- Storage is browser-local only.
+## Release Plan
 
-## Local-First Trust Model
-
-Public Squidley uses a layered local-first trust architecture: capability
-states, gateway prompt-injection defense, policy boundaries, Velum review
-before cloud, explicit consent flow, and Tabularium trust chains. Consent
-does not equal execution. See [docs/TRUST_MODEL.md](docs/TRUST_MODEL.md).
+See [docs/PUBLIC_SQUIDLEY_RELEASE_PLAN.md](docs/PUBLIC_SQUIDLEY_RELEASE_PLAN.md)
+for the six-phase plan from Local Foundation to Release Candidate.
 
 ## Documentation
 
-- [docs/PUBLIC_RELEASE_CHECKLIST.md](docs/PUBLIC_RELEASE_CHECKLIST.md) — release/demo checklist.
-- [docs/PUBLIC_LOCAL_RELEASE_CHECKLIST.md](docs/PUBLIC_LOCAL_RELEASE_CHECKLIST.md) — local-model release honesty checklist.
-- [RELEASE_NOTES.md](RELEASE_NOTES.md) — v0.1.0 release notes.
-- [docs/LOCAL_MODEL_SETUP.md](docs/LOCAL_MODEL_SETUP.md) — Ollama and local model setup.
-- [docs/LOCAL_SERVICE.md](docs/LOCAL_SERVICE.md) — run Public Squidley as a local user service.
-- [docs/BUG_REPORTING.md](docs/BUG_REPORTING.md) — privacy-respecting mailto bug reports.
-- [docs/PROMPT_GATEWAY.md](docs/PROMPT_GATEWAY.md) — deterministic gateway checks before local model calls.
-- [docs/ADAPTIVE_SYSTEM_INTELLIGENCE.md](docs/ADAPTIVE_SYSTEM_INTELLIGENCE.md) — Ratio adaptive behavior and capability decisions.
-- [docs/MODULAR_ARCHITECTURE.md](docs/MODULAR_ARCHITECTURE.md) — small-core/module-boundary rules.
-- [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md) — current boundaries.
-- [docs/LOCAL_CHAT.md](docs/LOCAL_CHAT.md) — local chat adapter and troubleshooting.
-- [docs/LOCAL_CONVERSATIONS.md](docs/LOCAL_CONVERSATIONS.md) — local chat storage.
-- [docs/SETTINGS_PUBLIC.md](docs/SETTINGS_PUBLIC.md) — local control center.
-- [docs/VELUM_PUBLIC.md](docs/VELUM_PUBLIC.md) — text review and redaction.
-- [docs/ARCHIVUM_PUBLIC.md](docs/ARCHIVUM_PUBLIC.md) — local knowledge shelf.
-- [docs/FABRICA_PUBLIC.md](docs/FABRICA_PUBLIC.md) — single-file workshop.
-- [docs/OCULUS_PUBLIC.md](docs/OCULUS_PUBLIC.md) — manual image review.
-- [docs/TABULARIUM_PUBLIC.md](docs/TABULARIUM_PUBLIC.md) — local receipts.
-- [docs/NOUS_PUBLIC.md](docs/NOUS_PUBLIC.md) — model map and provider registry.
-- [docs/MODULE_MATRIX.md](docs/MODULE_MATRIX.md) — module list and capability matrix.
-- [docs/LOCAL_ONLY_PRINCIPLES.md](docs/LOCAL_ONLY_PRINCIPLES.md) — local-first principles.
-- [docs/TRUST_MODEL.md](docs/TRUST_MODEL.md) — local-first trust architecture and cloud consent flow.
+### Product & Architecture
+- [docs/PUBLIC_SQUIDLEY_RELEASE_PLAN.md](docs/PUBLIC_SQUIDLEY_RELEASE_PLAN.md) — release phases and requirements
+- [docs/CAPABILITY_TAXONOMY.md](docs/CAPABILITY_TAXONOMY.md) — canonical capability tiers and standard phrases
+- [docs/PUBLIC_SQUIDLEY_COHERENCE_REPORT_2026-05-20.md](docs/PUBLIC_SQUIDLEY_COHERENCE_REPORT_2026-05-20.md) — most recent product coherence pass
+- [docs/RELEASE_READINESS_SCORECARD_2026-05-20.md](docs/RELEASE_READINESS_SCORECARD_2026-05-20.md) — release readiness rubric and scores
+- [docs/TEACHER_FIRST_DOCTRINE.md](docs/TEACHER_FIRST_DOCTRINE.md) — teaching principles
+- [docs/SELF_EXPLANATION_REQUIREMENTS.md](docs/SELF_EXPLANATION_REQUIREMENTS.md) — what Squidley must be able to explain
+- [docs/BEGINNER_ONBOARDING_DESIGN.md](docs/BEGINNER_ONBOARDING_DESIGN.md) — onboarding flow design
+
+### Teaching
+- [docs/teacher-kb/](docs/teacher-kb/) — teaching knowledge base (15 beginner lessons)
+- [docs/teacher-kb/00-learning-path.md](docs/teacher-kb/00-learning-path.md) — recommended learning order
+- [docs/teacher-kb/14-glossary.md](docs/teacher-kb/14-glossary.md) — plain-language glossary
+
+### Modes & Capabilities
+- [docs/LOCAL_MODE.md](docs/LOCAL_MODE.md) — Local Mode reference
+- [docs/CLOUD_MODE.md](docs/CLOUD_MODE.md) — Cloud Mode reference and status
+- [docs/CLOUD_MODE_ARCHITECTURE.md](docs/CLOUD_MODE_ARCHITECTURE.md) — mode separation architecture
+- [docs/MODE_CAPABILITY_MATRIX.md](docs/MODE_CAPABILITY_MATRIX.md) — capability status by mode
+- [docs/AUTONOMOUS_TOOL_POLICY.md](docs/AUTONOMOUS_TOOL_POLICY.md) — tool risk tiers and approval design
+
+### Local Foundation
+- [docs/LOCAL_FIRST_CONTRACT.md](docs/LOCAL_FIRST_CONTRACT.md) — local-first contract with enforcement points
+- [docs/CAPABILITY_MATRIX_PUBLIC_SQUIDLEY.md](docs/CAPABILITY_MATRIX_PUBLIC_SQUIDLEY.md) — capability truth matrix
+- [docs/TOOL_MATRIX_PUBLIC_SQUIDLEY.md](docs/TOOL_MATRIX_PUBLIC_SQUIDLEY.md) — tool truth matrix
+- [docs/LOCAL_ONLY_TESTING.md](docs/LOCAL_ONLY_TESTING.md) — local-only verification
+- [docs/LOCAL_MODEL_SETUP.md](docs/LOCAL_MODEL_SETUP.md) — Ollama and local model setup
+
+### Module Docs
+- [docs/LOCAL_CHAT.md](docs/LOCAL_CHAT.md), [docs/VELUM_PUBLIC.md](docs/VELUM_PUBLIC.md), [docs/ARCHIVUM_PUBLIC.md](docs/ARCHIVUM_PUBLIC.md), [docs/FABRICA_PUBLIC.md](docs/FABRICA_PUBLIC.md), [docs/OCULUS_PUBLIC.md](docs/OCULUS_PUBLIC.md), [docs/TABULARIUM_PUBLIC.md](docs/TABULARIUM_PUBLIC.md), [docs/NOUS_PUBLIC.md](docs/NOUS_PUBLIC.md)
 
 ## Stack
 
