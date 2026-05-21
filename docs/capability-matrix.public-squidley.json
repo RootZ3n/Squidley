@@ -1,0 +1,1153 @@
+{
+  "schemaVersion": 3,
+  "product": "Public Squidley",
+  "generatedAt": "2026-05-20",
+  "generatedBy": "docs/CAPABILITY_MATRIX_PUBLIC_SQUIDLEY.md author + capability-sync pass on top of docs/CAPABILITY_TAXONOMY.md",
+  "scope": "Every server route, every Capability in src/lib/capabilities/registry.ts, every public UI page. Classifications are based on actual code paths, not on aspirational copy.",
+  "machineReadableSourceOfTruth": "This JSON is the machine-readable source of truth for diagnostics, release verification, and the npm run verify:capabilities script. The markdown views (docs/MODE_CAPABILITY_MATRIX.md, docs/CAPABILITY_MATRIX_PUBLIC_SQUIDLEY.md) are human-readable projections of this file. When the two disagree, this JSON wins and the markdown should be updated.",
+  "classifications": {
+    "LOCAL_READY": "Real local execution path exists, has tests, no cloud fallback. Requires at least one proofReference. Ollama-side LOCAL_READY rows include live-gauntlet evidence.",
+    "LOCAL_PARTIAL": "Local path exists; quality, backend coverage, or interpretation is limited. May include deterministic-but-heuristic capabilities and capabilities not yet validated against the real llama-server binary.",
+    "LOCAL_BLOCKED": "Local path is reachable but currently disabled or missing a prerequisite.",
+    "CLOUD_OPTIONAL": "Local works; cloud could improve quality if explicitly enabled. Not wired in this release.",
+    "CLOUD_REQUIRED": "Capability declared cloud-required; no real cloud call path is wired. Locked metadata only.",
+    "NOT_IMPLEMENTED": "Surface exists in registry/metadata but has no backing route or execution path.",
+    "MOCK_DEMO_ONLY": "Static/demo data only.",
+    "UNKNOWN": "Could not classify without further investigation."
+  },
+  "canonicalTiers": {
+    "LOCAL_READY": "Implemented, validated, runs locally, no approval needed for the read-only/text path. Beginner-safe.",
+    "LOCAL_LIMITED": "Implemented and runs locally, but bounded by hard scope limits AND explicit per-action approval (file inspection, tiny edits, etc.).",
+    "LOCAL_PARTIAL": "Implemented locally but quality, backend coverage, or model-dependence limits delivery. Honest UI surfacing of the limitation.",
+    "CLOUD_PLANNED": "Architecture exists (registry entry, types, mode hook). No adapter, no call path, no test coverage of a real round trip. Cannot run.",
+    "NOT_IMPLEMENTED": "No code path of any kind. Not blocked by policy, simply not built.",
+    "BLOCKED": "Refused by design; contract-enforced by type system or runtime guards. Not a roadmap item."
+  },
+  "canonicalTierMapping": {
+    "note": "How the legacy `classification` field maps to `canonicalTier`. See docs/CAPABILITY_TAXONOMY.md for the canonical vocabulary.",
+    "LOCAL_READY -> LOCAL_READY or LOCAL_LIMITED": "LOCAL_READY classification with `requiresApproval: true` semantics in the row body becomes canonicalTier LOCAL_LIMITED.",
+    "LOCAL_PARTIAL -> LOCAL_PARTIAL": "1:1.",
+    "LOCAL_BLOCKED -> BLOCKED or LOCAL_PARTIAL": "If a backend is blocked for safety (vision on llama-cpp), the row-level canonicalTier is LOCAL_PARTIAL with the blocked backend surfaced in backendStatus. Contract-style refusals are BLOCKED.",
+    "CLOUD_REQUIRED -> CLOUD_PLANNED": "All locked cloud-required entries are CLOUD_PLANNED.",
+    "NOT_IMPLEMENTED -> NOT_IMPLEMENTED or CLOUD_PLANNED": "If cloudRequired:yes, the row is CLOUD_PLANNED. Otherwise NOT_IMPLEMENTED."
+  },
+  "perBackendStatus": {
+    "ollama": "VALIDATED — end-to-end live gauntlet against Ollama 0.x with qwen3.5:0.8b on 2026-05-15 (reports/local-model-gauntlet/2026-05-15T10-28-39-621Z-qwen3.5-0.8b-ollama.json). 5 PASS / 1 TRY_VERIFY / 0 NEEDS_CLOUD / 0 BLOCKED.",
+    "llamaCpp": "UNVALIDATED_PENDING_REAL_BINARY — OpenAI-compatible text adapter exercised via unit tests and Ollama's compatible endpoint only. scripts/smoke-llama-server.mjs writes reports/llama-server-smoke/PROOF.json on real-binary PASS. Until that file exists, every llama-cpp path is LOCAL_PARTIAL even if the Ollama equivalent is LOCAL_READY."
+  },
+  "rows": [
+    {
+      "capabilityId": "colloquium:chat.basic",
+      "name": "Local chat (Colloquium)",
+      "route": "/api/chat, /api/chat/stream",
+      "files": [
+        "src/app/api/chat/route.ts",
+        "src/app/api/chat/stream/route.ts",
+        "src/lib/chat/handler.ts",
+        "src/lib/chat/stream.ts"
+      ],
+      "localImplementationExists": "yes",
+      "localModelRequired": "yes",
+      "toolRequired": "no",
+      "cloudRequired": "no",
+      "backendStatus": {
+        "ollama": "LOCAL_READY",
+        "llamaCpp": "LOCAL_PARTIAL"
+      },
+      "canRunWithNoModel": "no",
+      "uiStatus": "active, surfaced in /colloquium with local-only badge and tour",
+      "tests": [
+        "src/lib/chat/handler.test.ts",
+        "src/lib/chat/handler-llamacpp.test.ts",
+        "src/lib/chat/stream.test.ts",
+        "src/lib/chat/stream-backendType.test.ts",
+        "src/lib/egressGuard.test.ts",
+        "src/lib/publicReleaseSafety.test.ts"
+      ],
+      "receipts": "colloquium.local-chat — Tabularium receipt with provider=local, cloudUsed=false, toolsUsed=false",
+      "proofReferences": [
+        "reports/local-model-gauntlet/2026-05-15T10-28-39-621Z-qwen3.5-0.8b-ollama.json (live Ollama)",
+        "src/lib/chat/handler.test.ts (unit)",
+        "src/lib/chat/handler-llamacpp.test.ts (llama-cpp via mocked OpenAI-compatible API; not real binary)",
+        "src/lib/egressGuard.test.ts (no non-local fetch)"
+      ],
+      "risks": [
+        "llama-cpp path is LOCAL_PARTIAL until reports/llama-server-smoke/PROOF.json is produced by scripts/smoke-llama-server.mjs."
+      ],
+      "classification": "LOCAL_READY",
+      "canonicalTier": "LOCAL_READY"
+    },
+    {
+      "capabilityId": "colloquium:chat.advanced-planning",
+      "name": "Local advanced planning chat",
+      "route": "/api/chat, /api/chat/stream",
+      "files": ["src/lib/chat/handler.ts", "src/lib/capabilities/registry.ts"],
+      "localImplementationExists": "yes",
+      "localModelRequired": "yes (>=7B)",
+      "toolRequired": "no",
+      "cloudRequired": "no",
+      "backendStatus": {
+        "ollama": "LOCAL_PARTIAL",
+        "llamaCpp": "LOCAL_PARTIAL"
+      },
+      "canRunWithNoModel": "no",
+      "uiStatus": "Ratio surfaces limitation copy when small models are selected",
+      "tests": [
+        "src/lib/capabilities/runtime.test.ts",
+        "src/lib/ratio/ratio.test.ts"
+      ],
+      "receipts": "colloquium.local-chat",
+      "proofReferences": [
+        "src/lib/capabilities/runtime.test.ts (decision logic)"
+      ],
+      "risks": ["Quality depends on installed local model; Ratio honestly downgrades."],
+      "classification": "LOCAL_PARTIAL",
+      "canonicalTier": "LOCAL_PARTIAL"
+    },
+    {
+      "capabilityId": "fabrica:fabrica.single-file-suggestion",
+      "name": "Fabrica single-file suggestion",
+      "route": "/api/fabrica/suggest",
+      "files": [
+        "src/app/api/fabrica/suggest/route.ts",
+        "src/lib/fabrica/suggestion.ts"
+      ],
+      "localImplementationExists": "yes",
+      "localModelRequired": "yes",
+      "toolRequired": "no",
+      "cloudRequired": "no",
+      "backendStatus": {
+        "ollama": "LOCAL_READY",
+        "llamaCpp": "LOCAL_PARTIAL"
+      },
+      "canRunWithNoModel": "no",
+      "uiStatus": "active at /fabrica; explicit single-file scope",
+      "tests": [
+        "src/app/api/fabrica/suggest/route.test.ts",
+        "src/app/api/fabrica/suggest/route-backend.test.ts",
+        "src/lib/fabrica/suggestion.test.ts",
+        "src/lib/fabrica/receipts.test.ts",
+        "src/lib/egressGuard.test.ts"
+      ],
+      "receipts": "fabrica.local-suggestion",
+      "proofReferences": [
+        "src/app/api/fabrica/suggest/route.test.ts",
+        "src/lib/egressGuard.test.ts"
+      ],
+      "risks": ["Single-file hard cap (24KB). No FS writes, no shell, no tools."],
+      "classification": "LOCAL_READY",
+      "canonicalTier": "LOCAL_READY"
+    },
+    {
+      "capabilityId": "fabrica:fabrica.multi-file-build",
+      "name": "Multi-file build",
+      "route": "(none)",
+      "files": ["src/lib/capabilities/registry.ts"],
+      "localImplementationExists": "no",
+      "localModelRequired": "n/a",
+      "toolRequired": "yes (future)",
+      "cloudRequired": "yes (future-cloud-agent)",
+      "backendStatus": {
+        "ollama": "NOT_IMPLEMENTED",
+        "llamaCpp": "NOT_IMPLEMENTED"
+      },
+      "canRunWithNoModel": "no",
+      "uiStatus": "Locked module copy on /modules. Registry receiptActions=\"none\".",
+      "tests": ["src/lib/capabilities/registry.test.ts"],
+      "receipts": "none",
+      "proofReferences": [],
+      "risks": ["Honestly labeled cloud-required and locked; no route exists."],
+      "classification": "NOT_IMPLEMENTED",
+      "canonicalTier": "CLOUD_PLANNED"
+    },
+    {
+      "capabilityId": "archivum:archivum.local-storage",
+      "name": "Local note storage (Archivum)",
+      "route": "(browser-only)",
+      "files": [
+        "src/lib/archivum/storage.ts",
+        "src/lib/archivum/receipts.ts",
+        "src/app/archivum/page.tsx"
+      ],
+      "localImplementationExists": "yes",
+      "localModelRequired": "no",
+      "toolRequired": "no",
+      "cloudRequired": "no",
+      "backendStatus": {
+        "ollama": "NOT_APPLICABLE",
+        "llamaCpp": "NOT_APPLICABLE"
+      },
+      "canRunWithNoModel": "yes",
+      "uiStatus": "active at /archivum",
+      "tests": [
+        "src/lib/archivum/storage.test.ts",
+        "src/lib/archivum/receipts.test.ts",
+        "src/lib/archivum/capabilityReceipts.test.ts"
+      ],
+      "receipts": "archivum.local-storage",
+      "proofReferences": [
+        "src/lib/archivum/storage.test.ts (same-id import does not overwrite)",
+        "src/lib/publicReleaseSafety.test.ts (bundle import regression)"
+      ],
+      "risks": [],
+      "classification": "LOCAL_READY",
+      "canonicalTier": "LOCAL_READY"
+    },
+    {
+      "capabilityId": "archivum:archivum.summarize",
+      "name": "Local note summary",
+      "route": "(via /api/chat through summarize prompt; no dedicated route)",
+      "files": ["src/lib/capabilities/registry.ts"],
+      "localImplementationExists": "yes (uses chat path)",
+      "localModelRequired": "yes",
+      "toolRequired": "no",
+      "cloudRequired": "no",
+      "backendStatus": {
+        "ollama": "LOCAL_PARTIAL",
+        "llamaCpp": "LOCAL_PARTIAL"
+      },
+      "canRunWithNoModel": "no",
+      "uiStatus": "Ratio decision surfaced; small-model warnings shown",
+      "tests": ["src/lib/capabilities/registry.test.ts"],
+      "receipts": "archivum.local-summary",
+      "proofReferences": ["src/lib/capabilities/registry.test.ts"],
+      "risks": ["Local summary quality bounded by installed model."],
+      "classification": "LOCAL_PARTIAL",
+      "canonicalTier": "LOCAL_PARTIAL"
+    },
+    {
+      "capabilityId": "more-input:archivum.local-storage",
+      "name": "More Input — local capture",
+      "route": "(browser-only)",
+      "files": ["src/app/archivum/page.tsx"],
+      "localImplementationExists": "yes",
+      "localModelRequired": "no",
+      "toolRequired": "no",
+      "cloudRequired": "no",
+      "backendStatus": {
+        "ollama": "NOT_APPLICABLE",
+        "llamaCpp": "NOT_APPLICABLE"
+      },
+      "canRunWithNoModel": "yes",
+      "uiStatus": "active",
+      "tests": ["src/lib/archivum/storage.test.ts"],
+      "receipts": "archivum.local-storage",
+      "proofReferences": ["src/lib/archivum/storage.test.ts"],
+      "risks": [],
+      "classification": "LOCAL_READY",
+      "canonicalTier": "LOCAL_READY"
+    },
+    {
+      "capabilityId": "more-input:archivum.summarize",
+      "name": "More Input — local summary",
+      "route": "(via /api/chat)",
+      "files": ["src/lib/capabilities/registry.ts"],
+      "localImplementationExists": "yes",
+      "localModelRequired": "yes",
+      "toolRequired": "no",
+      "cloudRequired": "no",
+      "backendStatus": {
+        "ollama": "LOCAL_PARTIAL",
+        "llamaCpp": "LOCAL_PARTIAL"
+      },
+      "canRunWithNoModel": "no",
+      "uiStatus": "active",
+      "tests": ["src/lib/capabilities/registry.test.ts"],
+      "receipts": "archivum.local-summary",
+      "proofReferences": ["src/lib/capabilities/registry.test.ts"],
+      "risks": ["Quality bounded by installed model."],
+      "classification": "LOCAL_PARTIAL",
+      "canonicalTier": "LOCAL_PARTIAL"
+    },
+    {
+      "capabilityId": "velum:velum.deterministic-review",
+      "name": "Velum deterministic review",
+      "route": "(browser-only)",
+      "files": ["src/lib/velum/review.ts", "src/app/velum/page.tsx"],
+      "localImplementationExists": "yes",
+      "localModelRequired": "no",
+      "toolRequired": "no",
+      "cloudRequired": "no",
+      "backendStatus": {
+        "ollama": "NOT_APPLICABLE",
+        "llamaCpp": "NOT_APPLICABLE"
+      },
+      "canRunWithNoModel": "yes",
+      "uiStatus": "active at /velum",
+      "tests": [
+        "src/lib/velum/review.test.ts",
+        "src/lib/velum/receipts.test.ts",
+        "src/lib/velum/capabilityReceipts.test.ts",
+        "src/lib/heuristicHonesty.test.ts"
+      ],
+      "receipts": "velum.deterministic-review",
+      "proofReferences": [
+        "src/lib/velum/review.test.ts",
+        "src/lib/heuristicHonesty.test.ts (no overclaim copy)"
+      ],
+      "honestyNote": "Velum is a purely mechanical deterministic check (regex/heuristic). It runs locally and reliably. It does NOT prove safety from prompt injection — copy says so explicitly.",
+      "risks": ["Heuristic check, not formal safety proof."],
+      "classification": "LOCAL_READY",
+      "canonicalTier": "LOCAL_READY"
+    },
+    {
+      "capabilityId": "archelon:archelon.local-memory",
+      "name": "Archelon local memory companion",
+      "route": "(none)",
+      "files": ["src/lib/capabilities/registry.ts"],
+      "localImplementationExists": "no",
+      "localModelRequired": "n/a",
+      "toolRequired": "n/a",
+      "cloudRequired": "no",
+      "backendStatus": {
+        "ollama": "NOT_IMPLEMENTED",
+        "llamaCpp": "NOT_IMPLEMENTED"
+      },
+      "canRunWithNoModel": "no",
+      "uiStatus": "Registry tier=blocked. No surfaced UI module page.",
+      "tests": ["src/lib/capabilities/registry.test.ts"],
+      "receipts": "none",
+      "proofReferences": [],
+      "risks": [],
+      "classification": "NOT_IMPLEMENTED",
+      "canonicalTier": "NOT_IMPLEMENTED"
+    },
+    {
+      "capabilityId": "oculus:oculus.local-image-analysis",
+      "name": "Local image review (Oculus)",
+      "route": "/api/oculus/analyze",
+      "files": [
+        "src/app/api/oculus/analyze/route.ts",
+        "src/lib/oculus/helpers.ts"
+      ],
+      "localImplementationExists": "yes (Ollama vision only)",
+      "localModelRequired": "yes",
+      "toolRequired": "no",
+      "cloudRequired": "no",
+      "backendStatus": {
+        "ollama": "LOCAL_PARTIAL",
+        "llamaCpp": "LOCAL_BLOCKED"
+      },
+      "canRunWithNoModel": "no",
+      "uiStatus": "active at /oculus; refuses non-vision models with explicit message",
+      "tests": [
+        "src/app/api/oculus/analyze/route.test.ts",
+        "src/app/api/oculus/analyze/route-backend.test.ts",
+        "src/lib/oculus/helpers.test.ts",
+        "src/lib/oculus/receipts.test.ts",
+        "src/lib/egressGuard.test.ts"
+      ],
+      "receipts": "oculus.local-image-analysis",
+      "proofReferences": [
+        "src/app/api/oculus/analyze/route.test.ts",
+        "src/lib/egressGuard.test.ts"
+      ],
+      "risks": [
+        "Quality depends on local vision model.",
+        "llama-server vision path returns 400 with a clear message — does not silently fall back."
+      ],
+      "classification": "LOCAL_PARTIAL",
+      "canonicalTier": "LOCAL_LIMITED"
+    },
+    {
+      "capabilityId": "tabularium:tabularium.local-receipts",
+      "name": "Local receipts ledger",
+      "route": "(browser-only)",
+      "files": ["src/lib/tabularium/receipts.ts", "src/app/tabularium/page.tsx"],
+      "localImplementationExists": "yes",
+      "localModelRequired": "no",
+      "toolRequired": "no",
+      "cloudRequired": "no",
+      "backendStatus": {
+        "ollama": "NOT_APPLICABLE",
+        "llamaCpp": "NOT_APPLICABLE"
+      },
+      "canRunWithNoModel": "yes",
+      "uiStatus": "active",
+      "tests": [
+        "src/lib/tabularium/receipts.test.ts",
+        "src/lib/tabularium/receiptChains.test.ts",
+        "src/lib/tabularium/gatewayReceipts.test.ts"
+      ],
+      "receipts": "tabularium.local-view",
+      "proofReferences": [
+        "src/lib/tabularium/receipts.test.ts (PII-redaction)",
+        "src/lib/publicReleaseSafety.test.ts (receipts do not leak secrets)"
+      ],
+      "risks": [],
+      "classification": "LOCAL_READY",
+      "canonicalTier": "LOCAL_READY"
+    },
+    {
+      "capabilityId": "nous:nous.system-map",
+      "name": "System understanding map",
+      "route": "(browser-only)",
+      "files": ["src/app/nous/page.tsx", "src/lib/nous/modelMap.ts"],
+      "localImplementationExists": "yes",
+      "localModelRequired": "no",
+      "toolRequired": "no",
+      "cloudRequired": "no",
+      "backendStatus": {
+        "ollama": "NOT_APPLICABLE",
+        "llamaCpp": "NOT_APPLICABLE"
+      },
+      "canRunWithNoModel": "yes",
+      "uiStatus": "active at /nous",
+      "tests": [
+        "src/lib/nous/modelMap.test.ts",
+        "src/lib/nous/modelPreferences.test.ts",
+        "src/lib/nous/localCapabilitySummary.test.ts"
+      ],
+      "receipts": "nous.local-view",
+      "proofReferences": [
+        "src/lib/nous/modelMap.test.ts",
+        "src/lib/nous/localCapabilitySummary.test.ts"
+      ],
+      "risks": [],
+      "classification": "LOCAL_READY",
+      "canonicalTier": "LOCAL_READY"
+    },
+    {
+      "capabilityId": "legatus:legatus.agent-workflow",
+      "name": "Agent workflow",
+      "route": "(none)",
+      "files": ["src/lib/capabilities/registry.ts"],
+      "localImplementationExists": "no",
+      "localModelRequired": "n/a",
+      "toolRequired": "yes (future)",
+      "cloudRequired": "yes",
+      "backendStatus": {
+        "ollama": "NOT_IMPLEMENTED",
+        "llamaCpp": "NOT_IMPLEMENTED"
+      },
+      "canRunWithNoModel": "no",
+      "uiStatus": "Listed on /modules as locked future module.",
+      "tests": ["src/lib/capabilities/registry.test.ts"],
+      "receipts": "none",
+      "proofReferences": [],
+      "risks": [],
+      "classification": "NOT_IMPLEMENTED",
+      "canonicalTier": "CLOUD_PLANNED"
+    },
+    {
+      "capabilityId": "probatio:probatio.model-evaluation",
+      "name": "Model evaluation",
+      "route": "(none)",
+      "files": ["src/lib/capabilities/registry.ts"],
+      "localImplementationExists": "no",
+      "localModelRequired": "n/a",
+      "toolRequired": "no",
+      "cloudRequired": "yes",
+      "backendStatus": {
+        "ollama": "NOT_IMPLEMENTED",
+        "llamaCpp": "NOT_IMPLEMENTED"
+      },
+      "canRunWithNoModel": "no",
+      "uiStatus": "Locked future module.",
+      "tests": ["src/lib/capabilities/registry.test.ts"],
+      "receipts": "none",
+      "proofReferences": [],
+      "risks": [],
+      "classification": "NOT_IMPLEMENTED",
+      "canonicalTier": "CLOUD_PLANNED"
+    },
+    {
+      "capabilityId": "imperium:imperium.advanced-control",
+      "name": "Advanced control",
+      "route": "(none)",
+      "files": ["src/lib/capabilities/registry.ts"],
+      "localImplementationExists": "no",
+      "localModelRequired": "n/a",
+      "toolRequired": "yes (future)",
+      "cloudRequired": "yes",
+      "backendStatus": {
+        "ollama": "NOT_IMPLEMENTED",
+        "llamaCpp": "NOT_IMPLEMENTED"
+      },
+      "canRunWithNoModel": "no",
+      "uiStatus": "Locked future module.",
+      "tests": ["src/lib/capabilities/registry.test.ts"],
+      "receipts": "none",
+      "proofReferences": [],
+      "risks": [],
+      "classification": "NOT_IMPLEMENTED",
+      "canonicalTier": "CLOUD_PLANNED"
+    },
+    {
+      "capabilityId": "praertorium:praertorium.policy-control",
+      "name": "Policy control",
+      "route": "(none)",
+      "files": ["src/lib/capabilities/registry.ts"],
+      "localImplementationExists": "no",
+      "localModelRequired": "n/a",
+      "toolRequired": "yes (future)",
+      "cloudRequired": "yes",
+      "backendStatus": {
+        "ollama": "NOT_IMPLEMENTED",
+        "llamaCpp": "NOT_IMPLEMENTED"
+      },
+      "canRunWithNoModel": "no",
+      "uiStatus": "Locked future module.",
+      "tests": ["src/lib/capabilities/registry.test.ts"],
+      "receipts": "none",
+      "proofReferences": [],
+      "risks": [],
+      "classification": "NOT_IMPLEMENTED",
+      "canonicalTier": "CLOUD_PLANNED"
+    },
+    {
+      "capabilityId": "imaginanium:imaginanium.cloud-image-generation",
+      "name": "Cloud image generation",
+      "route": "(none)",
+      "files": ["src/lib/capabilities/registry.ts"],
+      "localImplementationExists": "no",
+      "localModelRequired": "n/a",
+      "toolRequired": "no",
+      "cloudRequired": "yes",
+      "backendStatus": {
+        "ollama": "NOT_IMPLEMENTED",
+        "llamaCpp": "NOT_IMPLEMENTED"
+      },
+      "canRunWithNoModel": "no",
+      "uiStatus": "Locked future module.",
+      "tests": ["src/lib/capabilities/registry.test.ts"],
+      "receipts": "none",
+      "proofReferences": [],
+      "risks": [],
+      "classification": "NOT_IMPLEMENTED",
+      "canonicalTier": "CLOUD_PLANNED"
+    },
+    {
+      "capabilityId": "system:local.health",
+      "name": "Local provider health probe",
+      "route": "/api/local/health",
+      "files": [
+        "src/app/api/local/health/route.ts",
+        "src/lib/providers/ollama.ts",
+        "src/lib/providers/llamacpp.ts",
+        "src/lib/providers/detection.ts"
+      ],
+      "localImplementationExists": "yes",
+      "localModelRequired": "no",
+      "toolRequired": "no",
+      "cloudRequired": "no",
+      "backendStatus": {
+        "ollama": "LOCAL_READY",
+        "llamaCpp": "LOCAL_PARTIAL"
+      },
+      "canRunWithNoModel": "yes (returns 503)",
+      "uiStatus": "used by /setup, /colloquium, /settings",
+      "tests": [
+        "src/lib/providers/ollama.test.ts",
+        "src/lib/providers/llamacpp.test.ts",
+        "src/lib/providers/detection.test.ts",
+        "src/lib/egressGuard.test.ts"
+      ],
+      "receipts": "n/a (system probe)",
+      "proofReferences": [
+        "src/lib/providers/ollama.test.ts",
+        "src/lib/providers/detection.test.ts",
+        "src/lib/egressGuard.test.ts"
+      ],
+      "risks": [],
+      "classification": "LOCAL_READY",
+      "canonicalTier": "LOCAL_READY"
+    },
+    {
+      "capabilityId": "system:local.models",
+      "name": "Local model list",
+      "route": "/api/local/models",
+      "files": [
+        "src/app/api/local/models/route.ts",
+        "src/lib/providers/ollama.ts",
+        "src/lib/providers/llamacpp.ts"
+      ],
+      "localImplementationExists": "yes",
+      "localModelRequired": "no",
+      "toolRequired": "no",
+      "cloudRequired": "no",
+      "backendStatus": {
+        "ollama": "LOCAL_READY",
+        "llamaCpp": "LOCAL_PARTIAL"
+      },
+      "canRunWithNoModel": "yes (returns empty=true)",
+      "uiStatus": "used by /colloquium, /oculus, /fabrica, /nous, /setup, /settings",
+      "tests": [
+        "src/lib/providers/ollama.test.ts",
+        "src/lib/providers/llamacpp.test.ts",
+        "src/lib/egressGuard.test.ts"
+      ],
+      "receipts": "n/a (system listing)",
+      "proofReferences": [
+        "src/lib/providers/ollama.test.ts",
+        "src/lib/egressGuard.test.ts"
+      ],
+      "risks": [
+        "Embedding-only models excluded via isLikelyGenerativeLocalModel default-selection heuristic."
+      ],
+      "classification": "LOCAL_READY",
+      "canonicalTier": "LOCAL_READY"
+    },
+    {
+      "capabilityId": "system:local.gauntlet",
+      "name": "Local model gauntlet (heuristic smoke)",
+      "route": "/api/local/gauntlet (also CLI: scripts/gauntlet-local-model.mjs)",
+      "files": [
+        "src/app/api/local/gauntlet/route.ts",
+        "src/lib/localGauntlet/reports.ts",
+        "scripts/gauntlet-local-model.mjs"
+      ],
+      "localImplementationExists": "yes",
+      "localModelRequired": "yes (to actually run)",
+      "toolRequired": "no",
+      "cloudRequired": "no",
+      "backendStatus": {
+        "ollama": "LOCAL_PARTIAL",
+        "llamaCpp": "LOCAL_PARTIAL"
+      },
+      "canRunWithNoModel": "no (BLOCKED with honest reason)",
+      "uiStatus": "surfaced in /settings",
+      "tests": [
+        "src/app/api/local/gauntlet/route.test.ts",
+        "src/lib/localGauntlet/reports.test.ts",
+        "src/lib/heuristicHonesty.test.ts"
+      ],
+      "receipts": "saved to reports/local-model-gauntlet/",
+      "proofReferences": [
+        "src/lib/localGauntlet/reports.test.ts",
+        "src/lib/heuristicHonesty.test.ts (TRY_VERIFY downgrade enforced)",
+        "reports/local-model-gauntlet/2026-05-15T10-28-39-621Z-qwen3.5-0.8b-ollama.json (live)"
+      ],
+      "honestyNote": "Gauntlet is a heuristic local-model smoke. PASS, TRY_VERIFY, NEEDS_CLOUD, BLOCKED are distinct outputs. TRY_VERIFY and NEEDS_CLOUD downgrade the overall recommendation; only all-PASS produces overall PASS. This is NOT a benchmark or formal safety proof.",
+      "risks": [
+        "Rule-based smoke checks, not safety proof. Honestly labeled in reports and CLI output."
+      ],
+      "classification": "LOCAL_PARTIAL",
+      "canonicalTier": "LOCAL_PARTIAL"
+    },
+    {
+      "capabilityId": "system:llama-server.smoke",
+      "name": "Real llama-server binary smoke",
+      "route": "scripts/smoke-llama-server.mjs",
+      "files": ["scripts/smoke-llama-server.mjs", "src/lib/smokeLlamaServer.test.ts"],
+      "localImplementationExists": "yes",
+      "localModelRequired": "yes (real llama-server binary)",
+      "toolRequired": "no",
+      "cloudRequired": "no",
+      "backendStatus": {
+        "ollama": "n/a",
+        "llamaCpp": "LOCAL_PARTIAL"
+      },
+      "canRunWithNoModel": "SKIP_LOCAL_SERVER_NOT_RUNNING",
+      "uiStatus": "CLI only",
+      "tests": [
+        "src/lib/smokeLlamaServer.test.ts (remote-URL rejection, unreachable-skip, parser delegation)",
+        "src/lib/providers/llamacpp.test.ts (parser units)",
+        "src/lib/chat/handler-llamacpp.test.ts (handler shape)"
+      ],
+      "receipts": "reports/llama-server-smoke/*.json and reports/llama-server-smoke/PROOF.json on PASS",
+      "proofReferences": [
+        "src/lib/smokeLlamaServer.test.ts (contract test)"
+      ],
+      "honestyNote": "PROOF.json is written ONLY when the script saw a real llama-server reply to /health + /v1/models + non-streaming + streaming. Until that file exists in this repo, every llama-cpp-side capability is LOCAL_PARTIAL.",
+      "risks": ["No PROOF.json has been generated in this audit run (no real llama-server available)."],
+      "classification": "LOCAL_PARTIAL",
+      "canonicalTier": "LOCAL_PARTIAL"
+    },
+    {
+      "capabilityId": "planning:planning.local-structured",
+      "name": "Structured planning + provenance (deterministic, never executes)",
+      "route": "(in-process via /api/chat planning intent)",
+      "files": [
+        "src/lib/planning/planner.ts",
+        "src/lib/planning/intent.ts",
+        "src/lib/planning/provenance.ts",
+        "src/lib/planning/types.ts",
+        "src/lib/planning/index.ts",
+        "src/lib/chat/planningChat.ts"
+      ],
+      "localImplementationExists": "yes",
+      "localModelRequired": "no",
+      "toolRequired": "no",
+      "cloudRequired": "no",
+      "backendStatus": {
+        "ollama": "NOT_APPLICABLE",
+        "llamaCpp": "NOT_APPLICABLE"
+      },
+      "canRunWithNoModel": "yes",
+      "uiStatus": "active via Colloquium when planning intent is detected; renders confidence + evidence labels (known/inferred/assumed/missing)",
+      "tests": [
+        "src/lib/planning/planner.test.ts",
+        "src/lib/planning/intent.test.ts",
+        "src/lib/planning/provenance.test.ts",
+        "src/lib/planning/types.test.ts",
+        "src/lib/chat/planningChat.test.ts"
+      ],
+      "receipts": "planning.started, planning.evidence-linked, planning.confidence-lowered, planning.decomposed, planning.completed, planning.blocked",
+      "proofReferences": [
+        "src/lib/planning/planner.test.ts (no model call, no IO)",
+        "src/lib/planning/intent.test.ts (conservative regex)",
+        "src/lib/planning/provenance.test.ts (known/inferred/assumed/missing buckets)",
+        "src/lib/planning/types.test.ts (literal-type cloudUsed:false)"
+      ],
+      "honestyNote": "Planner is pure: no fetch, no model call, no IO. Returns zero executable steps for delete/deploy/shell intent (riskLevel: blocked).",
+      "risks": [
+        "Plan quality depends on the evidence the user provides (inspected files, prior receipts)."
+      ],
+      "classification": "LOCAL_READY",
+      "canonicalTier": "LOCAL_READY"
+    },
+    {
+      "capabilityId": "reliability:reliability.small-model-layer",
+      "name": "Small-model reliability layer (bounded compound tools)",
+      "route": "(in-process via /api/chat reliability intent)",
+      "files": [
+        "src/lib/reliability/runner.ts",
+        "src/lib/reliability/compoundTools.ts",
+        "src/lib/reliability/decompose.ts",
+        "src/lib/reliability/escalation.ts",
+        "src/lib/reliability/contextPacker.ts",
+        "src/lib/reliability/codeGraph.ts",
+        "src/lib/reliability/copy.ts",
+        "src/lib/reliability/types.ts",
+        "src/lib/reliability/index.ts"
+      ],
+      "localImplementationExists": "yes",
+      "localModelRequired": "yes",
+      "toolRequired": "no (compound tools are local-only and bounded)",
+      "cloudRequired": "no",
+      "backendStatus": {
+        "ollama": "LOCAL_PARTIAL",
+        "llamaCpp": "LOCAL_PARTIAL"
+      },
+      "canRunWithNoModel": "no",
+      "uiStatus": "active when reliability intent detected; shows steps, intents, and cloud-escalation suggestion (offered but never auto-run)",
+      "tests": [
+        "src/lib/reliability/runner.test.ts",
+        "src/lib/reliability/compoundTools.test.ts",
+        "src/lib/reliability/decompose.test.ts",
+        "src/lib/reliability/escalation.test.ts",
+        "src/lib/reliability/contextPacker.test.ts",
+        "src/lib/reliability/codeGraph.test.ts",
+        "src/lib/reliability/copy.test.ts",
+        "src/lib/reliability/types.test.ts",
+        "src/lib/reliability/integration.test.ts"
+      ],
+      "receipts": "reliability.task-started, reliability.step-pass, reliability.step-fail, reliability.cloud-suggested, reliability.completed",
+      "proofReferences": [
+        "src/lib/reliability/types.test.ts (literal-type cloudUsed:false)",
+        "src/lib/reliability/runner.test.ts (max 6 steps, max 2 retries)",
+        "src/lib/reliability/escalation.test.ts (cloud suggested, never auto-run)"
+      ],
+      "honestyNote": "Reliability layer is local-first. Cloud escalation may be SUGGESTED to the user but never executed. cloudUsed:false is a literal type.",
+      "risks": [
+        "Bounded compound tools cannot fix every small-model failure; the layer surfaces the limitation honestly."
+      ],
+      "classification": "LOCAL_PARTIAL",
+      "canonicalTier": "LOCAL_PARTIAL"
+    },
+    {
+      "capabilityId": "reliability:reliability.safe-file-inspection",
+      "name": "Approval-gated single-file inspection (read-only, ≤256 KB)",
+      "route": "(in-process via /api/chat inspection intent)",
+      "files": [
+        "src/lib/reliability/safeFileInspection.ts",
+        "src/lib/reliability/fileApproval.ts",
+        "src/lib/reliability/fileSafety.ts",
+        "src/lib/reliability/secretRedaction.ts",
+        "src/lib/chat/inspectionIntent.ts"
+      ],
+      "localImplementationExists": "yes",
+      "localModelRequired": "no (reads file independent of model)",
+      "toolRequired": "yes (narrow local read tool)",
+      "cloudRequired": "no",
+      "requiresApprovalGate": true,
+      "approvalScope": "path-bound, single-file, 10-minute TTL token",
+      "backendStatus": {
+        "ollama": "NOT_APPLICABLE",
+        "llamaCpp": "NOT_APPLICABLE"
+      },
+      "canRunWithNoModel": "yes",
+      "uiStatus": "active when inspection intent detected; renders approval card with exact path, size limit, and redaction notice",
+      "tests": [
+        "src/lib/reliability/safeFileInspection.test.ts",
+        "src/lib/reliability/fileApproval.test.ts",
+        "src/lib/reliability/fileSafety.test.ts",
+        "src/lib/reliability/secretRedaction.test.ts",
+        "src/lib/chat/inspectionIntent.test.ts"
+      ],
+      "receipts": "inspection.requested, inspection.approved, inspection.declined, inspection.completed, inspection.blocked",
+      "proofReferences": [
+        "src/lib/reliability/fileSafety.test.ts (path safety, size cap, blocked patterns)",
+        "src/lib/reliability/fileApproval.test.ts (token TTL, path binding)",
+        "src/lib/reliability/secretRedaction.test.ts (API key, credential redaction)",
+        "src/lib/reliability/safeFileInspection.test.ts (end-to-end)"
+      ],
+      "honestyNote": "Read-only. Approval token is bound to the exact file path and expires in 10 minutes; cannot be reused for a different file. Secrets (API keys, credentials) are redacted before the model sees the file.",
+      "risks": [
+        "Heuristic secret redaction — covers common patterns but not custom secret formats."
+      ],
+      "classification": "LOCAL_READY",
+      "canonicalTier": "LOCAL_LIMITED"
+    },
+    {
+      "capabilityId": "editing:editing.approval-gated-tiny-edit",
+      "name": "Approval-gated tiny edit (single snippet, ≤4 KB diff, rollback on verify-fail)",
+      "route": "(in-process via /api/chat edit intent)",
+      "files": [
+        "src/lib/editing/apply.ts",
+        "src/lib/editing/approval.ts",
+        "src/lib/editing/safety.ts",
+        "src/lib/editing/verifier.ts",
+        "src/lib/editing/diff.ts",
+        "src/lib/editing/types.ts",
+        "src/lib/editing/index.ts",
+        "src/lib/chat/editIntent.ts",
+        "src/lib/chat/editingChat.ts"
+      ],
+      "localImplementationExists": "yes",
+      "localModelRequired": "no (edit is a deterministic snippet replacement)",
+      "toolRequired": "yes (narrow local write tool)",
+      "cloudRequired": "no",
+      "requiresApprovalGate": true,
+      "approvalScope": "4-hash bound (path + originalHash + proposedHash + fileHash), 5-minute TTL",
+      "backendStatus": {
+        "ollama": "NOT_APPLICABLE",
+        "llamaCpp": "NOT_APPLICABLE"
+      },
+      "canRunWithNoModel": "yes",
+      "uiStatus": "active when edit intent detected; renders diff preview + approval card. File must already be inspected.",
+      "tests": [
+        "src/lib/editing/apply.test.ts",
+        "src/lib/editing/approval.test.ts",
+        "src/lib/editing/safety.test.ts",
+        "src/lib/editing/verifier.test.ts",
+        "src/lib/editing/diff.test.ts",
+        "src/lib/editing/types.test.ts",
+        "src/lib/chat/editIntent.test.ts",
+        "src/lib/chat/editingChat.test.ts"
+      ],
+      "receipts": "editing.proposed, editing.approval-requested, editing.approved, editing.applied, editing.verified, editing.rollback-started, editing.rollback-completed, editing.failed",
+      "proofReferences": [
+        "src/lib/editing/types.test.ts (literal-type cloudUsed:false, status union)",
+        "src/lib/editing/safety.test.ts (size caps, exact-once anchor, no NUL bytes)",
+        "src/lib/editing/approval.test.ts (4-hash binding, TTL)",
+        "src/lib/editing/verifier.test.ts (post-apply checks)",
+        "src/lib/editing/apply.test.ts (rollback on verify-fail)"
+      ],
+      "honestyNote": "Tiny edit replaces exactly ONE existing snippet with ONE proposed snippet in ONE file that was already inspected. In-memory backup is taken before the write; verification runs after; rollback is automatic if verification fails. No mkdir, no unlink, no rename, no exec.",
+      "risks": [
+        "Snippet anchor must match exactly once; ambiguous targets are refused.",
+        "Diff size capped at 4 KB; larger changes are out of scope by design."
+      ],
+      "classification": "LOCAL_READY",
+      "canonicalTier": "LOCAL_LIMITED"
+    },
+    {
+      "capabilityId": "teacher:teacher.local-q-and-a",
+      "name": "Local teacher Q&A (deterministic concept answers)",
+      "route": "/api/teacher/explain, /api/teacher/concepts, /api/teacher/lessons, /api/teacher/onboarding (in-process via /api/chat teacher intent)",
+      "files": [
+        "src/lib/teacher/concepts.ts",
+        "src/lib/teacher/lessonRegistry.ts",
+        "src/lib/teacher/explain.ts",
+        "src/lib/teacher/detect.ts",
+        "src/lib/teacher/chatIntegration.ts",
+        "src/lib/teacher/onboarding.ts",
+        "src/lib/teacher/onboardingProgress.ts",
+        "src/lib/teacher/runtimeHooks.ts",
+        "src/lib/teacher/runtimeExplain.ts",
+        "src/lib/teacher/teachingCards.ts",
+        "src/lib/teacher/teachingSettings.ts",
+        "src/lib/teacher/types.ts",
+        "src/lib/teacher/index.ts",
+        "src/app/api/teacher/explain/route.ts",
+        "src/app/api/teacher/concepts/route.ts",
+        "src/app/api/teacher/lessons/route.ts",
+        "src/app/api/teacher/onboarding/route.ts",
+        "src/app/teacher/page.tsx",
+        "docs/teacher-kb/manifest.json"
+      ],
+      "localImplementationExists": "yes",
+      "localModelRequired": "no (deterministic concept-registry lookup; falls back to local model only when confidence is low)",
+      "toolRequired": "no",
+      "cloudRequired": "no",
+      "backendStatus": {
+        "ollama": "NOT_APPLICABLE",
+        "llamaCpp": "NOT_APPLICABLE"
+      },
+      "canRunWithNoModel": "yes",
+      "uiStatus": "active at /teacher; integrated into Colloquium via tryTeacherAnswer; first-run onboarding wizard; teach-while-chatting toggle",
+      "tests": [
+        "src/lib/teacher/teacher.test.ts",
+        "src/lib/teacher/integration.test.ts",
+        "src/lib/teacher/beginnerSimulation.test.ts"
+      ],
+      "receipts": "teacher.concept-explained, teacher.lesson-viewed, teacher.onboarding-progressed",
+      "proofReferences": [
+        "src/lib/teacher/teacher.test.ts (concept registry coverage)",
+        "src/lib/teacher/integration.test.ts (chat-route wiring)",
+        "src/lib/teacher/beginnerSimulation.test.ts (74 zero-experience honesty tests)"
+      ],
+      "honestyNote": "Teacher answers are pulled from a static concept registry (30+ concepts, 14 lessons, 16 KB modules). No model call is made for known concepts. Avoids overclaim heuristics like 'completely private'.",
+      "risks": [
+        "Knowledge base coverage is finite; novel beginner phrasings may not match a concept and will fall through to the local model."
+      ],
+      "classification": "LOCAL_READY",
+      "canonicalTier": "LOCAL_READY"
+    },
+    {
+      "capabilityId": "honesty:honesty.tool-claim-correction",
+      "name": "Honesty correction (hallucinated tool-action detector)",
+      "route": "applied in /api/chat handler and stream route",
+      "files": [
+        "src/lib/chat/honestyAnnotation.ts",
+        "src/lib/chat/responseMode.ts"
+      ],
+      "localImplementationExists": "yes",
+      "localModelRequired": "no (deterministic detector)",
+      "toolRequired": "no",
+      "cloudRequired": "no",
+      "backendStatus": {
+        "ollama": "NOT_APPLICABLE",
+        "llamaCpp": "NOT_APPLICABLE"
+      },
+      "canRunWithNoModel": "yes",
+      "uiStatus": "rendered in Colloquium as a correction note under the model reply",
+      "tests": [
+        "src/lib/chat/honestyAnnotation.test.ts",
+        "src/lib/toolHonesty.test.ts",
+        "src/lib/toolHonestyGauntletScript.test.ts"
+      ],
+      "receipts": "(annotated on chat receipt; no separate receipt action)",
+      "proofReferences": [
+        "src/lib/chat/honestyAnnotation.test.ts (13 pattern detectors)",
+        "src/lib/toolHonesty.test.ts (handler + stream integration)",
+        "src/lib/toolHonestyGauntletScript.test.ts (contract)"
+      ],
+      "honestyNote": "Deterministic pattern detector. Catches first-person past/present claims of tool actions that this build cannot perform (file write, shell, web search, etc.) and emits a user-visible correction. Model reply text is preserved verbatim.",
+      "risks": [],
+      "classification": "LOCAL_READY",
+      "canonicalTier": "LOCAL_READY"
+    },
+    {
+      "capabilityId": "provenance:provenance.local-footer",
+      "name": "Provenance footer on every reply",
+      "route": "applied in /api/chat handler and stream route",
+      "files": [
+        "src/lib/mode/provenance.ts",
+        "src/lib/chat/responseMode.ts",
+        "src/lib/chat/handler.ts",
+        "src/lib/chat/stream.ts"
+      ],
+      "localImplementationExists": "yes",
+      "localModelRequired": "no",
+      "toolRequired": "no",
+      "cloudRequired": "no",
+      "backendStatus": {
+        "ollama": "NOT_APPLICABLE",
+        "llamaCpp": "NOT_APPLICABLE"
+      },
+      "canRunWithNoModel": "yes",
+      "uiStatus": "rendered in Colloquium as 'answered by local model only · no tool used · no cloud used'",
+      "tests": [
+        "src/lib/publicReleaseSafety.test.ts (cloudUsed/toolsUsed forced false on every receipt)"
+      ],
+      "receipts": "(every chat receipt includes mode, model, cloudUsed:false, toolsUsed:false)",
+      "proofReferences": [
+        "src/lib/publicReleaseSafety.test.ts (provenance shape)",
+        "scripts/public-squidley-diagnostic.mjs (greps colloquium for 'answered by local model only')"
+      ],
+      "honestyNote": "cloudUsed:false and toolsUsed:false are literal types on the response shape; not booleans that could be flipped at runtime.",
+      "risks": [],
+      "classification": "LOCAL_READY",
+      "canonicalTier": "LOCAL_READY"
+    },
+    {
+      "capabilityId": "mode:mode.resolver",
+      "name": "Mode resolver (local vs cloud separation)",
+      "route": "(in-process)",
+      "files": [
+        "src/lib/mode/resolver.ts",
+        "src/lib/mode/productStatus.ts",
+        "src/lib/mode/capabilityMatrix.ts",
+        "src/lib/mode/toolRegistry.ts",
+        "src/lib/mode/escalation.ts",
+        "src/lib/mode/provenance.ts"
+      ],
+      "localImplementationExists": "yes",
+      "localModelRequired": "no",
+      "toolRequired": "no",
+      "cloudRequired": "no",
+      "backendStatus": {
+        "ollama": "NOT_APPLICABLE",
+        "llamaCpp": "NOT_APPLICABLE"
+      },
+      "canRunWithNoModel": "yes",
+      "uiStatus": "surfaced in /nous and /settings as the current mode badge",
+      "tests": [
+        "src/lib/mode/resolver.test.ts",
+        "src/lib/mode/productStatus.test.ts",
+        "src/lib/mode/capabilityMatrix.test.ts",
+        "src/lib/mode/toolRegistry.test.ts",
+        "src/lib/mode/escalation.test.ts",
+        "src/lib/mode/provenance.test.ts"
+      ],
+      "receipts": "n/a (resolution logic, not an action)",
+      "proofReferences": [
+        "src/lib/mode/resolver.test.ts (63 tests; SQUIDLEY_MODE env handling; API keys never unlock)",
+        "src/lib/mode/productStatus.test.ts (35 tests; PUBLIC_RELEASE_READY false)"
+      ],
+      "honestyNote": "API keys alone do not unlock Cloud Mode. SQUIDLEY_MODE=cloud is the only way to flip the mode badge; it does not enable any cloud feature in this build.",
+      "risks": [],
+      "classification": "LOCAL_READY",
+      "canonicalTier": "LOCAL_READY"
+    },
+    {
+      "capabilityId": "providers:cloud-registry",
+      "name": "Cloud provider registry (architecture only, all NOT_IMPLEMENTED)",
+      "route": "(in-process)",
+      "files": [
+        "src/lib/providers/cloudRegistry.ts",
+        "src/lib/providers/registry.ts"
+      ],
+      "localImplementationExists": "no (registry shell only; no adapter)",
+      "localModelRequired": "n/a",
+      "toolRequired": "n/a",
+      "cloudRequired": "yes",
+      "backendStatus": {
+        "ollama": "NOT_APPLICABLE",
+        "llamaCpp": "NOT_APPLICABLE"
+      },
+      "canRunWithNoModel": "n/a",
+      "uiStatus": "surfaced in /nous and /settings as locked metadata only",
+      "tests": [
+        "src/lib/providers/cloudRegistry.test.ts (if present) / src/lib/publicReleaseSafety.test.ts (locked-by-default)"
+      ],
+      "receipts": "none",
+      "proofReferences": [
+        "src/lib/publicReleaseSafety.test.ts (cloudProvidersAreLockedByDefault === true, every cloud provider .status === 'locked')"
+      ],
+      "honestyNote": "All six cloud providers (OpenAI, Anthropic, Google Gemini, OpenRouter, Minimax, Z.ai) are NOT_IMPLEMENTED with no adapter file. API keys alone never unlock them.",
+      "risks": [],
+      "classification": "CLOUD_REQUIRED",
+      "canonicalTier": "CLOUD_PLANNED"
+    },
+    {
+      "capabilityId": "tools:shell.execute",
+      "name": "Shell execution",
+      "route": "(none)",
+      "files": [],
+      "localImplementationExists": "no",
+      "localModelRequired": "n/a",
+      "toolRequired": "yes",
+      "cloudRequired": "no",
+      "backendStatus": {
+        "ollama": "NOT_APPLICABLE",
+        "llamaCpp": "NOT_APPLICABLE"
+      },
+      "canRunWithNoModel": "n/a",
+      "uiStatus": "no surface; planner refuses shell-intent goals with 'Squidley does not run shell commands.'",
+      "tests": [
+        "src/lib/planning/planner.test.ts (shell intent → blocked, zero executable steps)",
+        "src/lib/chat/honestyAnnotation.test.ts ('I ran the tests' is corrected)"
+      ],
+      "receipts": "n/a",
+      "proofReferences": [
+        "src/lib/planning/planner.test.ts (blocked risk)",
+        "src/lib/chat/honestyAnnotation.test.ts (shell hallucination patterns)"
+      ],
+      "honestyNote": "Refused by design. Planner returns zero executable steps for any shell-shaped intent; honesty annotator overrides model claims of shell execution.",
+      "risks": [],
+      "classification": "NOT_IMPLEMENTED",
+      "canonicalTier": "BLOCKED"
+    },
+    {
+      "capabilityId": "tools:web.search",
+      "name": "Web search / browsing",
+      "route": "(none)",
+      "files": [],
+      "localImplementationExists": "no",
+      "localModelRequired": "n/a",
+      "toolRequired": "yes",
+      "cloudRequired": "yes (would require a search provider)",
+      "backendStatus": {
+        "ollama": "NOT_APPLICABLE",
+        "llamaCpp": "NOT_APPLICABLE"
+      },
+      "canRunWithNoModel": "n/a",
+      "uiStatus": "no surface; honesty annotator catches 'I searched the web'",
+      "tests": [
+        "src/lib/chat/honestyAnnotation.test.ts (web search hallucination)",
+        "src/lib/egressGuard.test.ts (no remote fetch)"
+      ],
+      "receipts": "n/a",
+      "proofReferences": [
+        "src/lib/egressGuard.test.ts (only local endpoints allowed)",
+        "src/lib/chat/honestyAnnotation.test.ts (web hallucination pattern)"
+      ],
+      "honestyNote": "No search provider, no browsing surface. Egress guard blocks non-local fetch.",
+      "risks": [],
+      "classification": "NOT_IMPLEMENTED",
+      "canonicalTier": "NOT_IMPLEMENTED"
+    },
+    {
+      "capabilityId": "tools:autonomous.loop",
+      "name": "Autonomous multi-step loop without per-step approval",
+      "route": "(none)",
+      "files": [],
+      "localImplementationExists": "no",
+      "localModelRequired": "n/a",
+      "toolRequired": "yes",
+      "cloudRequired": "no (would be enabled in Cloud Mode + Phase 5)",
+      "backendStatus": {
+        "ollama": "NOT_APPLICABLE",
+        "llamaCpp": "NOT_APPLICABLE"
+      },
+      "canRunWithNoModel": "n/a",
+      "uiStatus": "no surface; reliability layer caps at 6 steps, 2 retries with per-tool boundaries",
+      "tests": [
+        "src/lib/reliability/runner.test.ts (max 6 steps)",
+        "src/lib/planning/planner.test.ts (zero executable steps for blocked risk)"
+      ],
+      "receipts": "n/a",
+      "proofReferences": [
+        "src/lib/reliability/runner.test.ts (bounded loop)",
+        "src/lib/planning/types.test.ts (literal-type cloudUsed:false)"
+      ],
+      "honestyNote": "Refused by design. No multi-step loop runs without bounded per-tool gates today. Phase 5 of the release plan would introduce explicit approval checkpoints; nothing here yet.",
+      "risks": [],
+      "classification": "NOT_IMPLEMENTED",
+      "canonicalTier": "BLOCKED"
+    },
+    {
+      "capabilityId": "tools:filesystem.broad",
+      "name": "Broad filesystem access (delete, move, write outside tiny-edit)",
+      "route": "(none)",
+      "files": [],
+      "localImplementationExists": "no",
+      "localModelRequired": "n/a",
+      "toolRequired": "yes",
+      "cloudRequired": "no",
+      "backendStatus": {
+        "ollama": "NOT_APPLICABLE",
+        "llamaCpp": "NOT_APPLICABLE"
+      },
+      "canRunWithNoModel": "n/a",
+      "uiStatus": "no surface; only the narrow inspection and tiny-edit gates exist",
+      "tests": [
+        "src/lib/reliability/fileSafety.test.ts (path safety, blocked patterns)",
+        "src/lib/editing/safety.test.ts (no mkdir/unlink/rename)"
+      ],
+      "receipts": "n/a",
+      "proofReferences": [
+        "src/lib/reliability/fileSafety.test.ts",
+        "src/lib/editing/safety.test.ts"
+      ],
+      "honestyNote": "Refused by design. The narrow inspection (single file, 256 KB) and tiny edit (single snippet, 4 KB diff) flows are the ONLY filesystem surfaces; nothing else is wired.",
+      "risks": [],
+      "classification": "NOT_IMPLEMENTED",
+      "canonicalTier": "BLOCKED"
+    }
+  ]
+}

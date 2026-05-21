@@ -4,16 +4,26 @@
   "private": true,
   "description": "Squidley — beginner-friendly, local-first, companion-guided AI workspace.",
   "license": "Apache-2.0",
+  "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "electron:dev": "npm run build && electron .",
+    "electron:pack": "npm run build && electron-builder --dir",
+    "electron:dist": "npm run build && electron-builder",
     "gauntlet:local-model": "node scripts/gauntlet-local-model.mjs",
+    "gauntlet:tool-honesty": "node scripts/tool-honesty-gauntlet.mjs",
     "lint": "next lint",
-    "smoke:llama-server": "node scripts/smoke-llama-server-local.mjs",
+    "smoke:llama-server": "node scripts/smoke-llama-server.mjs",
+    "smoke:llama-server-legacy": "node scripts/smoke-llama-server-local.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "diagnostic": "node scripts/public-squidley-diagnostic.mjs",
+    "prove:local-only": "node scripts/prove-local-only.mjs",
+    "verify:capabilities": "node scripts/verify-capabilities.mjs",
+    "verify:release": "npm run typecheck && npm run test && npm run diagnostic && npm run prove:local-only && npm run verify:capabilities && npm run gauntlet:local-model"
   },
   "dependencies": {
     "next": "14.2.35",
@@ -31,5 +41,62 @@
     "tailwindcss": "3.4.4",
     "typescript": "5.4.5",
     "vitest": "1.6.1"
+  },
+  "build": {
+    "appId": "com.squidley.public",
+    "productName": "Squidley",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron/**/*",
+      ".next/standalone/**/*",
+      ".next/static/**/*",
+      "public/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": ".next/static",
+        "to": ".next/static"
+      },
+      {
+        "from": "public",
+        "to": "public"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "public/squidley/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerSidebar": null,
+      "shortcutName": "Squidley"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "category": "public.app-category.developer-tools",
+      "icon": "public/squidley/icon.png"
+    },
+    "linux": {
+      "target": [
+        { "target": "AppImage", "arch": ["x64"] },
+        { "target": "deb", "arch": ["x64"] }
+      ],
+      "category": "Development",
+      "icon": "public/squidley/icon.png"
+    }
   }
 }

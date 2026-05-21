@@ -7,6 +7,12 @@
 > Tier vocabulary follows [docs/CAPABILITY_TAXONOMY.md](CAPABILITY_TAXONOMY.md).
 > The columns `localModeStatus` and `cloudModeStatus` are preserved for the
 > diagnostic that grep-checks this file.
+>
+> This Markdown is a **projection** of the machine-readable matrices at
+> [docs/capability-matrix.public-squidley.json](capability-matrix.public-squidley.json)
+> and [docs/tool-matrix.public-squidley.json](tool-matrix.public-squidley.json).
+> When they disagree, the JSON wins. Run `npm run verify:capabilities`
+> to validate.
 
 ## How to Read This Matrix
 

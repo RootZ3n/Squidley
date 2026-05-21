@@ -133,6 +133,36 @@ Implication: these are CONTRACTS, not roadmap items. If a future
 release wants to relax one, it must show up as a separate explicit
 proposal.
 
+## Machine-Readable Source of Truth
+
+This file is the canonical vocabulary. The machine-readable expression
+of the taxonomy lives in two JSON files:
+
+- `docs/capability-matrix.public-squidley.json` — every capability,
+  with `canonicalTier` (one of the six tiers below), legacy
+  `classification` field for diagnostic backward compatibility, and
+  per-row proof references / tests / receipts.
+- `docs/tool-matrix.public-squidley.json` — every tool surface, with
+  `canonicalTier`, legacy `publicLocalStatus`, scope limits, and
+  approval requirements.
+
+Both files declare a `canonicalTiers` block at the top so consumers
+can validate the vocabulary at load time. The Markdown views
+(`docs/MODE_CAPABILITY_MATRIX.md`, `docs/CAPABILITY_MATRIX_PUBLIC_SQUIDLEY.md`,
+`docs/TOOL_MATRIX_PUBLIC_SQUIDLEY.md`) are projections of the JSON; when
+the two disagree, **the JSON wins** and the Markdown should be updated.
+
+Validation:
+
+- `npm run verify:capabilities` runs `scripts/verify-capabilities.mjs`
+  which validates both matrices end to end.
+- `src/lib/capabilityMatrixTaxonomy.test.ts` (vitest) asserts the
+  contract on every test run.
+- `npm run diagnostic` re-asserts the diagnostic-level invariants
+  (proof references, no llama-cpp LOCAL_READY without smoke proof,
+  tool-matrix consistency).
+- `npm run verify:release` chains all of the above.
+
 ## How to Map Existing Vocabulary
 
 Older docs and JSON matrices use slightly different terms. Use this
