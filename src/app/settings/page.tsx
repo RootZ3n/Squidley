@@ -377,10 +377,10 @@ export default function SettingsPage() {
         <Panel title="Privacy & Local-Only">
           <LocalStatusNote variant="localOnly" />
           <ul className="space-y-2 text-sm text-ink-500 dark:text-ink-300">
-            <li>Colloquium uses your configured local model server.</li>
-            <li>Velum review is deterministic and client-side.</li>
-            <li>Archivum entries are stored in this browser.</li>
-            <li>Tabularium receipts are stored in this browser.</li>
+            <li>Chat (Colloquium) uses your configured local model server.</li>
+            <li>Safety Check (Velum) runs pattern-based checks in your browser — no AI model call.</li>
+            <li>Notes (Archivum) are stored in this browser.</li>
+            <li>Activity Log (Tabularium) receipts are stored in this browser.</li>
             <li>No cloud fallback is used in the current public local version.</li>
             <li>Clearing browser storage may remove local Squidley data.</li>
           </ul>

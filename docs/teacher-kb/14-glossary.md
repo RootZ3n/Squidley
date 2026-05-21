@@ -1,5 +1,27 @@
 # Glossary
 
+> **Module names in plain English.** Squidley's modules have Latin names
+> for personality. The friendly label is shown first; the Latin name
+> follows in parentheses. See [docs/UI_LANGUAGE_GUIDE.md](../UI_LANGUAGE_GUIDE.md).
+>
+> | Friendly | Latin | What it does |
+> |---|---|---|
+> | Chat | Colloquium | Talk to a local AI model. |
+> | Code Helper | Fabrica | Get a single-file code suggestion. |
+> | Notes | Archivum | Save snippets in this browser only. |
+> | Safety Check | Velum | Review text before sharing with the model. |
+> | Image Review | Oculus | Describe an image with a local vision model. |
+> | Activity Log | Tabularium | See what Squidley actually did. |
+> | System Map | Nous | What is configured and connected. |
+> | Memory (planned) | Archelon | Persistent memory — not built yet. |
+> | Agent Workflows (locked) | Legatus | Multi-step agent flows — Cloud Mode only. |
+> | Model Evaluator (locked) | Probatio | Compare cloud models — Cloud Mode only. |
+> | Advanced Control (locked) | Imperium | High-trust controls — Cloud Mode only. |
+> | Policy Control (locked) | Praertorium | Org policy — Cloud Mode only. |
+> | Image Generation (locked) | Imaginanium | Cloud image generation — Cloud Mode only. |
+
+## Concepts
+
 **AI (Artificial Intelligence):** Software that processes language, images, or data and produces useful responses.
 
 **Agent:** An AI system that can plan, use tools, and take real actions — not just generate text.
@@ -80,4 +102,15 @@
 
 **Tool-Backed Action:** A response based on a real tool action, with a receipt as proof.
 
-**Velum:** Squidley's deterministic text review tool. Runs heuristic checks (secrets, prompt-injection patterns, risky requests) before text reaches the model. Heuristic — useful but not a guarantee of safety.
+**Velum (Safety Check):** Squidley's predictable text review tool. Runs pattern-based checks (secrets, prompt-injection patterns, risky requests) before text reaches the model. Helpful, but not a guarantee of safety.
+
+## Capability Tiers (beginner-friendly labels)
+
+Squidley sorts every capability into one of six tiers. UI badges show the friendly label; this glossary maps them to plain English.
+
+- **Ready (LOCAL_READY):** Works locally. No approval needed.
+- **Approval needed (LOCAL_LIMITED):** Works locally with safety limits and your approval (file inspection, tiny edits, etc.).
+- **Limited (LOCAL_PARTIAL):** Works locally. Quality depends on your model.
+- **Planned (cloud) (CLOUD_PLANNED):** Designed for Cloud Mode. Not running yet.
+- **Not built (NOT_IMPLEMENTED):** No code path. Would be new work.
+- **Intentionally unavailable (BLOCKED):** Refused by design for safety and trust.

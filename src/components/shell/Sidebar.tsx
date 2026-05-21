@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { BugReportLink } from "@/components/BugReportLink";
+import { MODULE_TERMINOLOGY, type ModuleKey } from "@/lib/ui/terminology";
 import {
   ArchelonIcon,
   ArchivumIcon,
@@ -27,12 +28,22 @@ import {
 
 interface NavItem {
   href: string;
+  /** Beginner-readable primary label (e.g. "Chat"). */
   label: string;
+  /** Optional advanced/lore name (e.g. "Colloquium"). Shown as subtitle. */
+  subtitle?: string;
   accent: string;
   accentDim: string;
   icon: ReactNode;
   status?: "active" | "future" | "locked";
   hint?: string;
+}
+
+function termHint(key: ModuleKey, statusNote?: string): string {
+  const term = MODULE_TERMINOLOGY[key];
+  const base = term.tooltip;
+  if (statusNote) return `${base} ${statusNote}`;
+  return base;
 }
 
 const PRIMARY: NavItem[] = [
@@ -42,139 +53,164 @@ const PRIMARY: NavItem[] = [
     accent: "#bc8cff",
     accentDim: "rgba(188,140,255,0.18)",
     icon: <HomeIcon />,
+    hint: "Start here. Overview of what Squidley can do today.",
   },
   {
     href: "/colloquium",
-    label: "Colloquium",
+    label: MODULE_TERMINOLOGY.colloquium.friendlyLabel,
+    subtitle: MODULE_TERMINOLOGY.colloquium.latinName,
     accent: "#4df5c8",
     accentDim: "rgba(77,245,200,0.18)",
     icon: <ChatIcon />,
+    hint: termHint("colloquium"),
   },
   {
     href: "/fabrica",
-    label: "Fabrica",
+    label: MODULE_TERMINOLOGY.fabrica.friendlyLabel,
+    subtitle: MODULE_TERMINOLOGY.fabrica.latinName,
     accent: "#fb923c",
     accentDim: "rgba(251,146,60,0.18)",
     icon: <FabricaIcon />,
+    hint: termHint("fabrica"),
   },
   {
     href: "/archivum",
-    label: "Archivum",
+    label: MODULE_TERMINOLOGY.archivum.friendlyLabel,
+    subtitle: MODULE_TERMINOLOGY.archivum.latinName,
     accent: "#7bffdd",
     accentDim: "rgba(123,255,221,0.18)",
     icon: <ArchivumIcon />,
+    hint: termHint("archivum"),
   },
   {
     href: "/archivum?focus=more-input",
-    label: "More Input",
+    label: MODULE_TERMINOLOGY.moreInput.friendlyLabel,
+    subtitle: MODULE_TERMINOLOGY.moreInput.latinName,
     accent: "#a78bfa",
     accentDim: "rgba(167,139,250,0.18)",
     icon: <MoreInputIcon />,
+    hint: termHint("moreInput"),
   },
   {
     href: "/velum",
-    label: "Velum",
+    label: MODULE_TERMINOLOGY.velum.friendlyLabel,
+    subtitle: MODULE_TERMINOLOGY.velum.latinName,
     accent: "#f472b6",
     accentDim: "rgba(244,114,182,0.18)",
     icon: <VelumIcon />,
+    hint: termHint("velum"),
   },
   {
     href: "/oculus",
-    label: "Oculus",
+    label: MODULE_TERMINOLOGY.oculus.friendlyLabel,
+    subtitle: MODULE_TERMINOLOGY.oculus.latinName,
     accent: "#bc8cff",
     accentDim: "rgba(188,140,255,0.18)",
     icon: <OculusIcon />,
+    hint: termHint("oculus"),
   },
   {
     href: "/tabularium",
-    label: "Tabularium",
+    label: MODULE_TERMINOLOGY.tabularium.friendlyLabel,
+    subtitle: MODULE_TERMINOLOGY.tabularium.latinName,
     accent: "#f59e0b",
     accentDim: "rgba(245,158,11,0.18)",
     icon: <TabulariumIcon />,
+    hint: termHint("tabularium"),
   },
   {
     href: "/nous",
-    label: "Nous",
+    label: MODULE_TERMINOLOGY.nous.friendlyLabel,
+    subtitle: MODULE_TERMINOLOGY.nous.latinName,
     accent: "#60a5fa",
     accentDim: "rgba(96,165,250,0.18)",
     icon: <NousIcon />,
+    hint: termHint("nous"),
   },
 ];
 
 const SECONDARY: NavItem[] = [
   {
     href: "/modules",
-    label: "Modules",
+    label: MODULE_TERMINOLOGY.modules.friendlyLabel,
     accent: "#a78bfa",
     accentDim: "rgba(167,139,250,0.16)",
     icon: <ModulesIcon />,
+    hint: termHint("modules"),
   },
   {
     href: "/settings",
-    label: "Settings",
+    label: MODULE_TERMINOLOGY.settings.friendlyLabel,
     accent: "#cbd7ea",
     accentDim: "rgba(203,215,234,0.14)",
     icon: <SettingsIcon />,
+    hint: termHint("settings"),
   },
 ];
 
 const FUTURE: NavItem[] = [
   {
     href: "/modules",
-    label: "Archelon",
+    label: MODULE_TERMINOLOGY.archelon.friendlyLabel,
+    subtitle: MODULE_TERMINOLOGY.archelon.latinName,
     accent: "#7bffdd",
     accentDim: "rgba(123,255,221,0.14)",
     icon: <ArchelonIcon />,
     status: "future",
-    hint: "Future · not wired in public",
+    hint: termHint("archelon", "Planned for a future release."),
   },
 ];
 
 const LOCKED: NavItem[] = [
   {
     href: "/modules",
-    label: "Legatus",
+    label: MODULE_TERMINOLOGY.legatus.friendlyLabel,
+    subtitle: MODULE_TERMINOLOGY.legatus.latinName,
     accent: "#60a5fa",
     accentDim: "rgba(96,165,250,0.12)",
     icon: <LegatusIcon />,
     status: "locked",
-    hint: "Cloud Unlock · locked in public",
+    hint: termHint("legatus"),
   },
   {
     href: "/modules",
-    label: "Probatio",
+    label: MODULE_TERMINOLOGY.probatio.friendlyLabel,
+    subtitle: MODULE_TERMINOLOGY.probatio.latinName,
     accent: "#f472b6",
     accentDim: "rgba(244,114,182,0.12)",
     icon: <ProbatioIcon />,
     status: "locked",
-    hint: "Cloud Unlock · locked in public",
+    hint: termHint("probatio"),
   },
   {
     href: "/modules",
-    label: "Imperium",
+    label: MODULE_TERMINOLOGY.imperium.friendlyLabel,
+    subtitle: MODULE_TERMINOLOGY.imperium.latinName,
     accent: "#a78bfa",
     accentDim: "rgba(167,139,250,0.12)",
     icon: <ImperiumIcon />,
     status: "locked",
-    hint: "Cloud Unlock · locked in public",
+    hint: termHint("imperium"),
   },
   {
     href: "/modules",
-    label: "Praertorium",
+    label: MODULE_TERMINOLOGY.praertorium.friendlyLabel,
+    subtitle: MODULE_TERMINOLOGY.praertorium.latinName,
     accent: "#fb923c",
     accentDim: "rgba(251,146,60,0.12)",
     icon: <PraertoriumIcon />,
     status: "locked",
-    hint: "Cloud Unlock · locked in public",
+    hint: termHint("praertorium"),
   },
   {
     href: "/modules",
-    label: "Imaginanium",
+    label: MODULE_TERMINOLOGY.imaginanium.friendlyLabel,
+    subtitle: MODULE_TERMINOLOGY.imaginanium.latinName,
     accent: "#bc8cff",
     accentDim: "rgba(188,140,255,0.12)",
     icon: <ImaginaniumIcon />,
     status: "locked",
-    hint: "Cloud Unlock · locked in public",
+    hint: termHint("imaginanium"),
   },
 ];
 
@@ -311,18 +347,46 @@ function SidebarLink({
         style={{
           position: "relative",
           zIndex: 1,
-          fontSize: 15,
-          fontWeight: active ? 600 : 500,
-          letterSpacing: "0.01em",
           opacity: expanded ? 1 : 0,
           transform: expanded ? "translateX(0)" : "translateX(-6px)",
           transition: "opacity 120ms 50ms, transform 160ms ease",
           flex: 1,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
+          display: "flex",
+          flexDirection: "column",
+          minWidth: 0,
         }}
       >
-        {item.label}
+        <span
+          style={{
+            fontSize: 15,
+            fontWeight: active ? 600 : 500,
+            letterSpacing: "0.01em",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {item.label}
+        </span>
+        {item.subtitle && (
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 500,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              fontFamily: "var(--font-mono)",
+              color: "rgba(186,212,255,0.42)",
+              marginTop: 1,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+            aria-hidden="true"
+          >
+            {item.subtitle}
+          </span>
+        )}
       </span>
       {locked && (
         <span
@@ -434,7 +498,7 @@ export function DesktopSidebar() {
           position: "relative",
         }}
       >
-        <SectionLabel label="Workspace" expanded={expanded} />
+        <SectionLabel label="Use freely" expanded={expanded} />
         {PRIMARY.map((item) => (
           <SidebarLink
             key={item.label}
@@ -444,7 +508,7 @@ export function DesktopSidebar() {
           />
         ))}
 
-        <SectionLabel label="System" expanded={expanded} />
+        <SectionLabel label="Settings" expanded={expanded} />
         {SECONDARY.map((item) => (
           <SidebarLink
             key={item.label}
@@ -454,7 +518,7 @@ export function DesktopSidebar() {
           />
         ))}
 
-        <SectionLabel label="Future · public-local" expanded={expanded} />
+        <SectionLabel label="Planned · not built yet" expanded={expanded} />
         {FUTURE.map((item) => (
           <SidebarLink
             key={item.label}
@@ -464,7 +528,7 @@ export function DesktopSidebar() {
           />
         ))}
 
-        <SectionLabel label="Cloud Unlock · locked" expanded={expanded} />
+        <SectionLabel label="Cloud-only · not implemented" expanded={expanded} />
         {LOCKED.map((item) => (
           <SidebarLink
             key={item.label}
@@ -662,7 +726,7 @@ export function MobileTabBar() {
                 marginBottom: 8,
               }}
             >
-              Cloud Unlock · locked
+              Cloud-only · not implemented
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {LOCKED.map((item) => (

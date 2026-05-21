@@ -159,8 +159,11 @@ export default function VelumPage() {
             suspicious instructions, or hidden prompt-like commands.
           </p>
           <TourHighlight target="local-only-indicator" active={activeTarget}>
-            <p className="mt-3 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-800 dark:border-emerald-700/60 dark:bg-emerald-900/20 dark:text-emerald-100">
-              Local-only · deterministic checks · no model call
+            <p
+              className="mt-3 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-800 dark:border-emerald-700/60 dark:bg-emerald-900/20 dark:text-emerald-100"
+              title="Pattern-based checks run in your browser. No AI model is called. Helpful, but not a guarantee of safety."
+            >
+              Local-only · pattern-based checks · no model call
             </p>
           </TourHighlight>
           <nav className="mt-4 flex flex-wrap gap-2 text-xs">
