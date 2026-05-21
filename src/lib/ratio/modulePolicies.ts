@@ -15,7 +15,6 @@ export const RATIO_MODULE_POLICIES: readonly RatioModulePolicy[] = [
   policy("modules", "modules.public-gallery", "public-local", "active", "Modules lists public Squidley capabilities and does not need a model."),
   policy("legatus", "legatus.agent-workflow", "cloud-agent", "locked", "Legatus agent workflows require Cloud Agent mode, tools, workspace access, and approval.", { minimumPlanningAbility: "agentic", requiresWorkspace: true, requiresTools: true, requiresApproval: true }),
   policy("imperium", "imperium.advanced-control", "lab-power", "locked", "Imperium advanced controls remain locked outside lab-power mode.", { requiresWorkspace: true, requiresTools: true, requiresApproval: true }),
-  policy("praertorium", "praertorium.policy-control", "lab-power", "locked", "Praertorium policy control remains locked outside lab-power mode.", { requiresWorkspace: true, requiresTools: true, requiresApproval: true }),
   policy("probatio", "probatio.model-evaluation", "cloud-assisted", "locked", "Probatio needs cloud-assisted evaluation support before it is active.", { minimumPlanningAbility: "multi-step" }),
   policy("imaginanium", "imaginanium.cloud-image-generation", "cloud-assisted", "locked", "Imaginanium is prepared for future image generation but is locked in public mode."),
   policy("archelon", "archelon.local-memory", "public-local", "future", "Archelon is a future local-memory direction and is not wired yet."),

@@ -144,7 +144,6 @@ describe("capability tabularium adapter — module mapping", () => {
       "legatus",
       "probatio",
       "imperium",
-      "praertorium",
       "imaginanium",
     ]) {
       expect(moduleIdToTabulariumModule(id)).toBe("system");

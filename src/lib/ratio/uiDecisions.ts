@@ -62,10 +62,6 @@ export function imperiumAdvancedControlDecision(modelId?: string): RatioDecision
   return publicDecision("imperium", "imperium.advanced-control", modelId, "critical");
 }
 
-export function praertoriumPolicyControlDecision(modelId?: string): RatioDecision {
-  return publicDecision("praertorium", "praertorium.policy-control", modelId, "critical");
-}
-
 export function ratioDecisionForPublicModule(moduleId: string, modelId?: string): RatioDecision {
   switch (moduleId) {
     case "colloquium":
@@ -91,8 +87,6 @@ export function ratioDecisionForPublicModule(moduleId: string, modelId?: string)
       return legatusAgentWorkflowDecision(modelId);
     case "imperium":
       return imperiumAdvancedControlDecision(modelId);
-    case "praertorium":
-      return praertoriumPolicyControlDecision(modelId);
     case "probatio":
       return publicDecision("probatio", "probatio.model-evaluation", modelId, "medium");
     case "imaginanium":

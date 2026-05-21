@@ -47,7 +47,6 @@ describe("module terminology", () => {
       "legatus",
       "probatio",
       "imperium",
-      "praertorium",
       "imaginanium",
     ];
     for (const key of required) {
@@ -71,7 +70,6 @@ describe("module terminology", () => {
       "legatus",
       "probatio",
       "imperium",
-      "praertorium",
       "imaginanium",
     ];
     for (const key of Object.keys(MODULE_TERMINOLOGY) as ModuleKey[]) {
@@ -94,7 +92,6 @@ describe("module terminology", () => {
       "legatus",
       "probatio",
       "imperium",
-      "praertorium",
       "imaginanium",
     ];
     for (const key of locked) {
@@ -135,6 +132,13 @@ describe("module terminology", () => {
     expect(friendlyNameForLatin("Tabularium")).toBe("Activity Log");
     expect(friendlyNameForLatin("Colloquium")).toBe("Chat");
     expect(friendlyNameForLatin("Legatus")).toBe("Agent Workflows");
+  });
+
+  it("does not expose lab-only modules (Praetorium) on the public surface", () => {
+    expect((MODULE_TERMINOLOGY as Record<string, unknown>).praertorium).toBeUndefined();
+    expect((MODULE_TERMINOLOGY as Record<string, unknown>).praetorium).toBeUndefined();
+    expect(friendlyNameForLatin("Praertorium")).toBe("Praertorium");
+    expect(friendlyNameForLatin("Praetorium")).toBe("Praetorium");
   });
 
   it("friendlyNameForLatin returns input verbatim on unknown names", () => {

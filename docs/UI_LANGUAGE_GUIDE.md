@@ -33,7 +33,6 @@ the exact phrasings so every panel says the same thing.
 | Agent Workflows (locked) | Legatus | Multi-step agent flows — Cloud Mode only. |
 | Model Evaluator (locked) | Probatio | Evaluate cloud models — Cloud Mode only. |
 | Advanced Control (locked) | Imperium | High-trust controls — Cloud Mode only. |
-| Policy Control (locked) | Praertorium | Org policy and guardrails — Cloud Mode only. |
 | Image Generation (locked) | Imaginanium | Cloud image generation — Cloud Mode only. |
 
 Rules:

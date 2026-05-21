@@ -144,14 +144,6 @@ export const MODULE_TERMINOLOGY = {
       "High-trust agent controls. Cloud Mode is not implemented yet.",
     statusSuffix: "(locked)",
   },
-  praertorium: {
-    friendlyLabel: "Policy Control",
-    latinName: "Praertorium",
-    beginnerDescription: "Org policy and guardrails — Cloud Mode only.",
-    tooltip:
-      "Policy and guardrail authoring for advanced agents. Cloud Mode is not implemented yet.",
-    statusSuffix: "(locked)",
-  },
   imaginanium: {
     friendlyLabel: "Image Generation",
     latinName: "Imaginanium",

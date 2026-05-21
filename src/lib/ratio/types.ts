@@ -36,7 +36,6 @@ export type RatioActionId =
   | "modules.public-gallery"
   | "legatus.agent-workflow"
   | "imperium.advanced-control"
-  | "praertorium.policy-control"
   | "probatio.model-evaluation"
   | "imaginanium.cloud-image-generation"
   | "archelon.local-memory";

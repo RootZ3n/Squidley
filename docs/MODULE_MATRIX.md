@@ -25,7 +25,6 @@ table is a human-readable mirror; if they diverge, the code wins.
 | Legatus     | envoy, delegate         | Future agent workflows requiring Cloud Agent mode.      |
 | Probatio    | test, trial             | Evaluations and tests against ideas/models.             |
 | Imperium    | command, authority      | Future advanced control requiring high-trust unlocks.   |
-| Praertorium | headquarters            | Future policy/operations control; locked in public.     |
 | Imaginanium | —                       | Image generation — not in local-only public mode.       |
 
 ## Fields

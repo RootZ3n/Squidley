@@ -95,7 +95,7 @@ a wired adapter, and no adapters exist yet.
 - Cloud escalation (the reliability layer can suggest it; it cannot
   run the call).
 - Advanced cloud-only features: multi-file build, agent workflows,
-  cloud vision, cloud image generation, evaluation, policy control.
+  cloud vision, cloud image generation, evaluation.
 
 The phrase you will see in the UI: "Cloud Mode is not implemented
 yet."

@@ -227,7 +227,6 @@ in `src/components/shell/Sidebar.tsx`.
 | /modules#legatus | Legatus | Agent Workflows | Legatus |
 | /modules#probatio | Probatio | Model Evaluator | Probatio |
 | /modules#imperium | Imperium | Advanced Control | Imperium |
-| /modules#praertorium | Praertorium | Policy Control | Praertorium |
 | /modules#imaginanium | Imaginanium | Image Generation | Imaginanium |
 
 ## What Remains Intentionally "Advanced Mode"

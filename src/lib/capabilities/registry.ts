@@ -312,24 +312,6 @@ export const CAPABILITIES: readonly Capability[] = [
     velumGated: true,
   },
   {
-    id: "praertorium:praertorium.policy-control",
-    moduleId: "praertorium",
-    displayName: "Policy control",
-    beginnerDescription:
-      "Advanced policy and operations control. Locked in public mode without future explicit high-trust permissions.",
-    tier: "cloud-required",
-    localRequirements: [],
-    cloudRequirements: [
-      { providerId: "future-cloud-policy", capabilityProfile: "tool-use" },
-    ],
-    honestMessages: {
-      cloudRequired:
-        "Praertorium policy operations require future cloud unlock and high-trust permissions. Locked in public mode.",
-    },
-    receiptActions: "none",
-    velumGated: true,
-  },
-  {
     id: "imaginanium:imaginanium.cloud-image-generation",
     moduleId: "imaginanium",
     displayName: "Cloud image generation",

@@ -293,23 +293,6 @@ export const PUBLIC_MODULES: readonly PublicModule[] = [
     docs: { note: "Cloud Unlock module; covered in docs/MODULE_MATRIX.md and docs/ADAPTIVE_SYSTEM_INTELLIGENCE.md." },
   },
   {
-    id: "praertorium",
-    displayName: "Praertorium",
-    latinMeaning: "headquarters",
-    beginnerDescription:
-      "Advanced policy and operations control. Locked in public mode and not active without future explicit high-trust permissions.",
-    category: "cloud-unlock",
-    status: "locked",
-    publicEnabled: true,
-    enabled: false,
-    localOnlySupported: false,
-    cloudUnlockRequired: true,
-    tourAvailable: false,
-    ratioActions: ["praertorium.policy-control"],
-    receiptActions: "none",
-    docs: { note: "Cloud Unlock module; covered in docs/MODULE_MATRIX.md and docs/ADAPTIVE_SYSTEM_INTELLIGENCE.md." },
-  },
-  {
     id: "imaginanium",
     displayName: "Imaginanium",
     beginnerDescription:

@@ -474,28 +474,6 @@
       "canonicalTier": "CLOUD_PLANNED"
     },
     {
-      "capabilityId": "praertorium:praertorium.policy-control",
-      "name": "Policy control",
-      "route": "(none)",
-      "files": ["src/lib/capabilities/registry.ts"],
-      "localImplementationExists": "no",
-      "localModelRequired": "n/a",
-      "toolRequired": "yes (future)",
-      "cloudRequired": "yes",
-      "backendStatus": {
-        "ollama": "NOT_IMPLEMENTED",
-        "llamaCpp": "NOT_IMPLEMENTED"
-      },
-      "canRunWithNoModel": "no",
-      "uiStatus": "Locked future module.",
-      "tests": ["src/lib/capabilities/registry.test.ts"],
-      "receipts": "none",
-      "proofReferences": [],
-      "risks": [],
-      "classification": "NOT_IMPLEMENTED",
-      "canonicalTier": "CLOUD_PLANNED"
-    },
-    {
       "capabilityId": "imaginanium:imaginanium.cloud-image-generation",
       "name": "Cloud image generation",
       "route": "(none)",

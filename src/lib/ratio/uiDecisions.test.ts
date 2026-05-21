@@ -8,7 +8,6 @@ import {
   getRatioUnlockLine,
   legatusAgentWorkflowDecision,
   oculusLocalImageAnalysisDecision,
-  praertoriumPolicyControlDecision,
   ratioDecisionForPublicModule,
   tabulariumLocalReceiptsDecision,
   velumDeterministicReviewDecision,
@@ -60,12 +59,9 @@ describe("Ratio UI decisions", () => {
 
   it("keeps cloud agent modules locked in public-local", () => {
     const legatus = legatusAgentWorkflowDecision("llama3.2:3b");
-    const praertorium = praertoriumPolicyControlDecision("llama3.2:3b");
 
     expect(legatus.allowed).toBe(false);
     expect(legatus.status).toBe("needs-cloud-unlock");
-    expect(praertorium.allowed).toBe(false);
-    expect(praertorium.status).toBe("needs-cloud-unlock");
   });
 
   it("returns useful labels and beginner messages without overstating capability", () => {

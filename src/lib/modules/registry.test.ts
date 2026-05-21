@@ -25,7 +25,6 @@ const REQUIRED_CLOUD_UNLOCK = [
   "legatus",
   "probatio",
   "imperium",
-  "praertorium",
   "imaginanium",
 ];
 

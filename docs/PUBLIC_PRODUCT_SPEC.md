@@ -48,9 +48,9 @@ See [`MODULE_MATRIX.md`](MODULE_MATRIX.md) for the full table.
 
 - **Core (local-first)** — Colloquium, Fabrica, Archivum, More Input,
   Velum, Archelon, Oculus, Tabularium, Nous.
-- **Cloud unlock** — Legatus, Probatio, Imperium, Praertorium,
-  Imaginanium. Visible in the gallery so users know they exist; gated
-  in local-only public mode.
+- **Cloud unlock** — Legatus, Probatio, Imperium, Imaginanium. Visible
+  in the gallery so users know they exist; gated in local-only public
+  mode.
 
 ### Fabrica in public mode
 

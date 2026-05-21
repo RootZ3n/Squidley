@@ -82,7 +82,6 @@ bottom for the diagnostic.
 | Cloud vision | CLOUD_PLANNED | No | n/a | NOT_IMPLEMENTED | — |
 | Cloud image generation | CLOUD_PLANNED | No | n/a | NOT_IMPLEMENTED | — |
 | Model evaluation (Probatio) | CLOUD_PLANNED | No | NOT_IMPLEMENTED | NOT_IMPLEMENTED | — |
-| Policy control (Praertorium) | CLOUD_PLANNED | No | NOT_IMPLEMENTED | NOT_IMPLEMENTED | — |
 | High-trust control (Imperium) | CLOUD_PLANNED | No | NOT_IMPLEMENTED | NOT_IMPLEMENTED | — |
 
 Every cloud row in the JSON capability matrix is independently checked by

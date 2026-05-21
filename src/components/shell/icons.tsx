@@ -165,15 +165,6 @@ export function ImperiumIcon() {
   );
 }
 
-export function PraertoriumIcon() {
-  return (
-    <svg viewBox="0 0 24 24" {...stroke}>
-      <path d="M3 21V9l9-6 9 6v12" />
-      <path d="M9 21v-7h6v7" />
-    </svg>
-  );
-}
-
 export function ImaginaniumIcon() {
   return (
     <svg viewBox="0 0 24 24" {...stroke}>
