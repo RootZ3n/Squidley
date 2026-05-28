@@ -31,6 +31,7 @@ import type {
 } from "./types";
 import { buildLocalChatMessages } from "./localSystemPrompt";
 import { validateChatRequest } from "./validate";
+import { detectHallucinatedToolActions } from "./honestyAnnotation";
 
 export interface HandlerResult {
   status: number;
@@ -170,6 +171,7 @@ export async function handleChatRequest(args: {
   if (backend === "llama-cpp") {
     const reply = extractOpenAIReply(data);
     const usage = extractOpenAIUsage(data);
+    const honesty = detectHallucinatedToolActions(reply);
     return {
       status: 200,
       payload: {
@@ -184,6 +186,13 @@ export async function handleChatRequest(args: {
         durationMs: Math.max(0, completedAt - startedAt),
         promptEvalCount: usage.promptTokens,
         evalCount: usage.completionTokens,
+        responseMode: "local_model",
+        ...(honesty.userVisibleHonestyMessage
+          ? { honestyMessage: honesty.userVisibleHonestyMessage }
+          : {}),
+        ...(honesty.unavailableTools.length > 0
+          ? { unavailableTools: honesty.unavailableTools }
+          : {}),
       },
     };
   }
@@ -191,6 +200,7 @@ export async function handleChatRequest(args: {
   // Ollama format
   const ollamaData = data as OllamaChatResponse;
   const reply = typeof ollamaData?.message?.content === "string" ? ollamaData.message.content : "";
+  const honesty = detectHallucinatedToolActions(reply);
 
   return {
     status: 200,
@@ -207,6 +217,13 @@ export async function handleChatRequest(args: {
       promptEvalCount:
         typeof ollamaData.prompt_eval_count === "number" ? ollamaData.prompt_eval_count : undefined,
       evalCount: typeof ollamaData.eval_count === "number" ? ollamaData.eval_count : undefined,
+      responseMode: "local_model",
+      ...(honesty.userVisibleHonestyMessage
+        ? { honestyMessage: honesty.userVisibleHonestyMessage }
+        : {}),
+      ...(honesty.unavailableTools.length > 0
+        ? { unavailableTools: honesty.unavailableTools }
+        : {}),
     },
   };
 }

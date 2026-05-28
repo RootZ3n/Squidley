@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "tool": "scripts/smoke-llama-server.mjs",
+  "completedAt": "2026-05-20T22:38:06.443Z",
+  "endpoint": "http://8.8.8.8:8080",
+  "model": null,
+  "status": "FAIL_REMOTE_URL",
+  "summary": "Refusing to contact non-local endpoint: http://8.8.8.8:8080.",
+  "details": {
+    "rejectedUrl": "http://8.8.8.8:8080"
+  },
+  "cloudUsed": false,
+  "localOnly": true
+}
