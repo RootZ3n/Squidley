@@ -39,6 +39,7 @@ import {
   redactSecrets,
   type RedactionApplied,
 } from "./secretRedaction";
+import { readEnv } from "../compat/env";
 
 export type FileInspectionReceiptAction =
   | "reliability.file-inspection-requested"
@@ -414,7 +415,7 @@ export async function safeFileInspect(
  * environment-free.
  */
 export function resolveInspectionRoot(env: Record<string, string | undefined>): string {
-  const fromEnv = env.SQUIDLEY_INSPECTION_ROOT?.trim();
+  const fromEnv = readEnv(env, "inspectionRoot")?.trim();
   const cwd = typeof process !== "undefined" ? process.cwd() : "/";
   return fromEnv && fromEnv.length > 0 ? fromEnv : cwd;
 }

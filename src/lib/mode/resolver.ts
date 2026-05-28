@@ -17,7 +17,13 @@
 
 import type { SquidleyMode, ModeState } from "./types";
 import { LOCAL_MODE_STATE, CLOUD_MODE_STATE } from "./types";
+import { ENV_ALIASES, resolveAliasedEnv } from "../compat/env";
 
+/**
+ * Legacy mode env var name. Reads go through {@link ENV_ALIASES.mode} so the
+ * canonical `PEH_MODE` is preferred with `SQUIDLEY_MODE` honored as a fallback
+ * (peh-pub migration compatibility).
+ */
 export const ENV_KEY_MODE = "SQUIDLEY_MODE" as const;
 
 /**
@@ -101,10 +107,13 @@ export function resolveMode(input: ModeResolverInput = {}): ModeResolution {
     };
   }
 
-  // 2. Environment variable
-  const envMode = parseMode(env[ENV_KEY_MODE]);
-  if (typeof env[ENV_KEY_MODE] === "string" && env[ENV_KEY_MODE]!.trim().length > 0) {
-    reasons.push(`Mode set by ${ENV_KEY_MODE}=${env[ENV_KEY_MODE]}: resolved to ${envMode}`);
+  // 2. Environment variable (PEH_MODE preferred, SQUIDLEY_MODE fallback)
+  const modeEnv = resolveAliasedEnv(env, ENV_ALIASES.mode);
+  const modeRaw = modeEnv.value;
+  const modeVarName = modeEnv.source === "legacy" ? ENV_ALIASES.mode.legacy : ENV_ALIASES.mode.current;
+  const envMode = parseMode(modeRaw);
+  if (typeof modeRaw === "string" && modeRaw.trim().length > 0) {
+    reasons.push(`Mode set by ${modeVarName}=${modeRaw}: resolved to ${envMode}`);
     if (envMode === "local" && cloudApiKeysPresent) {
       reasons.push(
         `Cloud API keys present (${cloudApiKeysFound.join(", ")}) but mode is local. Keys do not unlock cloud.`,

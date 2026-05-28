@@ -17,6 +17,8 @@
  * because the chat call is proxied through /api/chat.
  */
 
+import { readEnv } from "../compat/env";
+
 export const LOCAL_PROVIDER_ID = "local" as const;
 export const DEFAULT_LOCAL_ENDPOINT = "http://localhost:11434";
 export const DEFAULT_LOCAL_MODEL = "llama3.2";
@@ -25,6 +27,11 @@ export const LOCAL_FETCH_TIMEOUT_MS = 30_000;
 
 export type LocalBackendType = "ollama" | "llama-cpp" | "auto";
 
+/**
+ * Legacy env var names. New code reads through {@link readEnv} so the
+ * canonical `PEH_LOCAL_*` names are preferred and these are honored as a
+ * fallback (peh-pub migration compatibility).
+ */
 export const ENV_KEYS = {
   endpoint: "SQUIDLEY_LOCAL_ENDPOINT",
   model: "SQUIDLEY_LOCAL_MODEL",
@@ -131,13 +138,13 @@ export function getLocalProviderConfig(
     ? process.env
     : {},
 ): LocalProviderConfig {
-  const backendType = parseBackendType(env[ENV_KEYS.backend]);
+  const backendType = parseBackendType(readEnv(env, "localBackend"));
   const defaultEndpoint =
     backendType === "llama-cpp" ? DEFAULT_LLAMACPP_ENDPOINT : DEFAULT_LOCAL_ENDPOINT;
   return {
     providerId: LOCAL_PROVIDER_ID,
-    endpoint: pickLocalEndpoint(env[ENV_KEYS.endpoint], defaultEndpoint),
-    model: pick(env[ENV_KEYS.model], DEFAULT_LOCAL_MODEL),
+    endpoint: pickLocalEndpoint(readEnv(env, "localEndpoint"), defaultEndpoint),
+    model: pick(readEnv(env, "localModel"), DEFAULT_LOCAL_MODEL),
     backendType,
     cloudUsed: false,
     toolsUsed: false,
