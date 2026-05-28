@@ -1,6 +1,6 @@
-# Velum in Public Squidley
+# Velum in Peh
 
-Velum is Squidley's safety and privacy review layer. In this public pass, Velum
+Velum is Peh's safety and privacy review layer. In this public pass, Velum
 helps you pause before sharing text with AI, saving it, or importing it
 somewhere else.
 
@@ -23,7 +23,7 @@ This is a helper, not a legal, privacy, or security guarantee.
 
 ## Guided Tour
 
-Velum includes an in-page guided tour using Squidley's companion tour panel.
+Velum includes an in-page guided tour using Peh's companion tour panel.
 Use **Restart tour** on `/velum` to walk through:
 
 - what Velum means
@@ -47,7 +47,7 @@ The review runs in the browser using simple pattern checks.
 
 ## Prompt Gateway Relationship
 
-Velum is the user-controlled review page. Public Squidley also includes an
+Velum is the user-controlled review page. Peh also includes an
 automatic Prompt Gateway before local model calls. The gateway runs on
 model-facing API routes and looks for prompt-injection signals before text is
 sent to the local model server.

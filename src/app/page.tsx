@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { SquidleyMascot } from "@/components/SquidleyMascot";
+import { PehMascot } from "@/components/PehMascot";
 import { AppPageShell } from "@/components/shell/AppPageShell";
 import {
   readFirstRunCompleted,
@@ -23,7 +23,7 @@ const VALUE_POINTS = [
     accent: "#4df5c8",
   },
   {
-    title: "Squidley teaches as you go",
+    title: "Peh teaches as you go",
     body: "A short tour shows you each part of the screen, in plain language.",
     accent: "#bc8cff",
   },
@@ -66,8 +66,8 @@ export default function WelcomePage() {
 
   return (
     <AppPageShell
-      eyebrow="Public Squidley · welcome"
-      title="Hi, I'm Squidley."
+      eyebrow="Peh · welcome"
+      title="Hi, I'm Peh."
       intro="A friendly companion that runs on your device. Take a 60-second guided tour, or jump straight into Colloquium."
       accent="#bc8cff"
       headerRight={
@@ -112,7 +112,7 @@ export default function WelcomePage() {
         }}
       >
         <div style={{ justifySelf: "center" }}>
-          <SquidleyMascot size={220} animated priority />
+          <PehMascot size={220} animated priority />
         </div>
         <div>
           <h2
@@ -136,7 +136,7 @@ export default function WelcomePage() {
               maxWidth: 560,
             }}
           >
-            Squidley is a calm, local-first AI workspace. Pick the tour and I&rsquo;ll
+            Peh is a calm, local-first AI workspace. Pick the tour and I&rsquo;ll
             walk you through every screen, or skip ahead and start chatting.
           </p>
           <div

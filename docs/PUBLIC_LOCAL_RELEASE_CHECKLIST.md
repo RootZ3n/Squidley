@@ -2,7 +2,7 @@
 
 Release honesty pass dated 2026-05-11.
 
-Use this checklist before publishing or demoing Squidley Public as a local-model
+Use this checklist before publishing or demoing Peh Public as a local-model
 release.
 
 ## Validated Local Features
@@ -45,7 +45,7 @@ release.
 - [ ] Confirm smoke output shows `PASS` for `GET /health`, `GET /v1/models`,
   non-streaming chat, and streaming chat. If any row says `PARTIAL`, document
   the exact output and keep the release caveat.
-- [ ] Configure Squidley with `SQUIDLEY_LOCAL_BACKEND=llama-cpp` and confirm
+- [ ] Configure Peh with `PEH_LOCAL_BACKEND=llama-cpp` and confirm
   Colloquium chat works.
 - [ ] Confirm Fabrica single-file suggestions work through real `llama-server`.
 - [ ] Confirm Colloquium/Fabrica receipts say `provider: "local"`,
@@ -63,7 +63,7 @@ Ollama end-to-end smoke:
 ```bash
 ollama serve
 ollama pull llama3.2
-SQUIDLEY_LOCAL_BACKEND=ollama SQUIDLEY_LOCAL_ENDPOINT=http://localhost:11434 SQUIDLEY_LOCAL_MODEL=llama3.2 npm run dev
+PEH_LOCAL_BACKEND=ollama PEH_LOCAL_ENDPOINT=http://localhost:11434 PEH_LOCAL_MODEL=llama3.2 npm run dev
 ```
 
 Ollama API checks:
@@ -89,14 +89,14 @@ Real `llama-server` manual smoke:
 ```bash
 llama-server -m your-model.gguf --port 8080
 npm run smoke:llama-server
-SQUIDLEY_LOCAL_BACKEND=llama-cpp SQUIDLEY_LOCAL_ENDPOINT=http://127.0.0.1:8080 npm run dev
+PEH_LOCAL_BACKEND=llama-cpp PEH_LOCAL_ENDPOINT=http://127.0.0.1:8080 npm run dev
 ```
 
 If your server uses a different endpoint or needs an explicit model id:
 
 ```bash
 LLAMA_CPP_ENDPOINT=http://127.0.0.1:8080 LLAMA_CPP_MODEL=your-model-id npm run smoke:llama-server
-SQUIDLEY_LOCAL_BACKEND=llama-cpp SQUIDLEY_LOCAL_ENDPOINT=http://127.0.0.1:8080 SQUIDLEY_LOCAL_MODEL=your-model-id npm run dev
+PEH_LOCAL_BACKEND=llama-cpp PEH_LOCAL_ENDPOINT=http://127.0.0.1:8080 PEH_LOCAL_MODEL=your-model-id npm run dev
 ```
 
 Repository verification:
@@ -122,7 +122,7 @@ npx vitest run src/lib/publicReleaseSafety.test.ts src/lib/providers/registry.te
 - [x] The OpenAI-compatible text path has been validated through Ollama's `/v1`
   endpoint.
 - [x] Oculus local vision is Ollama-only in this release.
-- [x] Public Squidley does not use cloud providers without explicit consent.
+- [x] Peh does not use cloud providers without explicit consent.
 - [x] Public local release currently makes no cloud calls.
 - [x] Embedding-only models are excluded from chat/generation.
 
@@ -132,7 +132,7 @@ npx vitest run src/lib/publicReleaseSafety.test.ts src/lib/providers/registry.te
 - [ ] Real `llama-server` binary has been tested end-to-end.
 - [ ] llama.cpp/llama-server vision works in Oculus.
 - [ ] Cloud fallback exists.
-- [ ] Squidley can use cloud providers without an explicit consent flow.
+- [ ] Peh can use cloud providers without an explicit consent flow.
 - [ ] Fabrica is an autonomous coding agent or can edit repositories.
 
 ## Pass/Fail Signoff
@@ -140,8 +140,8 @@ npx vitest run src/lib/publicReleaseSafety.test.ts src/lib/providers/registry.te
 - [ ] Ollama smoke passed.
 - [ ] OpenAI-compatible text smoke passed.
 - [ ] Real `llama-server` smoke passed.
-- [ ] Colloquium works with `SQUIDLEY_LOCAL_BACKEND=llama-cpp`.
-- [ ] Fabrica works with `SQUIDLEY_LOCAL_BACKEND=llama-cpp`.
+- [ ] Colloquium works with `PEH_LOCAL_BACKEND=llama-cpp`.
+- [ ] Fabrica works with `PEH_LOCAL_BACKEND=llama-cpp`.
 - [ ] Receipts/backend metadata show local, `cloudUsed: false`, and
   `backendType: "llama-cpp"` where applicable.
 - [ ] Oculus llama.cpp unsupported state passed.

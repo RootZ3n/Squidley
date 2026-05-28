@@ -1,6 +1,6 @@
-# Local-First Contract — Public Squidley
+# Local-First Contract — Peh
 
-This is the written contract that Public Squidley follows. Every numbered rule
+This is the written contract that Peh follows. Every numbered rule
 below is **enforced in code and verified by tests**. Pointers to enforcement
 points are inline so reviewers can audit each rule independently.
 
@@ -13,7 +13,7 @@ points are inline so reviewers can audit each rule independently.
   callers cannot flip them.
 - No npm dependency is a cloud AI SDK (`@anthropic-ai/*`, `openai`,
   `@google/genai`, etc.).
-  Verified by `scripts/public-squidley-diagnostic.mjs`.
+  Verified by `scripts/peh-pub-diagnostic.mjs`.
 
 ## 2. The endpoint guard rejects non-local hosts
 
@@ -24,7 +24,7 @@ points are inline so reviewers can audit each rule independently.
   - any host that is not `localhost`, `::1`, `*.local`, a private IPv4
     (`10.x`, `127.x`, `172.16-31.x`, `192.168.x`, `169.254.x`), or an IPv6
     unique-local / link-local address.
-- If a user sets `SQUIDLEY_LOCAL_ENDPOINT=https://api.openai.com`, the config
+- If a user sets `PEH_LOCAL_ENDPOINT=https://api.openai.com`, the config
   silently falls back to the local default rather than honoring it.
 - Tested in `src/lib/providers/local.test.ts`.
 
@@ -37,7 +37,7 @@ points are inline so reviewers can audit each rule independently.
   - `src/lib/security/promptGateway.ts` (a regex *to detect* prompt-injection
     attempts referencing cloud keys),
   - `*.test.ts` (test fixtures).
-- Enforced by `scripts/public-squidley-diagnostic.mjs` and verified by
+- Enforced by `scripts/peh-pub-diagnostic.mjs` and verified by
   `scripts/egress-proof.sh`.
 
 ## 4. No silent cloud fallback on local failure
@@ -78,7 +78,7 @@ points are inline so reviewers can audit each rule independently.
 
 - `cloudUsed`, `localOnly`, `modelUsed`, `toolsUsed` are part of the Tabularium
   receipt type. The shell and module pages render local-only badges
-  unconditionally — Public Squidley has no "mixed mode" UI.
+  unconditionally — Peh has no "mixed mode" UI.
 - `publicReleaseSafety.test.ts` reads the README and docs and asserts copy is
   honest about `llama-server` pending and "no cloud without explicit consent".
 
@@ -90,7 +90,7 @@ points are inline so reviewers can audit each rule independently.
 
 ## 10. Cloud mode requires explicit activation
 
-- Setting `SQUIDLEY_MODE=cloud` activates Cloud Mode architecture, but no cloud
+- Setting `PEH_MODE=cloud` activates Cloud Mode architecture, but no cloud
   provider adapters are implemented yet. Cloud Mode is not functional.
 - API keys alone (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc.) do not change
   mode or routing. The mode resolver (`src/lib/mode/resolver.ts`) enforces this.
@@ -110,7 +110,7 @@ points are inline so reviewers can audit each rule independently.
   required; vitest is a devDependency). Static-only fallback is gated
   behind `ALLOW_STATIC_ONLY_LOCAL_PROOF=1` and is never accepted by
   `verify:release`.
-- `scripts/public-squidley-diagnostic.mjs` — release diagnostic. Fails on
+- `scripts/peh-pub-diagnostic.mjs` — release diagnostic. Fails on
   cloud SDK deps, cloud URL hits, missing matrix, missing guard,
   LOCAL_READY rows without `proofReferences`, llama-cpp LOCAL_READY without
   `reports/llama-server-smoke/PROOF.json`, or docs overclaim phrases.
@@ -132,7 +132,7 @@ points are inline so reviewers can audit each rule independently.
 
 - It does not promise that the OS or the local model server are themselves
   offline. If your local model server reaches the network, that is its
-  configuration, not Squidley's.
+  configuration, not Peh's.
 - It does not promise full safety from prompt injection. Velum and the prompt
   gateway are deterministic heuristics, not guaranteed defenses.
 - It does not promise full validation of llama-server. The real

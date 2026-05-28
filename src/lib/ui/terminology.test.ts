@@ -187,8 +187,8 @@ describe("capability tier descriptions", () => {
 });
 
 describe("trust phrases", () => {
-  it("uses 'this public Squidley build' as the build identifier", () => {
-    expect(TRUST_PHRASES.buildIdentifier).toBe("this public Squidley build");
+  it("uses 'this public Peh build' as the build identifier", () => {
+    expect(TRUST_PHRASES.buildIdentifier).toBe("this public Peh build");
   });
 
   it("cloud-not-implemented phrase is canonical", () => {

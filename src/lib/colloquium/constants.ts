@@ -1,5 +1,5 @@
-export const COLLOQUIUM_STORAGE_KEY = "squidley.colloquium.conversation.v1";
-export const COLLOQUIUM_SESSIONS_STORAGE_KEY = "squidley.colloquium.sessions.v2";
+export const COLLOQUIUM_STORAGE_KEY = "peh.colloquium.conversation.v1";
+export const COLLOQUIUM_SESSIONS_STORAGE_KEY = "peh.colloquium.sessions.v2";
 
 export const COLLOQUIUM_RECEIPT_ACTION = {
   chatSent: "chat.sent",

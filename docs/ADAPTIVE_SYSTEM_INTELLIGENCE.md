@@ -1,8 +1,8 @@
 # Adaptive System Intelligence
 
-Ratio is Squidley's Adaptive System Intelligence layer.
+Ratio is Peh's Adaptive System Intelligence layer.
 
-Ratio decides what Squidley should do with the model, provider, permissions,
+Ratio decides what Peh should do with the model, provider, permissions,
 unlock level, module policy, task risk, and Prompt Gateway risk available at
 that moment. It is a first-class subsystem, not a helper hidden inside Nous.
 
@@ -10,7 +10,7 @@ that moment. It is a first-class subsystem, not a helper hidden inside Nous.
 
 Guardrails are gears, not handicaps.
 
-Ratio should let Squidley use the strongest safe behavior available:
+Ratio should let Peh use the strongest safe behavior available:
 
 - explain when only a small or unknown local model is available
 - suggest when local chat or coding models are enough
@@ -58,7 +58,7 @@ Ratio uses these unlock levels:
 - cloud-agent
 - lab-power
 
-Public Squidley currently runs in `public-local`.
+Peh currently runs in `public-local`.
 
 Cloud provider metadata exists, but no cloud calls, API keys, billing, auth, or
 agent execution are active in this pass.

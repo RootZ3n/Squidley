@@ -89,9 +89,9 @@ export interface WrapLocalAnswerResult {
 
 const DEFAULT_DECOMPOSITION: readonly string[] = [
   "Paste the exact error message you saw, including the first few lines of the stack trace.",
-  "Ask Squidley to run a local health check ('is the local model working?').",
+  "Ask Peh to run a local health check ('is the local model working?').",
   "Ask about one file or one function at a time instead of the whole problem.",
-  "If a cloud provider is configured, you can choose to escalate with a preview — Squidley never does this automatically.",
+  "If a cloud provider is configured, you can choose to escalate with a preview — Peh never does this automatically.",
 ];
 
 function buildReceipt(args: {
@@ -169,7 +169,7 @@ function buildFallbackReply(failure: AnswerValidation): string {
       ? "The local model claimed an action it cannot actually perform."
       : "The local model did not produce a valid answer.";
   const bullets = DEFAULT_DECOMPOSITION.map((s) => `- ${s}`).join("\n");
-  return `${head} Squidley is being honest about that rather than guessing.\n\nSmaller next steps you can try:\n${bullets}`;
+  return `${head} Peh is being honest about that rather than guessing.\n\nSmaller next steps you can try:\n${bullets}`;
 }
 
 function buildFallbackPayload(args: {
@@ -275,7 +275,7 @@ export async function wrapLocalAnswer(
       kind: "retried-ok",
       ok: true,
       retries: 1,
-      summary: "Squidley re-asked the local model once and got a better answer.",
+      summary: "Peh re-asked the local model once and got a better answer.",
       receipts,
       cloudUsed: false,
       localOnly: true,
@@ -311,7 +311,7 @@ export async function wrapLocalAnswer(
       status: "info",
       title: "Local answer decomposed",
       summary:
-        "Squidley stopped retrying and suggested smaller next steps the user can pick.",
+        "Peh stopped retrying and suggested smaller next steps the user can pick.",
       metadata: { decomposition_count: DEFAULT_DECOMPOSITION.length },
       now,
     }),
@@ -342,7 +342,7 @@ export async function wrapLocalAnswer(
     ok: false,
     retries: 1,
     summary:
-      "Local model could not produce a valid answer after one retry. Squidley returned an honest fallback with smaller next steps.",
+      "Local model could not produce a valid answer after one retry. Peh returned an honest fallback with smaller next steps.",
     failureReason: validation1.reason,
     decomposition: DEFAULT_DECOMPOSITION,
     receipts,
@@ -423,7 +423,7 @@ export function buildStreamFallback(args: {
       status: "info",
       title: "Local answer decomposed (stream)",
       summary:
-        "Stream ended without a valid answer; Squidley suggested smaller next steps instead of pretending success.",
+        "Stream ended without a valid answer; Peh suggested smaller next steps instead of pretending success.",
       metadata: { mode: "stream", reason: args.reason },
       now,
     }),
@@ -442,7 +442,7 @@ export function buildStreamFallback(args: {
       intent: "wrap",
       reply: fallbackReply,
       summary:
-        "Local model stream ended without a valid answer. Squidley returned an honest fallback with smaller next steps.",
+        "Local model stream ended without a valid answer. Peh returned an honest fallback with smaller next steps.",
       stepCount: receipts.length,
       cloudSuggested: false,
       cloudUsed: false,

@@ -8,13 +8,13 @@ export const nousTour: ModuleTour = {
       id: "intro",
       target: "intro",
       title: "Welcome to Nous",
-      body: '"Nous" means understanding. This page maps Squidley modules, model use, and local-only boundaries.',
+      body: '"Nous" means understanding. This page maps Peh modules, model use, and local-only boundaries.',
     },
     {
       id: "local",
       target: "local-only-indicator",
       title: "Local-only right now",
-      body: "Public Squidley currently uses local model behavior only. No cloud fallback is active.",
+      body: "Peh currently uses local model behavior only. No cloud fallback is active.",
     },
     {
       id: "models",
@@ -26,7 +26,7 @@ export const nousTour: ModuleTour = {
       id: "ratio",
       target: "nous-asi",
       title: "Adaptive System Intelligence",
-      body: "Ratio is Squidley's Adaptive System Intelligence layer. It explains how model strength, unlock level, permissions, and safety risk change what Squidley can do.",
+      body: "Ratio is Peh's Adaptive System Intelligence layer. It explains how model strength, unlock level, permissions, and safety risk change what Peh can do.",
     },
     {
       id: "map",
@@ -38,7 +38,7 @@ export const nousTour: ModuleTour = {
       id: "providers",
       target: "nous-provider-registry",
       title: "Provider registry",
-      body: "Provider entries define metadata for local and future cloud providers. Locked entries are not used by Public Squidley.",
+      body: "Provider entries define metadata for local and future cloud providers. Locked entries are not used by Peh.",
     },
     {
       id: "cloud-lock",

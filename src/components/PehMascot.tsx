@@ -1,21 +1,21 @@
 import Image from "next/image";
 
 /**
- * Squidley mascot.
+ * Peh mascot.
  *
- * Renders the official mascot image from /public/squidley/squidley.png inside
+ * Renders the official mascot image from /public/peh/peh.png inside
  * a soft rounded portrait frame. The image is portrait orientation (2:3); we
  * use the natural aspect ratio and let `size` control the height. A subtle
  * gradient halo and shadow make the framed mascot look intentional on light
  * and dark backgrounds.
  */
 
-const MASCOT_SRC = "/squidley/squidley.png";
+const MASCOT_SRC = "/peh/peh.png";
 // Natural dimensions of the source image — used to compute width from height.
 const NATURAL_W = 1024;
 const NATURAL_H = 1536;
 
-interface SquidleyMascotProps {
+interface PehMascotProps {
   /** Height in px. Width is derived from the image's 2:3 aspect ratio. */
   size?: number;
   className?: string;
@@ -28,14 +28,14 @@ interface SquidleyMascotProps {
   priority?: boolean;
 }
 
-export function SquidleyMascot({
+export function PehMascot({
   size = 200,
   className = "",
-  title = "Squidley",
+  title = "Peh",
   framed = true,
   animated = false,
   priority = false,
-}: SquidleyMascotProps) {
+}: PehMascotProps) {
   const height = size;
   const width = Math.round((size * NATURAL_W) / NATURAL_H);
 
@@ -65,4 +65,4 @@ export function SquidleyMascot({
   );
 }
 
-export default SquidleyMascot;
+export default PehMascot;

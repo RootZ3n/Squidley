@@ -87,7 +87,7 @@ export function renderPlanAsText(plan: ExecutionPlan): string {
     for (const k of provenance.missing) lines.push(`- ${k}`);
   }
   if (plan.suggestedNextInspections.length) {
-    lines.push("", "Squidley suggests inspecting next (with your approval):");
+    lines.push("", "Peh suggests inspecting next (with your approval):");
     for (const p of plan.suggestedNextInspections) lines.push(`- ${p}`);
   }
   if (plan.limitations.length) {

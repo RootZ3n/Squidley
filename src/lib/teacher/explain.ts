@@ -1,5 +1,5 @@
 /**
- * Self-explanation engine for Public Squidley.
+ * Self-explanation engine for Peh.
  *
  * Resolves user questions to concept explanations using the concept
  * registry, capability matrix, and tool registry. Does not use RAG
@@ -24,7 +24,7 @@ import { PUBLIC_RELEASE_READY } from "../mode/productStatus";
  * to concept IDs.
  */
 const QUESTION_PATTERNS: readonly { pattern: RegExp; conceptIds: string[] }[] = [
-  { pattern: /\bwhat (?:are you|is squidley)\b/i, conceptIds: ["agent", "local_mode"] },
+  { pattern: /\bwhat (?:are you|is (?:peh|squidley))\b/i, conceptIds: ["agent", "local_mode"] },
   { pattern: /\bwhat (?:is|are) (?:a )?tool(?:s| call)?\b/i, conceptIds: ["tool_call", "tool_backed_action"] },
   { pattern: /\bwhat (?:is|are) (?:a )?token/i, conceptIds: ["token", "context_window", "cost"] },
   { pattern: /\bwhat (?:is )?local mode\b/i, conceptIds: ["local_mode", "local_model", "privacy"] },
@@ -158,7 +158,7 @@ function getRelatedQuestions(conceptIds: string[]): string[] {
  * It uses the concept registry, capability matrix, and tool registry
  * to produce accurate, honest answers.
  */
-export function explainSquidleyConcept(
+export function explainPehConcept(
   request: TeacherExplanationRequest,
 ): TeacherExplanationResult {
   const conceptIds = matchConcepts(request.userQuestion);
@@ -190,7 +190,7 @@ export function explainSquidleyConcept(
     }
   }
 
-  // Add capability context if asking about what Squidley can do
+  // Add capability context if asking about what Peh can do
   if (conceptIds.includes("capability_matrix") || conceptIds.includes("local_mode") || conceptIds.includes("cloud_mode")) {
     answerParts.push(buildCapabilityAnswer(request.currentMode));
   }
@@ -216,7 +216,7 @@ export function explainSquidleyConcept(
     safetyNotes.push("High-risk actions always require your explicit approval.");
   }
   if (conceptIds.includes("cost") || conceptIds.includes("api_key")) {
-    safetyNotes.push("Cloud calls cost money. Squidley will warn you before making paid calls.");
+    safetyNotes.push("Cloud calls cost money. Peh will warn you before making paid calls.");
   }
   if (conceptIds.includes("privacy") || conceptIds.includes("egress")) {
     safetyNotes.push("In Local Mode, nothing leaves your machine. In Cloud Mode, your text goes to the provider.");

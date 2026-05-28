@@ -12,7 +12,7 @@ export const RATIO_MODULE_POLICIES: readonly RatioModulePolicy[] = [
   policy("tabularium", "tabularium.local-receipts", "public-local", "active", "Tabularium stores local receipts in this browser and does not need a model."),
   policy("nous", "nous.system-map", "public-local", "active", "Nous maps modules, providers, and Ratio capability decisions without calling a model."),
   policy("settings", "settings.local-control", "public-local", "active", "Settings manages browser-local state and does not need a model."),
-  policy("modules", "modules.public-gallery", "public-local", "active", "Modules lists public Squidley capabilities and does not need a model."),
+  policy("modules", "modules.public-gallery", "public-local", "active", "Modules lists public Peh capabilities and does not need a model."),
   policy("legatus", "legatus.agent-workflow", "cloud-agent", "locked", "Legatus agent workflows require Cloud Agent mode, tools, workspace access, and approval.", { minimumPlanningAbility: "agentic", requiresWorkspace: true, requiresTools: true, requiresApproval: true }),
   policy("imperium", "imperium.advanced-control", "lab-power", "locked", "Imperium advanced controls remain locked outside lab-power mode.", { requiresWorkspace: true, requiresTools: true, requiresApproval: true }),
   policy("probatio", "probatio.model-evaluation", "cloud-assisted", "locked", "Probatio needs cloud-assisted evaluation support before it is active.", { minimumPlanningAbility: "multi-step" }),

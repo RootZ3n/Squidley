@@ -1,7 +1,7 @@
 /**
  * Heuristic honesty test.
  *
- * Public Squidley uses deterministic heuristics in several places (Velum
+ * Peh uses deterministic heuristics in several places (Velum
  * deterministic review, prompt gateway, local gauntlet). These are useful
  * local checks but are NOT formal safety proofs. This test ensures that
  * any user-facing surface (docs, README, gauntlet output, UI copy)

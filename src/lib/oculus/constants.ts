@@ -1,4 +1,4 @@
-export const OCULUS_TO_COLLOQUIUM_HANDOFF_KEY = "squidley.oculus.colloquiumAnalysis.v1";
+export const OCULUS_TO_COLLOQUIUM_HANDOFF_KEY = "peh.oculus.colloquiumAnalysis.v1";
 export const OCULUS_TO_COLLOQUIUM_HANDOFF_KIND = "oculus-to-colloquium-analysis";
 
 export const OCULUS_RECEIPT_ACTION = {

@@ -2,13 +2,34 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { DesktopSidebar, MobileTabBar } from "./Sidebar";
+import { runStorageMigrations } from "@/lib/compat/storage";
+
+/**
+ * One-time, client-only Peh->Peh localStorage migration (peh-pub).
+ *
+ * Run during AppShell render (not in an effect) and guarded by a module-scope
+ * flag: child page effects run before parent effects, so an effect here would
+ * fire AFTER a returning user's page already read the (empty) Peh keys. Doing
+ * it at render time guarantees saved state is migrated before any page reads.
+ * Idempotent and best-effort — storage may be unavailable in privacy mode.
+ */
+let storageMigrated = false;
+function ensureStorageMigrated(): void {
+  if (storageMigrated || typeof window === "undefined") return;
+  storageMigrated = true;
+  try {
+    if (window.localStorage) runStorageMigrations(window.localStorage);
+  } catch {
+    /* best-effort */
+  }
+}
 
 /**
  * AppShell — desktop sidebar on wide screens, bottom tab bar on mobile.
  *
  * The shell owns:
  *   - the persistent left sidebar (desktop) / bottom tab bar (mobile)
- *   - the top pulse line that ties the page to the Squidley identity
+ *   - the top pulse line that ties the page to the Peh identity
  *   - the scrollable <main> region
  *
  * Pages render their own header / content inside <main>. The shell does
@@ -16,6 +37,7 @@ import { DesktopSidebar, MobileTabBar } from "./Sidebar";
  * (AppPageShell) or a custom layout (Colloquium).
  */
 export function AppShell({ children }: { children: ReactNode }) {
+  ensureStorageMigrated();
   const [isMobile, setIsMobile] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 

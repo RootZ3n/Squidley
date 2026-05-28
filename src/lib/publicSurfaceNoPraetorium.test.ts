@@ -2,7 +2,7 @@
  * Public surface contract — no Praetorium / Praertorium references.
  *
  * Praetorium is a LAB-ONLY module. It must not appear in Public
- * Squidley's user-facing surfaces: terminology, navigation, capability
+ * Peh's user-facing surfaces: terminology, navigation, capability
  * registries, tool matrices, teacher KB, beginner docs, or release
  * docs.
  *

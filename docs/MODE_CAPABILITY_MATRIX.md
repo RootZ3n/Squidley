@@ -9,8 +9,8 @@
 > diagnostic that grep-checks this file.
 >
 > This Markdown is a **projection** of the machine-readable matrices at
-> [docs/capability-matrix.public-squidley.json](capability-matrix.public-squidley.json)
-> and [docs/tool-matrix.public-squidley.json](tool-matrix.public-squidley.json).
+> [docs/capability-matrix.public-peh.json](capability-matrix.public-peh.json)
+> and [docs/tool-matrix.public-peh.json](tool-matrix.public-peh.json).
 > When they disagree, the JSON wins. Run `npm run verify:capabilities`
 > to validate.
 
@@ -20,7 +20,7 @@ Each row answers seven questions:
 
 | Column | Meaning |
 |---|---|
-| Capability | What the user can ask Squidley to do |
+| Capability | What the user can ask Peh to do |
 | Tier | One of `LOCAL_READY`, `LOCAL_LIMITED`, `LOCAL_PARTIAL`, `CLOUD_PLANNED`, `NOT_IMPLEMENTED`, `BLOCKED` |
 | Available? | Can a user run it today? |
 | Local/Cloud | Where it runs |
@@ -85,7 +85,7 @@ bottom for the diagnostic.
 | High-trust control (Imperium) | CLOUD_PLANNED | No | NOT_IMPLEMENTED | NOT_IMPLEMENTED | — |
 
 Every cloud row in the JSON capability matrix is independently checked by
-`scripts/public-squidley-diagnostic.mjs` to confirm there is no
+`scripts/peh-pub-diagnostic.mjs` to confirm there is no
 `IMPLEMENTED` status on a `locality: "cloud"` row.
 
 ## NOT_IMPLEMENTED (no code path, would be new work)
@@ -96,7 +96,7 @@ of these happened.
 
 | Capability | Tier | Why not |
 |---|---|---|
-| Shell execution | NOT_IMPLEMENTED | Planner refuses; no exec surface; "Squidley does not run shell commands." |
+| Shell execution | NOT_IMPLEMENTED | Planner refuses; no exec surface; "Peh does not run shell commands." |
 | Web search / browsing | NOT_IMPLEMENTED | No search provider, no browsing surface |
 | Autonomous loops (multi-step without approval) | NOT_IMPLEMENTED | Planner produces zero executable steps for blocked risk |
 | Multi-file editing | NOT_IMPLEMENTED | Tiny edits are single-file only |

@@ -8,13 +8,13 @@ It is free to use, completely private, and works without an internet connection.
 ## Ollama
 
 Ollama is a program that makes it easy to download and run AI models locally.
-It is the recommended way to use Squidley in Local Mode.
+It is the recommended way to use Peh in Local Mode.
 
 **Getting started:**
 1. Install Ollama from ollama.com
 2. Pull a model: `ollama pull llama3.2`
 3. Start the server: `ollama serve`
-4. Open Squidley — it will connect automatically
+4. Open Peh — it will connect automatically
 
 ## llama.cpp / llama-server
 

@@ -1,5 +1,5 @@
 [Unit]
-Description=Squidley Public local Next.js app
+Description=Peh local Next.js app
 Documentation=file:/mnt/ai/squidley/docs/LOCAL_SERVICE.md
 After=network.target
 

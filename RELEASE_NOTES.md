@@ -2,7 +2,7 @@
 
 ## v0.1.0
 
-Public Squidley v0.1.0 is the first local-first public release candidate. It is
+Peh v0.1.0 is the first local-first public release candidate. It is
 a beginner-friendly AI workspace that runs with browser-local storage and an
 Ollama-compatible local model server.
 
@@ -25,7 +25,7 @@ Ollama-compatible local model server.
   edits.
 - Nous module/model map with local model preferences, Ratio visibility, and
   locked provider metadata.
-- Ratio, Squidley's Adaptive System Intelligence layer, with module capability
+- Ratio, Peh's Adaptive System Intelligence layer, with module capability
   notes across the public UI.
 - Privacy-respecting bug report flow using prefilled email links only.
 - Modular architecture boundaries, module-owned constants/receipt builders, and

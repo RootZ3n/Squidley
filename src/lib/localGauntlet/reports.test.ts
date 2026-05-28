@@ -7,7 +7,7 @@ import { readLocalGauntletReportIndex } from "./reports";
 let tempRoot: string;
 
 beforeEach(async () => {
-  tempRoot = await mkdtemp(join(tmpdir(), "squidley-gauntlet-reports-"));
+  tempRoot = await mkdtemp(join(tmpdir(), "peh-gauntlet-reports-"));
 });
 
 afterEach(async () => {

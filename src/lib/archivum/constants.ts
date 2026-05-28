@@ -1,6 +1,6 @@
-export const ARCHIVUM_STORAGE_KEY = "squidley.archivum.entries.v1";
-export const ARCHIVUM_EXPORT_HEADER = "Squidley Public Archivum Export";
-export const ARCHIVUM_BUNDLE_NAME = "Squidley Public Archivum Bundle";
+export const ARCHIVUM_STORAGE_KEY = "peh.archivum.entries.v1";
+export const ARCHIVUM_EXPORT_HEADER = "Peh Public Archivum Export";
+export const ARCHIVUM_BUNDLE_NAME = "Peh Public Archivum Bundle";
 
 export const ARCHIVUM_ENTRY_SOURCES = {
   manualPaste: "manual-paste",

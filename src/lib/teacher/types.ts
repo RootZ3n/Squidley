@@ -1,8 +1,8 @@
 /**
- * Core types for Public Squidley's teaching architecture.
+ * Core types for Peh's teaching architecture.
  *
  * Teaching is first-class architecture, not an afterthought.
- * Public Squidley is Magister for AI agents — a guided learning
+ * Peh is Magister for AI agents — a guided learning
  * environment that starts users locally and graduates them through
  * cloud mode and autonomous workflows safely.
  */
@@ -43,7 +43,7 @@ export interface TeacherLesson {
   readonly estimatedMinutes: number;
   readonly markdownPath: string;
   readonly requiredForRelease: boolean;
-  readonly teachesSquidleyFeature?: string;
+  readonly teachesPehFeature?: string;
   readonly userCanAsk: readonly string[];
   readonly completionCheck: string;
 }
@@ -85,7 +85,7 @@ export interface OnboardingStage {
   readonly objective: string;
   readonly requiredConcepts: readonly string[];
   readonly userAction: string;
-  readonly squidleyExplanation: string;
+  readonly pehExplanation: string;
   readonly completionCriteria: string;
   readonly nextStage?: string;
 }

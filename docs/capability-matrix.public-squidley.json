@@ -1,6 +1,6 @@
 {
   "schemaVersion": 3,
-  "product": "Public Squidley",
+  "product": "Peh",
   "generatedAt": "2026-05-20",
   "generatedBy": "docs/CAPABILITY_MATRIX_PUBLIC_SQUIDLEY.md author + capability-sync pass on top of docs/CAPABILITY_TAXONOMY.md",
   "scope": "Every server route, every Capability in src/lib/capabilities/registry.ts, every public UI page. Classifications are based on actual code paths, not on aspirational copy.",
@@ -934,7 +934,7 @@
       "receipts": "(every chat receipt includes mode, model, cloudUsed:false, toolsUsed:false)",
       "proofReferences": [
         "src/lib/publicReleaseSafety.test.ts (provenance shape)",
-        "scripts/public-squidley-diagnostic.mjs (greps colloquium for 'answered by local model only')"
+        "scripts/peh-pub-diagnostic.mjs (greps colloquium for 'answered by local model only')"
       ],
       "honestyNote": "cloudUsed:false and toolsUsed:false are literal types on the response shape; not booleans that could be flipped at runtime.",
       "risks": [],
@@ -973,10 +973,10 @@
       ],
       "receipts": "n/a (resolution logic, not an action)",
       "proofReferences": [
-        "src/lib/mode/resolver.test.ts (63 tests; SQUIDLEY_MODE env handling; API keys never unlock)",
+        "src/lib/mode/resolver.test.ts (63 tests; PEH_MODE env handling; API keys never unlock)",
         "src/lib/mode/productStatus.test.ts (35 tests; PUBLIC_RELEASE_READY false)"
       ],
-      "honestyNote": "API keys alone do not unlock Cloud Mode. SQUIDLEY_MODE=cloud is the only way to flip the mode badge; it does not enable any cloud feature in this build.",
+      "honestyNote": "API keys alone do not unlock Cloud Mode. PEH_MODE=cloud is the only way to flip the mode badge; it does not enable any cloud feature in this build.",
       "risks": [],
       "classification": "LOCAL_READY",
       "canonicalTier": "LOCAL_READY"
@@ -1025,7 +1025,7 @@
         "llamaCpp": "NOT_APPLICABLE"
       },
       "canRunWithNoModel": "n/a",
-      "uiStatus": "no surface; planner refuses shell-intent goals with 'Squidley does not run shell commands.'",
+      "uiStatus": "no surface; planner refuses shell-intent goals with 'Peh does not run shell commands.'",
       "tests": [
         "src/lib/planning/planner.test.ts (shell intent → blocked, zero executable steps)",
         "src/lib/chat/honestyAnnotation.test.ts ('I ran the tests' is corrected)"

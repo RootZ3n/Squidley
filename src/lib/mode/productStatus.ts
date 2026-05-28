@@ -1,5 +1,5 @@
 /**
- * Central product status for Public Squidley.
+ * Central product status for Peh.
  *
  * This is the single source of truth for whether the product is ready
  * to ship publicly. Local Mode readiness is a subsystem gate, not a
@@ -36,7 +36,7 @@ export const RELEASE_PHASES: readonly ReleasePhase[] = [
       "src/lib/providers/local.ts",
       "src/lib/mode/resolver.ts",
       "scripts/prove-local-only.mjs",
-      "scripts/public-squidley-diagnostic.mjs",
+      "scripts/peh-pub-diagnostic.mjs",
     ],
   },
   {

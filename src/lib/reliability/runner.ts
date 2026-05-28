@@ -92,7 +92,7 @@ function blockedResult(task: SmallModelTask, now: number): ReliabilityResult {
     status: "interrupted",
     title: "Reliability runner: blocked",
     summary:
-      "Squidley refused to run this task because the safety classification was 'blocked'.",
+      "Peh refused to run this task because the safety classification was 'blocked'.",
     metadata: { taskId: task.id, risk: task.riskLevel, cloud_used: false },
     createdAt: now,
   });

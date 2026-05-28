@@ -1,7 +1,7 @@
 /**
- * Response provenance for Public Squidley chat / fabrica / oculus replies.
+ * Response provenance for Peh chat / fabrica / oculus replies.
  *
- * Every reply Squidley produces is tagged with a `responseMode` so the user
+ * Every reply Peh produces is tagged with a `responseMode` so the user
  * can always see WHICH path produced the answer:
  *
  *   - local_model            local model generated text only; no tool action
@@ -13,7 +13,7 @@
  *   - failed                 the local path attempted and failed
  *   - mock_demo_only         result is a demo/mock, not production behavior
  *
- * In this release every chat reply is "local_model" because Public Squidley
+ * In this release every chat reply is "local_model" because Peh
  * does not ship any tool execution surface. The fact that we still tag every
  * reply matters: it is the structural place where a future tool path would
  * have to PROVE its claim via a tool receipt, rather than slip in by virtue
@@ -55,7 +55,7 @@ export interface ResponseProvenance {
   cloudBlockedReason?: string;
   /** Short final status copy for receipts / debug surfaces. */
   finalCapabilityStatus: string;
-  /** User-visible honesty message, if Squidley must correct a model claim. */
+  /** User-visible honesty message, if Peh must correct a model claim. */
   userVisibleHonestyMessage?: string;
   /** Tool actions the model HALLUCINATED — claimed to perform without
    *  evidence. Always empty for genuinely tool-backed responses. */

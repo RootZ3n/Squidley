@@ -8,7 +8,7 @@ table is a human-readable mirror; if they diverge, the code wins.
 
 | Module       | Latin meaning            | Local-only | Tour | Public summary                                               |
 | ------------ | ------------------------ | :--------: | :--: | ------------------------------------------------------------ |
-| Colloquium   | conversation, discussion |     ✅     |  ✅  | Chat with Squidley.                                          |
+| Colloquium   | conversation, discussion |     ✅     |  ✅  | Chat with Peh.                                          |
 | Fabrica      | workshop, forge          |     ✅     |  ✅  | Single-file suggestion workshop — not a full coding agent.   |
 | Archivum     | archive, records         |     ✅     |  ✅  | Browser-local notes, tags, import/export bundles.            |
 | More Input   | —                        |     ✅     |  ✅  | Paste text into Archivum's local input flow.                 |
@@ -37,7 +37,7 @@ The registry stores, per module:
 - `beginnerDescription` — single-sentence summary in plain language.
 - `category` — `"core-local"`, `"cloud-unlock"`, or `"future"`.
 - `status` — active, limited, prepared, locked, or future.
-- `publicEnabled` — visible in public Squidley.
+- `publicEnabled` — visible in public Peh.
 - `enabled` — active in the current public product.
 - `localOnlySupported` — works without cloud features.
 - `cloudUnlockRequired` — gated behind cloud unlock.
@@ -58,7 +58,7 @@ undeclared handoffs fail tests before they become product drift.
 
 ## Ratio Status Notes
 
-Public module pages use Ratio, Squidley's Adaptive System Intelligence layer, to
+Public module pages use Ratio, Peh's Adaptive System Intelligence layer, to
 explain current action state in plain language:
 
 - `available` means the action can run in the current local/public setup.

@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { explainSquidleyConcept } from "@/lib/teacher/explain";
+import { explainPehConcept } from "@/lib/teacher/explain";
 import { resolveMode } from "@/lib/mode/resolver";
 
 export const runtime = "nodejs";
@@ -37,7 +37,7 @@ export async function POST(req: Request): Promise<Response> {
       ? body.currentMode
       : modeResolution.state.mode;
 
-  const result = explainSquidleyConcept({
+  const result = explainPehConcept({
     userQuestion: question,
     currentMode,
     includeExamples: true,

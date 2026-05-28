@@ -1,6 +1,6 @@
 # Ratio Library Boundary
 
-Ratio is Squidley's Adaptive System Intelligence layer.
+Ratio is Peh's Adaptive System Intelligence layer.
 
 Belongs here:
 

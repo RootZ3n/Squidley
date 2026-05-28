@@ -40,7 +40,7 @@ export {
   getStagesInOrder,
 } from "./onboarding";
 
-export { explainSquidleyConcept } from "./explain";
+export { explainPehConcept } from "./explain";
 
 export { isTeacherIntent } from "./detect";
 

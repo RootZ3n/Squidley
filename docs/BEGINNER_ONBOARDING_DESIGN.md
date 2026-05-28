@@ -2,24 +2,24 @@
 
 ## Overview
 
-The onboarding flow is how Squidley teaches a brand-new user what she is, what
+The onboarding flow is how Peh teaches a brand-new user what she is, what
 agents are, and how to use her safely. This is not optional — it is a core
 product requirement for public release.
 
 ## Design Principle
 
-Squidley teaches you how agents work. She does not assume you know anything.
+Peh teaches you how agents work. She does not assume you know anything.
 
 ## Required Onboarding Sections
 
 ### 1. Welcome
 
 **What the user sees:**
-"Hi, I'm Squidley. I'm going to teach you how AI agents work — starting right
+"Hi, I'm Peh. I'm going to teach you how AI agents work — starting right
 here on your own machine, where everything stays private and free."
 
 **What this section does:**
-- Introduces Squidley
+- Introduces Peh
 - Sets expectations: this is a learning experience
 - Makes clear that local mode is the starting point, not the whole product
 
@@ -36,7 +36,7 @@ here on your own machine, where everything stays private and free."
 **Teaching goals:**
 - User understands what a local model is
 - User understands that everything stayed on their machine
-- User understands that Squidley is limited in Local Mode (and that is OK)
+- User understands that Peh is limited in Local Mode (and that is OK)
 
 ### 3. Trust Basics
 
@@ -52,7 +52,7 @@ here on your own machine, where everything stays private and free."
 **Teaching goals:**
 - User can read the provenance footer
 - User understands receipts
-- User understands that Squidley tells the truth about what she did
+- User understands that Peh tells the truth about what she did
 - User understands that model text alone is not proof of action
 
 ### 4. Cloud Graduation
@@ -63,7 +63,7 @@ here on your own machine, where everything stays private and free."
 3. Explain what things cost (cloud calls cost money, local is free)
 4. Explain privacy ("your text is sent to the provider's server")
 5. Guide through provider selection
-6. Explain the consent model ("Squidley will ask before making any cloud call")
+6. Explain the consent model ("Peh will ask before making any cloud call")
 
 **Teaching goals:**
 - User understands cloud vs local
@@ -75,7 +75,7 @@ here on your own machine, where everything stays private and free."
 
 **Steps:**
 1. Introduce read-only tools first ("I can look at your files if you let me")
-2. Explain what happens when Squidley reads a file (receipt shows what was read)
+2. Explain what happens when Peh reads a file (receipt shows what was read)
 3. Introduce write tools ("I can edit files, but only with your approval")
 4. Explain approval gates ("before I write anything, I will show you what I
    plan to write and ask for permission")
@@ -93,7 +93,7 @@ here on your own machine, where everything stays private and free."
 
 **Steps:**
 1. Present a safe example task (e.g., "create a simple README file")
-2. Show Squidley's plan before execution
+2. Show Peh's plan before execution
 3. Show approval checkpoint ("I will read these files, then write this file.
    Approve?")
 4. Execute with live progress updates
@@ -104,7 +104,7 @@ here on your own machine, where everything stays private and free."
 - User has seen a full autonomous workflow from plan to completion
 - User understands that they approved every risky step
 - User can audit what happened via receipts
-- User is ready to use Squidley for real work
+- User is ready to use Peh for real work
 
 ## Implementation Status
 

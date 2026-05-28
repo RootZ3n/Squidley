@@ -1,6 +1,6 @@
-# Archivum and More Input in Public Squidley
+# Archivum and More Input in Peh
 
-Archivum is Squidley's local knowledge shelf. In public v0.1, it stores notes,
+Archivum is Peh's local knowledge shelf. In public v0.1, it stores notes,
 snippets, and pasted documents in this browser only.
 
 More Input is the friendly "bring something in" flow inside Archivum. For now,
@@ -40,7 +40,7 @@ The tour is instructional only. It does not save, upload, or send text.
 Archivum uses versioned browser `localStorage`:
 
 ```text
-squidley.archivum.entries.v1
+peh.archivum.entries.v1
 ```
 
 Each entry stores:
@@ -56,7 +56,7 @@ Each entry stores:
 - `cloudUsed: false`
 - Velum reviewed/unreviewed metadata
 
-If local storage is corrupt or unsupported, Squidley starts with an empty
+If local storage is corrupt or unsupported, Peh starts with an empty
 Archivum instead of crashing.
 
 ## Search and Filters
@@ -81,7 +81,7 @@ tags with commas:
 troubleshooting, notes, project
 ```
 
-Squidley trims tags, removes duplicates on the same entry, and keeps a small
+Peh trims tags, removes duplicates on the same entry, and keeps a small
 limit on tag count and tag length. Tags stay local and help you find entries
 later. Changing only tags does not reset Velum review status.
 
@@ -107,7 +107,7 @@ Oculus analysis entries are not automatically Velum-reviewed.
 ## Fabrica Suggestion Entries
 
 Fabrica can save generated suggestion text as an Archivum note. The entry source
-is shown as **Fabrica suggestion**. Only the suggestion text is stored; Squidley
+is shown as **Fabrica suggestion**. Only the suggestion text is stored; Peh
 does not write a file to disk or treat the entry as executable.
 
 Fabrica suggestion entries are not automatically Velum-reviewed.
@@ -119,7 +119,7 @@ client-side and requires **Save Changes**. Typing in edit mode does not
 auto-save.
 
 If edited text changes, Archivum resets the Velum reviewed status because the
-review applied to the older text. Squidley shows:
+review applied to the older text. Peh shows:
 
 ```text
 Because this text changed, Velum review status was reset.
@@ -134,7 +134,7 @@ still waits for **Save Changes**.
 **Export All** creates a client-side JSON bundle with:
 
 ```text
-Squidley Public Archivum Bundle
+Peh Public Archivum Bundle
 schemaVersion
 exportedAt
 entryCount
@@ -144,22 +144,22 @@ cloudUsed: false
 
 The bundle includes entries, tags, and Velum metadata. Nothing is uploaded.
 
-**Import Bundle** accepts only a matching Squidley Public Archivum Bundle JSON
-file. Squidley validates the file locally and shows a preview before import:
+**Import Bundle** accepts only a matching Peh Public Archivum Bundle JSON
+file. Peh validates the file locally and shows a preview before import:
 
 - entry count
 - exportedAt
 - sample titles
 
 You must explicitly confirm the import. Imported content is treated as plain
-text and is never executed. Squidley does not call Velum automatically during
+text and is never executed. Peh does not call Velum automatically during
 import, and shows:
 
 ```text
 Imported entries were not automatically reviewed by Velum.
 ```
 
-If an imported entry id already exists, Squidley generates a new local id for
+If an imported entry id already exists, Peh generates a new local id for
 the imported copy instead of overwriting the existing entry.
 
 ## Export and Delete
@@ -167,7 +167,7 @@ the imported copy instead of overwriting the existing entry.
 Export creates a local `.txt` file with:
 
 ```text
-Squidley Public Archivum Export
+Peh Public Archivum Export
 exportedAt
 localOnly: true
 cloudUsed: false

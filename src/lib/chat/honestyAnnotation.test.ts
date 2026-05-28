@@ -54,7 +54,7 @@ describe("honesty annotation — hallucinated tool actions", () => {
 
   it("does NOT flag the model explaining what it cannot do", () => {
     const result = detectHallucinatedToolActions(
-      "Squidley does not have a file-write tool, so I will not save the file to disk.",
+      "Peh does not have a file-write tool, so I will not save the file to disk.",
     );
     expect(result.hallucinatedActions).toEqual([]);
   });

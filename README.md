@@ -1,4 +1,4 @@
-# Squidley Public
+# Peh Public
 
 > **Product status: NOT RELEASE READY**
 > Local Mode foundation is audited and includes narrow approval-gated tool
@@ -8,29 +8,29 @@
 > [docs/PUBLIC_SQUIDLEY_RELEASE_PLAN.md](docs/PUBLIC_SQUIDLEY_RELEASE_PLAN.md)
 > and [docs/CAPABILITY_TAXONOMY.md](docs/CAPABILITY_TAXONOMY.md).
 
-Squidley is a **local-first teaching + planning assistant**. She starts on
+Peh is a **local-first teaching + planning assistant**. She starts on
 your machine, teaches every concept step by step, plans tasks deterministically,
 and — for narrow, approval-gated tools — actually executes. She is **not** an
 autonomous cloud agent. Cloud Mode and broad tool execution are planned
 phases.
 
-Public Squidley is more than local chat: it includes a teacher, a planner, a
+Peh is more than local chat: it includes a teacher, a planner, a
 small-model reliability layer, narrow approval-gated file inspection, and
 narrow approval-gated tiny edits. It is **not** a multi-file editor, not a
 shell, not a web browser, and not yet a cloud-capable agent.
 
-## What Squidley Will Be
+## What Peh Will Be
 
-- **A teacher first**: Squidley teaches you what local models are, what cloud
+- **A teacher first**: Peh teaches you what local models are, what cloud
   providers are, what tools do, what approvals protect, and what receipts prove.
   Teaching is first-class architecture with a concept registry, lesson
   curriculum, runtime teaching hooks, and a self-explanation engine.
   See [docs/TEACHER_FIRST_DOCTRINE.md](docs/TEACHER_FIRST_DOCTRINE.md).
 - **Local-first start**: your first experience is private, free, on your own
   machine. Nothing leaves your device until you explicitly enable Cloud Mode.
-- **Cloud-capable**: when you are ready, Squidley connects to cloud providers
+- **Cloud-capable**: when you are ready, Peh connects to cloud providers
   for more powerful models, tools, and autonomous workflows.
-- **Honest**: every answer says exactly what produced it. Squidley never
+- **Honest**: every answer says exactly what produced it. Peh never
   pretends to have done something she did not do.
 - **Approval-gated**: risky actions (file write, shell, network) require
   explicit approval. Cloud calls require consent.
@@ -77,7 +77,7 @@ seven-question column view.
 ### Teaching layer (Phase 2C complete; polish ongoing)
 - First-run onboarding wizard (7-step guided introduction)
 - Concept registry (30+ concepts), lesson curriculum (14 lessons), knowledge
-  base (16 markdown modules including "What Squidley Can Actually Do Today"),
+  base (16 markdown modules including "What Peh Can Actually Do Today"),
   runtime teaching hooks (21 events)
 - Teacher UI at `/teacher`: learning path, concept glossary, ask panel, settings
 - Teach-while-chatting toggle, in-context teaching cards, explain-this helpers
@@ -108,11 +108,11 @@ Open `http://localhost:3000`. If Ollama is not running: `ollama serve`.
 
 Defaults:
 ```text
-SQUIDLEY_LOCAL_ENDPOINT=http://localhost:11434
-SQUIDLEY_LOCAL_MODEL=llama3.2
+PEH_LOCAL_ENDPOINT=http://localhost:11434
+PEH_LOCAL_MODEL=llama3.2
 ```
 
-This starts Local Mode only. Cloud Mode requires `SQUIDLEY_MODE=cloud` plus a
+This starts Local Mode only. Cloud Mode requires `PEH_MODE=cloud` plus a
 configured cloud provider — but no cloud adapters are implemented yet.
 
 ## Operating Modes
@@ -123,7 +123,7 @@ needed. This is the audited foundation. API keys alone do not enable Cloud Mode.
 See [docs/LOCAL_MODE.md](docs/LOCAL_MODE.md).
 
 ### Cloud Mode (planned, architecture only)
-Explicit opt-in via `SQUIDLEY_MODE=cloud`. Will support cloud AI providers, tool
+Explicit opt-in via `PEH_MODE=cloud`. Will support cloud AI providers, tool
 execution, and autonomous workflows when implemented. Currently architecture-
 only: no cloud adapters exist. See [docs/CLOUD_MODE.md](docs/CLOUD_MODE.md).
 
@@ -176,7 +176,7 @@ for the six-phase plan from Local Foundation to Release Candidate.
 - [docs/PUBLIC_SQUIDLEY_COHERENCE_REPORT_2026-05-20.md](docs/PUBLIC_SQUIDLEY_COHERENCE_REPORT_2026-05-20.md) — most recent product coherence pass
 - [docs/RELEASE_READINESS_SCORECARD_2026-05-20.md](docs/RELEASE_READINESS_SCORECARD_2026-05-20.md) — release readiness rubric and scores
 - [docs/TEACHER_FIRST_DOCTRINE.md](docs/TEACHER_FIRST_DOCTRINE.md) — teaching principles
-- [docs/SELF_EXPLANATION_REQUIREMENTS.md](docs/SELF_EXPLANATION_REQUIREMENTS.md) — what Squidley must be able to explain
+- [docs/SELF_EXPLANATION_REQUIREMENTS.md](docs/SELF_EXPLANATION_REQUIREMENTS.md) — what Peh must be able to explain
 - [docs/BEGINNER_ONBOARDING_DESIGN.md](docs/BEGINNER_ONBOARDING_DESIGN.md) — onboarding flow design
 
 ### Teaching

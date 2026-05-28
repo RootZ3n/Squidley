@@ -146,4 +146,4 @@ export function redactSecrets(input: string): RedactionResult {
 
 /** Honest disclaimer for the approval card and receipts. */
 export const SECRET_REDACTION_DISCLAIMER =
-  "Squidley redacts obvious secrets before reading (API keys, GitHub tokens, PEM blocks, bearer tokens, sensitive .env-style assignments). Custom or obfuscated secret formats can still slip through. If a file might contain secrets and you are not sure, do not approve the read.";
+  "Peh redacts obvious secrets before reading (API keys, GitHub tokens, PEM blocks, bearer tokens, sensitive .env-style assignments). Custom or obfuscated secret formats can still slip through. If a file might contain secrets and you are not sure, do not approve the read.";

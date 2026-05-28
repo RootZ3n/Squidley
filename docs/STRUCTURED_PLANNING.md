@@ -14,7 +14,7 @@ diffs. That is the dishonest version of "agent magic".
 
 The Structured Planning + Provenance Layer is the honest version:
 
-1. **Planning before action.** Squidley produces a *description* of the
+1. **Planning before action.** Peh produces a *description* of the
    work, never an execution.
 2. **Explainability before autonomy.** Every line of the plan cites its
    evidence — known file, prior receipt, model inference, or user
@@ -136,7 +136,7 @@ field in the next request body, populated by the UI).
 Planning composes with the existing reliability layer:
 
 - **Decomposition**: if the planner detects unknown action verb or
-  no topic, it lowers confidence and lists "Squidley could not
+  no topic, it lowers confidence and lists "Peh could not
   classify what kind of change you want" as missing information.
 - **Validation**: planning never goes through `validateLocalAnswer`
   because it never calls the local model. The deterministic output is
@@ -160,7 +160,7 @@ Planning composes with the existing reliability layer:
   deployment, this would need to move server-side. For a single-user
   local-first build, this is acceptable.
 
-## Why Squidley plans before acting
+## Why Peh plans before acting
 
 The Local Reliability layer (commits `95000e4`, `7f29267`, `8b6e794`)
 made answers honest. The Approval-Gated File Inspection layer
@@ -192,7 +192,7 @@ natural next step:
 
 None of that is wired today. The planner currently states the
 limitation explicitly in every plan it produces:
-*"Squidley does not edit files in this build."*
+*"Peh does not edit files in this build."*
 
 ## Changelog
 

@@ -1,6 +1,6 @@
-# Local Chat in Public Squidley
+# Local Chat in Peh
 
-Public Squidley's Colloquium module talks to a **local model server**. Ollama
+Peh's Colloquium module talks to a **local model server**. Ollama
 is validated end-to-end. The llama.cpp text path uses an OpenAI-compatible
 local backend and has been tested through Ollama's compatible endpoint; a real
 `llama-server` binary still needs manual validation. Colloquium does not call
@@ -41,7 +41,7 @@ OpenAI-compatible local text backend.
    ollama serve
    ```
    It listens on `http://localhost:11434` by default.
-4. **Run Squidley:**
+4. **Run Peh:**
    ```bash
    npm install
    npm run dev
@@ -56,18 +56,18 @@ No secrets are required.
 
 | Variable | Default | What it does |
 | --- | --- | --- |
-| `SQUIDLEY_LOCAL_ENDPOINT` | `http://localhost:11434` | Base URL of the local model server. Trailing slashes are stripped. |
-| `SQUIDLEY_LOCAL_MODEL` | `llama3.2` | Model name passed in each chat request. |
-| `SQUIDLEY_LOCAL_BACKEND` | `auto` | `auto`, `ollama`, or `llama-cpp`. `llama-cpp` uses an OpenAI-compatible local text API. |
+| `PEH_LOCAL_ENDPOINT` | `http://localhost:11434` | Base URL of the local model server. Trailing slashes are stripped. |
+| `PEH_LOCAL_MODEL` | `llama3.2` | Model name passed in each chat request. |
+| `PEH_LOCAL_BACKEND` | `auto` | `auto`, `ollama`, or `llama-cpp`. `llama-cpp` uses an OpenAI-compatible local text API. |
 
 Examples:
 
 ```bash
-# Point Squidley at a server on a different port
-SQUIDLEY_LOCAL_ENDPOINT=http://127.0.0.1:9000 npm run dev
+# Point Peh at a server on a different port
+PEH_LOCAL_ENDPOINT=http://127.0.0.1:9000 npm run dev
 
 # Use a different model you've already pulled with Ollama
-SQUIDLEY_LOCAL_MODEL=qwen2.5:3b npm run dev
+PEH_LOCAL_MODEL=qwen2.5:3b npm run dev
 ```
 
 The configured values are surfaced in chat receipts and message metrics so
@@ -78,7 +78,7 @@ Colloquium suggests pulling one.
 
 ## Health Check and Model Discovery
 
-`GET /api/local/health` calls `${SQUIDLEY_LOCAL_ENDPOINT}/api/tags` and returns
+`GET /api/local/health` calls `${PEH_LOCAL_ENDPOINT}/api/tags` and returns
 a beginner-readable payload:
 
 ```json
@@ -112,13 +112,13 @@ To install another local model:
 ollama pull qwen2.5:3b
 ```
 
-After the pull completes, use **Refresh models** in Colloquium. Squidley calls
+After the pull completes, use **Refresh models** in Colloquium. Peh calls
 the local health and model discovery routes again without refreshing the whole
 page. Refresh is disabled while a reply is actively streaming so it does not
 interrupt the current response.
 
 When models are refreshed, Colloquium keeps your selected model if it is still
-installed. If that model disappeared, Squidley selects the configured default
+installed. If that model disappeared, Peh selects the configured default
 model when available, otherwise the first discovered model. If no models are
 available, the selector is empty and Send stays disabled.
 
@@ -141,7 +141,7 @@ POST /api/chat
 { "model": "<name>", "messages": [...], "stream": true }
 ```
 
-Squidley converts Ollama's newline-delimited stream into a small
+Peh converts Ollama's newline-delimited stream into a small
 newline-delimited stream for the browser:
 
 - `meta` includes `provider: local`, `cloudUsed: false`, `toolsUsed: false`,
@@ -229,9 +229,9 @@ and label it as such — we don't pretend precision we don't have.
 
 ## Troubleshooting
 
-**Squidley says it can't reach the local server.**
+**Peh says it can't reach the local server.**
 The configured endpoint isn't reachable. Make sure Ollama is running
-(`ollama serve`), and that the host and port match `SQUIDLEY_LOCAL_ENDPOINT`.
+(`ollama serve`), and that the host and port match `PEH_LOCAL_ENDPOINT`.
 In Colloquium, the local-only badge stays visible and Send remains disabled.
 Start Ollama, then use **Refresh models**:
 
@@ -247,7 +247,7 @@ Ollama is reachable, but no local models are installed. Pull one, then use
 ollama pull llama3.2
 ```
 
-Squidley will not fall back to a cloud model while you do this.
+Peh will not fall back to a cloud model while you do this.
 
 **A model I pulled is not appearing.**
 First check that Ollama sees it:
@@ -257,22 +257,22 @@ ollama list
 ```
 
 If it appears there, use **Refresh models** in Colloquium. If it still does not
-appear, confirm Squidley is pointed at the same endpoint as Ollama:
+appear, confirm Peh is pointed at the same endpoint as Ollama:
 
 ```bash
-SQUIDLEY_LOCAL_ENDPOINT=http://localhost:11434 npm run dev
+PEH_LOCAL_ENDPOINT=http://localhost:11434 npm run dev
 ```
 
-If you want Squidley to prefer a specific installed model on startup, set:
+If you want Peh to prefer a specific installed model on startup, set:
 
 ```bash
-SQUIDLEY_LOCAL_MODEL=qwen2.5:3b npm run dev
+PEH_LOCAL_MODEL=qwen2.5:3b npm run dev
 ```
 
-**Squidley says the model isn't installed.**
+**Peh says the model isn't installed.**
 The local server is up, but the model name in the request isn't pulled
 locally. Pull it: `ollama pull <model>`. Then retry, or change
-`SQUIDLEY_LOCAL_MODEL` to something you already have.
+`PEH_LOCAL_MODEL` to something you already have.
 
 **The server returned an error (HTTP 5xx).**
 Something is wrong inside the local server itself — model is loading,

@@ -1,4 +1,4 @@
-export const NOUS_MODEL_PREFERENCES_KEY = "squidley.nous.modelPreferences.v1";
+export const NOUS_MODEL_PREFERENCES_KEY = "peh.nous.modelPreferences.v1";
 
 export const NOUS_RECEIPT_ACTION = {
   modelPreferenceChanged: "nous.model-preference.changed",

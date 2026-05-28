@@ -1,6 +1,6 @@
-# Fabrica in Public Squidley
+# Fabrica in Peh
 
-Fabrica is Squidley's beginner workshop. In public v0.1, it is a narrow
+Fabrica is Peh's beginner workshop. In public v0.1, it is a narrow
 single-file suggestion tool, not an autonomous coding system.
 
 ## What Fabrica Does
@@ -27,7 +27,7 @@ Fabrica public mode is intentionally limited:
 - no autonomous coding agent behavior
 - no automatic file writes
 
-You decide whether to copy or export the result. Squidley does not write it to
+You decide whether to copy or export the result. Peh does not write it to
 your file system.
 
 ## Local Model Use

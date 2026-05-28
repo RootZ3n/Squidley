@@ -1,5 +1,5 @@
 /**
- * Beginner-friendly terminology mapping for Public Squidley.
+ * Beginner-friendly terminology mapping for Peh.
  *
  * Single source of truth: every Latin module name maps to a plain-English
  * primary label, a one-line beginner description, and (where relevant) a
@@ -8,7 +8,7 @@
  *
  * The Latin name (e.g. "Velum") is preserved as a SUBTITLE so the
  * existing lore/personality stays accessible to users who want it, but a
- * beginner who has never used Squidley sees a friendly noun first.
+ * beginner who has never used Peh sees a friendly noun first.
  *
  * Pure data. No I/O. Safe to import anywhere — UI, docs generators, tests.
  *
@@ -16,9 +16,9 @@
  *   - Cloud not available:  "Cloud Mode is not implemented yet."
  *   - Approval (inspect):   "Approve and read once" / "Decline"
  *   - Approval (tiny edit): "Approve this edit"     / "Decline"
- *   - After approval:       "Approved. Squidley is reading the file
+ *   - After approval:       "Approved. Peh is reading the file
  *                            once and will not change it." OR
- *                           "Approved. Squidley is applying the edit
+ *                           "Approved. Peh is applying the edit
  *                            and verifying it now."
  *   - After decline:        "Declined. The file was not read." OR
  *                           "Declined. No edit was applied."
@@ -54,7 +54,7 @@ export const MODULE_TERMINOLOGY = {
     latinName: "Fabrica",
     beginnerDescription: "Paste a single file; get a code suggestion.",
     tooltip:
-      "Paste one file's text. Squidley uses your local model to propose changes. The file is never written — you copy the suggestion yourself.",
+      "Paste one file's text. Peh uses your local model to propose changes. The file is never written — you copy the suggestion yourself.",
   },
   archivum: {
     friendlyLabel: "Notes",
@@ -82,12 +82,12 @@ export const MODULE_TERMINOLOGY = {
     latinName: "Oculus",
     beginnerDescription: "Analyse an image with a local vision model.",
     tooltip:
-      "Pick an image; if your local model supports vision, Squidley describes what it sees. Image stays on your machine.",
+      "Pick an image; if your local model supports vision, Peh describes what it sees. Image stays on your machine.",
   },
   tabularium: {
     friendlyLabel: "Activity Log",
     latinName: "Tabularium",
-    beginnerDescription: "Review what Squidley actually did, with receipts.",
+    beginnerDescription: "Review what Peh actually did, with receipts.",
     tooltip:
       "An audit trail of every action. Stored in your browser. Receipts never contain raw secrets.",
   },
@@ -101,9 +101,9 @@ export const MODULE_TERMINOLOGY = {
   modules: {
     friendlyLabel: "Modules",
     latinName: "",
-    beginnerDescription: "All available parts of Squidley.",
+    beginnerDescription: "All available parts of Peh.",
     tooltip:
-      "Browse every Squidley module — what is local-ready, what needs approval, and what is planned.",
+      "Browse every Peh module — what is local-ready, what needs approval, and what is planned.",
   },
   settings: {
     friendlyLabel: "Settings",
@@ -177,7 +177,7 @@ export const CAPABILITY_TIER_DESCRIPTIONS = {
   LOCAL_PARTIAL: {
     label: "Limited",
     short: "Works locally. Quality depends on your model.",
-    long: "Implemented locally but quality, backend coverage, or model dependence limits delivery. Squidley says so when the limitation matters.",
+    long: "Implemented locally but quality, backend coverage, or model dependence limits delivery. Peh says so when the limitation matters.",
   },
   CLOUD_PLANNED: {
     label: "Planned (cloud)",
@@ -205,7 +205,7 @@ export type CapabilityTier = keyof typeof CAPABILITY_TIER_DESCRIPTIONS;
  */
 export const TRUST_PHRASES = {
   cloudNotImplemented: "Cloud Mode is not implemented yet.",
-  buildIdentifier: "this public Squidley build",
+  buildIdentifier: "this public Peh build",
   provenanceFooterShort:
     "answered by local model only · no tool used · no cloud used",
 
@@ -213,18 +213,18 @@ export const TRUST_PHRASES = {
   approveEdit: "Approve this edit",
   decline: "Decline",
   approvedInspect:
-    "Approved. Squidley is reading the file once and will not change it.",
+    "Approved. Peh is reading the file once and will not change it.",
   approvedEdit:
-    "Approved. Squidley is applying the edit and verifying it now.",
+    "Approved. Peh is applying the edit and verifying it now.",
   declinedInspect: "Declined. The file was not read.",
   declinedEdit: "Declined. No edit was applied.",
 
   modelUncertain: "The local model may be uncertain here.",
-  modelCannotVerify: "Squidley could not verify the answer.",
+  modelCannotVerify: "Peh could not verify the answer.",
   actionRequiresApproval: "This action requires your approval.",
 
   rollbackOnVerifyFail:
-    "Squidley applied the edit, verification failed, and the file was restored from backup.",
+    "Peh applied the edit, verification failed, and the file was restored from backup.",
   rollbackSuccess: "The change was reversed. Your file is back to its previous state.",
 } as const;
 

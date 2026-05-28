@@ -1,6 +1,6 @@
-# Oculus in Public Squidley
+# Oculus in Peh
 
-Oculus is Squidley's visual understanding module. In public v0.1, it is manual,
+Oculus is Peh's visual understanding module. In public v0.1, it is manual,
 local-first, and privacy-aware.
 
 ## Manual Image Review

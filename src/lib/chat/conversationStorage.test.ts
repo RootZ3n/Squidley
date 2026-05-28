@@ -183,7 +183,7 @@ describe("conversation export", () => {
       exportedAt: "2026-04-25T12:00:00.000Z",
     });
 
-    expect(text).toContain("Squidley Public Colloquium Export");
+    expect(text).toContain("Peh Public Colloquium Export");
     expect(text).toContain("exportedAt: 2026-04-25T12:00:00.000Z");
     expect(text).toContain("localOnly: true");
     expect(text).toContain("cloudUsed: false");

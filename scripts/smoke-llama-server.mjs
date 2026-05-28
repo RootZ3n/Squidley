@@ -2,7 +2,7 @@
 /**
  * scripts/smoke-llama-server.mjs
  *
- * Real llama-server smoke. Public Squidley's llama-cpp text path is only
+ * Real llama-server smoke. Peh's llama-cpp text path is only
  * LOCAL_READY when this smoke has been run against a real llama-server
  * binary at a local URL.
  *
@@ -145,7 +145,7 @@ function recordResult(status, summary, details) {
 }
 
 async function main() {
-  console.log(`Squidley llama-server smoke — endpoint: ${endpoint}`);
+  console.log(`Peh llama-server smoke — endpoint: ${endpoint}`);
   console.log(`Model: ${modelOverride || "(discover from /v1/models)"}`);
   console.log("Network scope: configured local endpoint only.");
   console.log("");

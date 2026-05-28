@@ -90,11 +90,11 @@ export async function POST(req: Request): Promise<Response> {
     });
   } catch {
     const serverHint = backend === "llama-cpp"
-      ? "Start llama-server or check SQUIDLEY_LOCAL_ENDPOINT."
-      : "Start Ollama or check SQUIDLEY_LOCAL_ENDPOINT.";
+      ? "Start llama-server or check PEH_LOCAL_ENDPOINT."
+      : "Start Ollama or check PEH_LOCAL_ENDPOINT.";
     return error(
       "local_provider_unreachable",
-      `Squidley tried to reach your local model server at ${config.endpoint}, but couldn't connect. ${serverHint}`,
+      `Peh tried to reach your local model server at ${config.endpoint}, but couldn't connect. ${serverHint}`,
       503,
     );
   }
@@ -107,7 +107,7 @@ export async function POST(req: Request): Promise<Response> {
   try {
     data = await upstream.json();
   } catch {
-    return error("local_provider_error", "The local model replied, but Squidley could not read the Fabrica suggestion.", 502);
+    return error("local_provider_error", "The local model replied, but Peh could not read the Fabrica suggestion.", 502);
   }
 
   const suggestion = extractSuggestion(data, backend);

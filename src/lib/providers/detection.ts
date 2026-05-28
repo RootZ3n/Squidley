@@ -1,7 +1,7 @@
 /**
  * Local provider auto-detection.
  *
- * When SQUIDLEY_LOCAL_BACKEND is "auto" (or unset), Squidley probes both
+ * When PEH_LOCAL_BACKEND is "auto" (or unset), Peh probes both
  * Ollama and llama-server endpoints to figure out which one is running.
  *
  * Detection order:
@@ -123,6 +123,6 @@ export async function detectLocalBackend(args: {
     ollamaHealth,
     llamaCppHealth,
     message:
-      "No local model server found. Squidley needs either Ollama or llama-server running locally.",
+      "No local model server found. Peh needs either Ollama or llama-server running locally.",
   };
 }

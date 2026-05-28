@@ -135,7 +135,7 @@ export async function probeLlamaCppHealth(args: {
       backendType: "llama-cpp",
       endpoint,
       errorCode: "local_provider_unreachable",
-      reason: `Squidley tried to reach a llama-server at ${endpoint}, but it does not seem to be running. Start llama-server or check your endpoint.`,
+      reason: `Peh tried to reach a llama-server at ${endpoint}, but it does not seem to be running. Start llama-server or check your endpoint.`,
       cloudUsed: false,
     };
   }
@@ -215,7 +215,7 @@ export interface OpenAIChatResponse {
  * reasoning, or thinking) with empty content. When content is empty but
  * reasoning text exists, we do NOT silently substitute it — reasoning tokens
  * may be incomplete chain-of-thought. Instead we return empty string and let
- * the caller decide how to handle it (Squidley reports "model did not return
+ * the caller decide how to handle it (Peh reports "model did not return
  * a reply" which is honest).
  *
  * The `hasReasoningOnly` helper can be used to detect this case and show a

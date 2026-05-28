@@ -1,7 +1,7 @@
 /**
  * Small Model Reliability Layer — public type surface.
  *
- * The reliability layer makes Squidley Public usable with small local
+ * The reliability layer makes Peh Public usable with small local
  * models by wrapping a user request in:
  *
  *   - a SmallModelTask (the request + the safety envelope)

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "title": "Public Squidley Teaching Knowledge Base",
+  "title": "Peh Teaching Knowledge Base",
   "description": "Beginner-friendly curriculum for learning how AI agents work, from zero experience to autonomous workflows.",
   "targetAudience": "Someone who has never used an AI tool before.",
   "modules": [
@@ -88,9 +88,9 @@
       "concepts": ["autonomous_workflow", "agent"]
     },
     {
-      "id": "12-using-squidley-safely",
-      "title": "Using Squidley Safely",
-      "file": "12-using-squidley-safely.md",
+      "id": "12-using-peh-safely",
+      "title": "Using Peh Safely",
+      "file": "12-using-peh-safely.md",
       "required": true,
       "concepts": ["safety", "prompt_injection", "egress"]
     },
@@ -109,9 +109,9 @@
       "concepts": []
     },
     {
-      "id": "15-what-squidley-can-do-today",
-      "title": "What Squidley Can Actually Do Today",
-      "file": "15-what-squidley-can-do-today.md",
+      "id": "15-what-peh-can-do-today",
+      "title": "What Peh Can Actually Do Today",
+      "file": "15-what-peh-can-do-today.md",
       "required": true,
       "concepts": ["capability_tier", "approval", "tiny_edit", "inspection", "planning", "reliability_layer"]
     }

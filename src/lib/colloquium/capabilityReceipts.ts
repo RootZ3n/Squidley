@@ -2,7 +2,7 @@
  * Colloquium capability decision receipt helpers.
  *
  * Pure preflight: when the local chat submit path is about to invoke the
- * local model, this records *what Squidley decided* about the chat
+ * local model, this records *what Peh decided* about the chat
  * capability -- not the user's prompt or the assistant's reply. The existing
  * `buildColloquiumChatSentReceipt` covers the conversational receipt row.
  *

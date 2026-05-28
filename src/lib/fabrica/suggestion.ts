@@ -62,7 +62,7 @@ export function buildFabricaMessages(request: FabricaRequest): ChatMessage[] {
     {
       role: "system",
       content: [
-        "You are Fabrica in Public Squidley.",
+        "You are Fabrica in Peh.",
         "You help beginners with one file at a time.",
         "Do not claim you saved or edited files.",
         "Do not run commands, use tools, or describe autonomous actions.",

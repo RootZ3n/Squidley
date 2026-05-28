@@ -14,7 +14,7 @@ export const archivumTour: ModuleTour = {
       id: "more-input",
       target: "more-input-form",
       title: "More Input",
-      body: "More Input is the friendly way to bring text into Squidley. In this public pass, it is manual paste only and stays in your browser.",
+      body: "More Input is the friendly way to bring text into Peh. In this public pass, it is manual paste only and stays in your browser.",
     },
     {
       id: "fields",

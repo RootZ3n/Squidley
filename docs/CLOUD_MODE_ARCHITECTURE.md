@@ -2,7 +2,7 @@
 
 ## Overview
 
-Public Squidley has two operating modes: **Local Mode** and **Cloud Mode**.
+Peh has two operating modes: **Local Mode** and **Cloud Mode**.
 
 Local Mode is the audited foundation. Cloud Mode is the planned fully capable
 autonomous agent mode. Both are required for the product to ship publicly —
@@ -15,12 +15,12 @@ The mode is determined by a central resolver at `src/lib/mode/resolver.ts`.
 
 Resolution order:
 1. Explicit UI/config setting (highest priority)
-2. `SQUIDLEY_MODE` environment variable
+2. `PEH_MODE` environment variable
 3. Default: `local`
 
 ### Critical Invariant
 
-**API keys alone NEVER enable Cloud Mode.** Setting `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc. without `SQUIDLEY_MODE=cloud` has no effect on the operating mode. The keys are detected for informational purposes but do not unlock any cloud functionality.
+**API keys alone NEVER enable Cloud Mode.** Setting `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc. without `PEH_MODE=cloud` has no effect on the operating mode. The keys are detected for informational purposes but do not unlock any cloud functionality.
 
 ## Mode States
 
@@ -55,7 +55,7 @@ Resolution order:
 ## Cloud Mode Activation Requirements
 
 Cloud Mode becomes active when ALL of:
-1. `SQUIDLEY_MODE=cloud` is set (or equivalent explicit config)
+1. `PEH_MODE=cloud` is set (or equivalent explicit config)
 2. At least one cloud provider is configured with an API key
 3. That provider has an implemented adapter (checked at runtime)
 

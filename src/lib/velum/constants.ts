@@ -1,7 +1,7 @@
-export const VELUM_HANDOFF_KEY = "squidley.velum.redactedDraft.v1";
-export const COLLOQUIUM_TO_VELUM_HANDOFF_KEY = "squidley.colloquium.velumDraft.v1";
-export const MORE_INPUT_TO_VELUM_HANDOFF_KEY = "squidley.moreInput.velumDraft.v1";
-export const VELUM_TO_MORE_INPUT_HANDOFF_KEY = "squidley.velum.moreInputRedacted.v1";
+export const VELUM_HANDOFF_KEY = "peh.velum.redactedDraft.v1";
+export const COLLOQUIUM_TO_VELUM_HANDOFF_KEY = "peh.colloquium.velumDraft.v1";
+export const MORE_INPUT_TO_VELUM_HANDOFF_KEY = "peh.moreInput.velumDraft.v1";
+export const VELUM_TO_MORE_INPUT_HANDOFF_KEY = "peh.velum.moreInputRedacted.v1";
 
 export const VELUM_HANDOFF_KINDS = [
   "colloquium-to-velum-draft",

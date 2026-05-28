@@ -2,7 +2,7 @@
 
 ## What is a Tool Call?
 
-A tool call is when Squidley actually does something — like reading a file,
+A tool call is when Peh actually does something — like reading a file,
 writing code, or searching the web — instead of just talking about it. The
 model requests to use a tool, the application executes it, and a receipt proves
 what happened.
@@ -15,20 +15,20 @@ There is a crucial difference:
 were read, no web was searched, no actions were taken. The provenance says
 "answered by local model only."
 
-**Tool-backed action:** Squidley used a real tool. A file was actually read, a
+**Tool-backed action:** Peh used a real tool. A file was actually read, a
 command was actually run, or a web page was actually fetched. The receipt
 proves it.
 
-## How Squidley Handles Hallucinated Tool Claims
+## How Peh Handles Hallucinated Tool Claims
 
 Sometimes a model will say "I wrote the file" when no file was written. This
-is a hallucination. Squidley's honesty annotator detects these false claims
+is a hallucination. Peh's honesty annotator detects these false claims
 and adds a correction:
 
-> "Note: Squidley does not have file-writing capability in this build. The
+> "Note: Peh does not have file-writing capability in this build. The
 > model's claim was not backed by a real tool action."
 
-The model's original text is preserved — Squidley adds the correction, not
+The model's original text is preserved — Peh adds the correction, not
 censorship.
 
 ## Current Status
@@ -41,4 +41,4 @@ a receipt as proof.
 
 - How can you tell a real tool call from a model just saying it did something?
 - What proof exists that a tool-backed action actually happened?
-- What does Squidley do when the model claims to have written a file?
+- What does Peh do when the model claims to have written a file?

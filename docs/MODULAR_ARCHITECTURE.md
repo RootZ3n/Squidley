@@ -1,6 +1,6 @@
 # Modular Architecture
 
-Public Squidley uses a small-core, modular architecture.
+Peh uses a small-core, modular architecture.
 
 Core should provide contracts and orchestration, not absorb module behavior.
 Modules should own their own UI, storage, actions, tours, receipts, handoffs,
@@ -51,7 +51,7 @@ Avoid:
 
 ## Module Contracts
 
-Module metadata is defined by `PublicSquidleyModuleDefinition` in
+Module metadata is defined by `PublicPehModuleDefinition` in
 `src/lib/modules/contracts.ts`.
 
 Each visible module declares identity, category, status, route, tour id, Ratio

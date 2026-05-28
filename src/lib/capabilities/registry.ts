@@ -1,5 +1,5 @@
 /**
- * Public Squidley capability registry.
+ * Peh capability registry.
  *
  * Static, auditable list of every per-action capability surfaced by a public
  * module. There is exactly one Capability per `(moduleId, ratioActionId)` pair
@@ -36,7 +36,7 @@ export const CAPABILITIES: readonly Capability[] = [
     moduleId: "colloquium",
     displayName: "Local chat",
     beginnerDescription:
-      "Have a basic conversation with Squidley using a local model. Stays on this machine.",
+      "Have a basic conversation with Peh using a local model. Stays on this machine.",
     tier: "local-core",
     localRequirements: [
       { providerId: "ollama", capabilityProfile: "chat" },
@@ -54,7 +54,7 @@ export const CAPABILITIES: readonly Capability[] = [
     moduleId: "colloquium",
     displayName: "Local advanced planning chat",
     beginnerDescription:
-      "Ask Squidley to think through a multi-step plan locally. Quality depends on the local model.",
+      "Ask Peh to think through a multi-step plan locally. Quality depends on the local model.",
     tier: "local-limited",
     localRequirements: [
       { providerId: "ollama", capabilityProfile: "chat", minParamsB: 7 },
@@ -230,7 +230,7 @@ export const CAPABILITIES: readonly Capability[] = [
     moduleId: "tabularium",
     displayName: "Local receipts ledger",
     beginnerDescription:
-      "Browse what happened in Squidley: which actions ran locally and which used a model, all from browser-local receipts.",
+      "Browse what happened in Peh: which actions ran locally and which used a model, all from browser-local receipts.",
     tier: "local-core",
     localRequirements: [],
     cloudRequirements: [],
@@ -246,7 +246,7 @@ export const CAPABILITIES: readonly Capability[] = [
     moduleId: "nous",
     displayName: "System understanding map",
     beginnerDescription:
-      "View Squidley's modules, Ratio adaptive intelligence, and locked cloud providers. Read-only and local.",
+      "View Peh's modules, Ratio adaptive intelligence, and locked cloud providers. Read-only and local.",
     tier: "local-core",
     localRequirements: [],
     cloudRequirements: [],
@@ -316,7 +316,7 @@ export const CAPABILITIES: readonly Capability[] = [
     moduleId: "imaginanium",
     displayName: "Cloud image generation",
     beginnerDescription:
-      "Generate and explore images. Locked in public mode — local-only Squidley does not ship with image generation.",
+      "Generate and explore images. Locked in public mode — local-only Peh does not ship with image generation.",
     tier: "cloud-required",
     localRequirements: [],
     cloudRequirements: [
@@ -324,7 +324,7 @@ export const CAPABILITIES: readonly Capability[] = [
     ],
     honestMessages: {
       cloudRequired:
-        "Image generation requires a future cloud image provider. Local-only Squidley does not ship with image generation.",
+        "Image generation requires a future cloud image provider. Local-only Peh does not ship with image generation.",
     },
     receiptActions: "none",
     velumGated: true,

@@ -2,12 +2,12 @@
 
 ## What It Is
 
-Cloud Mode is where Squidley becomes a fully capable autonomous agent. When
-implemented and enabled, Squidley will use cloud AI providers, execute tools,
+Cloud Mode is where Peh becomes a fully capable autonomous agent. When
+implemented and enabled, Peh will use cloud AI providers, execute tools,
 and run autonomous workflows — all with approval gates and receipt tracking.
 
 Cloud Mode is not optional future polish. It is a core part of the product.
-Public Squidley does not ship until Cloud Mode works.
+Peh does not ship until Cloud Mode works.
 
 ## Current Status: ARCHITECTURE ONLY / NOT FUNCTIONAL
 
@@ -17,7 +17,7 @@ provider adapters exist.** Cloud Mode cannot do anything cloud-specific until
 adapters are built, tested, and connected to the UI.
 
 ### What exists (architecture):
-- Mode resolver (`SQUIDLEY_MODE=cloud`)
+- Mode resolver (`PEH_MODE=cloud`)
 - Cloud provider registry (7 providers registered, all NOT_IMPLEMENTED)
 - Mode-aware capability and tool matrices
 - Escalation policy (no cloud in local mode)
@@ -38,7 +38,7 @@ adapters are built, tested, and connected to the UI.
 ## How to Enable (When Implemented)
 
 ```bash
-export SQUIDLEY_MODE=cloud
+export PEH_MODE=cloud
 export OPENAI_API_KEY=sk-...
 # or
 export ANTHROPIC_API_KEY=sk-...

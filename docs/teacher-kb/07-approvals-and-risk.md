@@ -1,22 +1,22 @@
 # Approvals and Risk
 
-Not every action Squidley can take is equally risky. Reading a file
+Not every action Peh can take is equally risky. Reading a file
 is safer than writing one. Generating a suggestion is safer than
-applying it. Squidley sorts actions into tiers and asks for approval
+applying it. Peh sorts actions into tiers and asks for approval
 before doing anything risky.
 
 This module describes the approval gates that ACTUALLY EXIST today,
 plus the ones planned for future capabilities.
 
-## What Squidley Asks Approval For Today
+## What Peh Asks Approval For Today
 
-In this public Squidley build, there are two real approval-gated
+In this public Peh build, there are two real approval-gated
 flows. Both are LOCAL_LIMITED in
 [the capability taxonomy](../CAPABILITY_TAXONOMY.md):
 
 ### 1. Approval-gated file inspection
 
-When you ask "what does this file do?", Squidley shows an approval
+When you ask "what does this file do?", Peh shows an approval
 prompt that names:
 
 - the exact file path she wants to read
@@ -24,18 +24,18 @@ prompt that names:
 - that the read is one-time, read-only, with secrets redacted
 
 The buttons say "Approve and read once" and "Decline". After you
-approve, Squidley reads that file once and only once. The approval
+approve, Peh reads that file once and only once. The approval
 token expires in ten minutes and is bound to that exact path —
-Squidley cannot use it to read a different file.
+Peh cannot use it to read a different file.
 
-After approval she shows: "Approved. Squidley is reading the file
+After approval she shows: "Approved. Peh is reading the file
 once and will not change it."
 
 If you decline: "Declined. The file was not read."
 
 ### 2. Approval-gated tiny edits
 
-When you ask Squidley to replace a snippet, she:
+When you ask Peh to replace a snippet, she:
 
 1. checks that the file is already inspected (so you saw it first),
 2. confirms the original snippet appears EXACTLY ONCE in the file,
@@ -47,11 +47,11 @@ hashes — the path, the original snippet, the proposed snippet, and
 the current full file. Any change to any of those invalidates the
 token.
 
-If you approve, Squidley keeps an in-memory backup, applies the edit
+If you approve, Peh keeps an in-memory backup, applies the edit
 once, re-reads the file, and runs verification checks. If verification
 fails, she rolls back to the backup and tells you why.
 
-After approval she shows: "Approved. Squidley is applying the edit
+After approval she shows: "Approved. Peh is applying the edit
 and verifying it now."
 
 If you decline: "Declined. No edit was applied."
@@ -85,7 +85,7 @@ capability that has not shipped yet.
 
 ## What Every Approval Prompt Tells You
 
-Before you say yes, Squidley always shows:
+Before you say yes, Peh always shows:
 
 1. **What she wants to do** — the exact path, snippet, or action.
 2. **Why it is risky** — a short, beginner-readable reason.
@@ -104,7 +104,7 @@ actions always require explicit, scoped approval — regardless of mode.
 
 ## Honesty: What Approvals Don't Protect Against
 
-Approval gates protect against Squidley taking action you didn't say
+Approval gates protect against Peh taking action you didn't say
 yes to. They do NOT:
 
 - prove the action is correct
@@ -117,11 +117,11 @@ verification is proof.
 
 ## Check Your Understanding
 
-- Why does Squidley ask permission separately for each file?
+- Why does Peh ask permission separately for each file?
 - What four pieces of information are bound to a tiny-edit approval
   token?
-- If Squidley applies a tiny edit and verification fails, what
+- If Peh applies a tiny edit and verification fails, what
   happens?
-- Can Squidley use a file-inspection approval to read a different
+- Can Peh use a file-inspection approval to read a different
   file?
 - Does enabling Cloud Mode bypass approval gates?

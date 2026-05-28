@@ -64,7 +64,7 @@ function buildNeedsPathReceipt(now: () => number): TabulariumReceipt {
     status: "info",
     title: "File inspection — path needed",
     summary:
-      "User asked for file inspection but did not name a file. Squidley asked the user to name one.",
+      "User asked for file inspection but did not name a file. Peh asked the user to name one.",
     metadata: { cloud_used: false, read_only: true, needs_path: true },
     createdAt: now(),
   });
@@ -147,9 +147,9 @@ export async function handleFileInspectionRequest(
     return {
       status: "needs-path",
       reply:
-        "Squidley wants to read a file to answer that. Please name the file (for example: 'inspect src/app/page.tsx'). Squidley will then ask for your approval before reading it.",
+        "Peh wants to read a file to answer that. Please name the file (for example: 'inspect src/app/page.tsx'). Peh will then ask for your approval before reading it.",
       summary:
-        "User asked for file inspection but did not name a file. Squidley asked for one.",
+        "User asked for file inspection but did not name a file. Peh asked for one.",
       receipts: [buildNeedsPathReceipt(now)],
       cloudUsed: false,
       localOnly: true,
@@ -174,7 +174,7 @@ export async function handleFileInspectionRequest(
     return {
       status: "approval-required",
       reply:
-        "Squidley wants to read this file so it can answer your question. Reading is not the same as editing. Approve or decline below.",
+        "Peh wants to read this file so it can answer your question. Reading is not the same as editing. Approve or decline below.",
       approvalRequest: outcome.approvalRequest,
       path: outcome.path,
       summary: outcome.summary,
@@ -201,7 +201,7 @@ export async function handleFileInspectionRequest(
   if (outcome.status === "blocked") {
     return {
       status: "blocked",
-      reply: `Squidley refused to read \`${outcome.path}\`: ${outcome.blockedReason}`,
+      reply: `Peh refused to read \`${outcome.path}\`: ${outcome.blockedReason}`,
       path: outcome.path,
       summary: outcome.blockedReason ?? "blocked",
       receipts: outcome.receipts,

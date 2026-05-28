@@ -30,7 +30,7 @@ export type StreamEvent =
   | {
       /** Emitted before `done` when the accumulated model reply implied a
        *  tool action that this build cannot actually perform. The original
-       *  reply is preserved; this event carries Squidley's user-visible
+       *  reply is preserved; this event carries Peh's user-visible
        *  correction. */
       type: "honesty";
       message: string;
@@ -349,16 +349,16 @@ export async function openLocalChatStream(args: {
   } catch (e) {
     const timedOut = e instanceof Error && e.name === "AbortError";
     const serverHint = backend === "llama-cpp"
-      ? "Start llama-server or check SQUIDLEY_LOCAL_ENDPOINT, then try again."
-      : "Start Ollama or check SQUIDLEY_LOCAL_ENDPOINT, then try again.";
+      ? "Start llama-server or check PEH_LOCAL_ENDPOINT, then try again."
+      : "Start Ollama or check PEH_LOCAL_ENDPOINT, then try again.";
     return {
       ok: false,
       status: 503,
       payload: error(
         "local_provider_unreachable",
         timedOut
-          ? `Squidley's local model stream to ${args.config.endpoint} timed out. ${serverHint}`
-          : `Squidley tried to reach your local model server at ${args.config.endpoint}, but couldn't connect. ${serverHint}`,
+          ? `Peh's local model stream to ${args.config.endpoint} timed out. ${serverHint}`
+          : `Peh tried to reach your local model server at ${args.config.endpoint}, but couldn't connect. ${serverHint}`,
       ),
     };
   }
@@ -415,7 +415,7 @@ function buildStreamUpstreamRequest(args: {
   }
 
   // Ollama — disable extended thinking so content arrives in message.content
-  // rather than message.thinking (which Squidley does not surface).
+  // rather than message.thinking (which Peh does not surface).
   return {
     url: `${args.config.endpoint}/api/chat`,
     body: {

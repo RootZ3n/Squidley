@@ -8,7 +8,7 @@ passing.
 
 ## Approval philosophy
 
-A "tiny edit" is the most cautious possible mutation Squidley Public
+A "tiny edit" is the most cautious possible mutation Peh Public
 will perform:
 
 - **One file.**
@@ -19,7 +19,7 @@ will perform:
 - **Verified after writing**, with deterministic checks.
 - **Rolled back automatically** on any verification failure.
 
-The user is the agent of every change. Squidley *proposes* and
+The user is the agent of every change. Peh *proposes* and
 *verifies*; the user *approves*.
 
 ## Why edits are tiny
@@ -96,9 +96,9 @@ backup back to disk immediately:
 - Re-read after write fails.
 - Verification status is `failed`.
 
-If the rollback write itself fails (rare), Squidley emits an
+If the rollback write itself fails (rare), Peh emits an
 `editing.failed` receipt that says so explicitly. The user is told
-that the file may be in a partially-edited state. Squidley does NOT
+that the file may be in a partially-edited state. Peh does NOT
 attempt heroic recovery — the user owns the next step.
 
 ## Receipts
@@ -199,7 +199,7 @@ a description; the actual edit requires:
 ## Future roadmap
 
 This is the deliberate stopping point for autonomous editing in
-Squidley Public. Plausible extensions, each non-trivial:
+Peh Public. Plausible extensions, each non-trivial:
 
 1. **Multi-file tiny edits** — a batched approval that lists every
    single-file change. Same hash-binding per file, all-or-nothing

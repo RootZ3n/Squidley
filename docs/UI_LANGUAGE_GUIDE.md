@@ -1,6 +1,6 @@
 # UI Language Guide
 
-> Canonical wording for Public Squidley user-facing surfaces.
+> Canonical wording for Peh user-facing surfaces.
 > Companion to [docs/CAPABILITY_TAXONOMY.md](CAPABILITY_TAXONOMY.md).
 >
 > The machine-readable source of truth for terminology lives in
@@ -18,16 +18,16 @@ the exact phrasings so every panel says the same thing.
 
 | Friendly label | Latin (subtitle) | What it does |
 |---|---|---|
-| Welcome | — | Start here. Overview of what Squidley can do today. |
+| Welcome | — | Start here. Overview of what Peh can do today. |
 | Chat | Colloquium | Talk to a local AI model on your machine. |
 | Code Helper | Fabrica | Paste a single file; get a code suggestion. |
 | Notes | Archivum | Save snippets and notes in this browser only. |
 | More Input | Archivum (capture) | Quickly capture text to use later. |
 | Safety Check | Velum | Review text before sharing it with the model. |
 | Image Review | Oculus | Analyse an image with a local vision model. |
-| Activity Log | Tabularium | Review what Squidley actually did, with receipts. |
+| Activity Log | Tabularium | Review what Peh actually did, with receipts. |
 | System Map | Nous | See what is configured and what is connected. |
-| Modules | — | All available parts of Squidley. |
+| Modules | — | All available parts of Peh. |
 | Settings | — | Tours, storage, and local model preferences. |
 | Memory (planned) | Archelon | Long-term memory — planned, not built yet. |
 | Agent Workflows (locked) | Legatus | Multi-step agent flows — Cloud Mode only. |
@@ -82,8 +82,8 @@ there first.
 | Approve file inspection (button) | `Approve and read once` |
 | Approve tiny edit (button) | `Approve this edit` |
 | Decline (both flows) | `Decline` |
-| After approve · inspection | `Approved. Squidley is reading the file once and will not change it.` |
-| After approve · edit | `Approved. Squidley is applying the edit and verifying it now.` |
+| After approve · inspection | `Approved. Peh is reading the file once and will not change it.` |
+| After approve · edit | `Approved. Peh is applying the edit and verifying it now.` |
 | After decline · inspection | `Declined. The file was not read.` |
 | After decline · edit | `Declined. No edit was applied.` |
 
@@ -92,14 +92,14 @@ there first.
 | Context | Phrase |
 |---|---|
 | Model uncertain | `The local model may be uncertain here.` |
-| Could not verify | `Squidley could not verify the answer.` |
+| Could not verify | `Peh could not verify the answer.` |
 | Action needs approval | `This action requires your approval.` |
 
 ### Rollback
 
 | Context | Phrase |
 |---|---|
-| Tiny edit verify failed | `Squidley applied the edit, verification failed, and the file was restored from backup.` |
+| Tiny edit verify failed | `Peh applied the edit, verification failed, and the file was restored from backup.` |
 | Generic rollback | `The change was reversed. Your file is back to its previous state.` |
 
 ### Provenance footer
@@ -121,23 +121,23 @@ Variants seen in older copy that should be brought into line:
 ### Build identifier
 
 When distinguishing the current build from future capabilities, use
-**"this public Squidley build"** (not "this version", not "this build",
+**"this public Peh build"** (not "this version", not "this build",
 not "this public local build"). The honesty corrector messages already
 use this form.
 
 ## Words to Avoid in User-Facing Copy
 
 The following words intimidate beginners or imply more autonomy than
-Squidley has. Acceptable in advanced docs and code comments; not in
+Peh has. Acceptable in advanced docs and code comments; not in
 UI labels, onboarding, or teacher lessons.
 
 | Avoid | Use instead |
 |---|---|
-| agentic | what Squidley can do |
-| orchestration | how Squidley plans steps |
+| agentic | what Peh can do |
+| orchestration | how Peh plans steps |
 | execution graph | the plan |
-| runtime substrate / substrate | the part of Squidley that runs your request |
-| subsystem | part of Squidley |
+| runtime substrate / substrate | the part of Peh that runs your request |
+| subsystem | part of Peh |
 | deterministic | predictable; no guessing |
 | invariant | rule that always holds |
 | escalation | suggesting a cloud model |
@@ -154,11 +154,11 @@ adjacent text). Example: `pattern-based checks (no guessing)`.
 
 ## Voice and Tone
 
-- **Calm.** Never alarming. "Squidley could not verify the answer" is
+- **Calm.** Never alarming. "Peh could not verify the answer" is
   better than "agent failed catastrophically".
 - **Specific.** Say what did and did not happen. "Declined. The file
   was not read." beats "Operation cancelled."
-- **Honest.** Never imply Squidley did something she did not.
+- **Honest.** Never imply Peh did something she did not.
 - **Beginner-first.** Plain English wins. Lore is an opt-in subtitle.
 - **No emoji** unless the user has explicitly opted into a lighter
   visual style.
@@ -167,8 +167,8 @@ adjacent text). Example: `pattern-based checks (no guessing)`.
 
 - Canonical tiers: [CAPABILITY_TAXONOMY.md](CAPABILITY_TAXONOMY.md)
 - Machine-readable matrices:
-  [capability-matrix.public-squidley.json](capability-matrix.public-squidley.json),
-  [tool-matrix.public-squidley.json](tool-matrix.public-squidley.json)
+  [capability-matrix.public-peh.json](capability-matrix.public-peh.json),
+  [tool-matrix.public-peh.json](tool-matrix.public-peh.json)
 - TypeScript source: `src/lib/ui/terminology.ts`
 - Validation test: `src/lib/ui/terminology.test.ts`
 - Beginner UX audit: [BEGINNER_BETA_UX_AUDIT.md](BEGINNER_BETA_UX_AUDIT.md)

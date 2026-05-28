@@ -27,7 +27,7 @@ const llamaCppConfig: LocalProviderConfig = {
 };
 
 describe("stream event parsing", () => {
-  it("round-trips Squidley stream events as newline-delimited JSON", () => {
+  it("round-trips Peh stream events as newline-delimited JSON", () => {
     const encoded = encodeStreamEvent({
       type: "delta",
       text: "hello",

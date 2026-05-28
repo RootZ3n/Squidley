@@ -1,11 +1,11 @@
-# Squidley Public — Packaging Plan
+# Peh Public — Packaging Plan
 
 Status: **Design complete, scaffolding started.**
 Date: 2026-05-12
 
 ## Architecture Assessment
 
-Squidley Public is a Next.js 14 App Router application with 7 server-side API
+Peh Public is a Next.js 14 App Router application with 7 server-side API
 routes that proxy local model requests. It **cannot** be statically exported —
 it requires a live Node.js server at runtime.
 
@@ -21,7 +21,7 @@ Key facts:
 | Public assets | 1.4 MB (public/) |
 | Total packaged size | ~28 MB before Node.js runtime |
 | Default port | 3000 (configurable via PORT env var) |
-| Env vars (server) | SQUIDLEY_LOCAL_ENDPOINT, SQUIDLEY_LOCAL_MODEL, SQUIDLEY_LOCAL_BACKEND |
+| Env vars (server) | PEH_LOCAL_ENDPOINT, PEH_LOCAL_MODEL, PEH_LOCAL_BACKEND |
 | Env vars (client) | NEXT_PUBLIC_BUG_REPORT_EMAIL |
 | Disk writes | None (browser-local storage only) |
 | External network | None (local endpoints only, zero browser egress) |
@@ -59,7 +59,7 @@ Key facts:
 
 | Option | Verdict | Why not |
 |--------|---------|---------|
-| **Tauri** | Rejected | Tauri's Rust backend cannot run a Node.js server. Would require spawning a separate Node process, losing the clean single-process model. Squidley's API routes need Node.js. |
+| **Tauri** | Rejected | Tauri's Rust backend cannot run a Node.js server. Would require spawning a separate Node process, losing the clean single-process model. Peh's API routes need Node.js. |
 | **Standalone + native launcher** | Rejected for v1 | Requires users to install Node.js separately, or shipping a Node binary manually. More fragile than Electron's built-in Node. Good fallback if Electron size is unacceptable later. |
 | **Static export + local proxy** | Impossible | 7 API routes require a Node server. Cannot use `output: "export"`. |
 | **Docker** | Not beginner path | Docker is a developer tool. Beginners on Windows/macOS don't have it. Documented as an advanced option only. |
@@ -81,8 +81,8 @@ This is comparable to VS Code (~120 MB) and smaller than Slack (~170 MB).
 
 ```
 1. Welcome Screen
-   "Welcome to Squidley! Your local AI workspace."
-   Brief: what Squidley is, what local-first means.
+   "Welcome to Peh! Your local AI workspace."
+   Brief: what Peh is, what local-first means.
 
 2. Local Model Check
    Auto-detect: is Ollama installed and running?
@@ -106,15 +106,15 @@ This is comparable to VS Code (~120 MB) and smaller than Slack (~170 MB).
 5. Verify Setup
    Run health check → show green/red status
    Run model discovery → show available models
-   Run smoke chat → "Ask Squidley something to test"
+   Run smoke chat → "Ask Peh something to test"
 
 6. Ready Screen
    "You're ready! Everything runs locally."
    Brief: receipts, no cloud, browser storage.
-   "Open Squidley" button → main app.
+   "Open Peh" button → main app.
 ```
 
-This flow is implemented as a React page inside Squidley itself
+This flow is implemented as a React page inside Peh itself
 (`/setup` route), not as a separate Electron wizard. This means:
 - Same UI framework, same theme, same code
 - Works in dev mode too (not just packaged)
@@ -125,9 +125,9 @@ This flow is implemented as a React page inside Squidley itself
 ### Windows (.exe — NSIS installer)
 
 - electron-builder NSIS target
-- Start Menu shortcut: "Squidley"
+- Start Menu shortcut: "Peh"
 - Optional desktop shortcut
-- App data in `%LOCALAPPDATA%/Squidley/`
+- App data in `%LOCALAPPDATA%/Peh/`
 - No admin required (per-user install by default)
 - Firewall: Windows may prompt for Node.js/Electron network access on first
   launch. The setup guide should explain this is for localhost only.

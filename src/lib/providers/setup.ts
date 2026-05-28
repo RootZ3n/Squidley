@@ -32,7 +32,7 @@ export const PROVIDER_DESCRIPTIONS: Record<DetectedBackend, ProviderDescription>
   "llama-cpp": {
     id: "llama-cpp",
     name: "llama-server (llama.cpp)",
-    what: "A lightweight inference server from the llama.cpp project. Squidley supports its OpenAI-compatible local text API; real llama-server binary validation is still pending for this public release.",
+    what: "A lightweight inference server from the llama.cpp project. Peh supports its OpenAI-compatible local text API; real llama-server binary validation is still pending for this public release.",
     bestFor: "Users who want fine-grained control over model loading, quantization, and GPU layers.",
     defaultEndpoint: "http://localhost:8080",
     learnMoreUrl: "https://github.com/ggerganov/llama.cpp",
@@ -106,14 +106,14 @@ export function getOllamaSetupGuide(os: OsHint): SetupGuide {
     step: 4,
     title: "Verify it works",
     command: "ollama list",
-    detail: "You should see llama3.2 (or your chosen model) in the list. Then refresh Squidley.",
+    detail: "You should see llama3.2 (or your chosen model) in the list. Then refresh Peh.",
   });
 
   return {
     provider,
     os,
     steps,
-    verifyHint: "After setup, Squidley will auto-detect Ollama and show your models.",
+    verifyHint: "After setup, Peh will auto-detect Ollama and show your models.",
   };
 }
 
@@ -161,22 +161,22 @@ export function getLlamaCppSetupGuide(os: OsHint): SetupGuide {
 
   steps.push({
     step: 4,
-    title: "Tell Squidley to use llama-server",
-    detail: "Set SQUIDLEY_LOCAL_BACKEND=llama-cpp and SQUIDLEY_LOCAL_ENDPOINT=http://localhost:8080 in your .env.local file, then restart Squidley.",
+    title: "Tell Peh to use llama-server",
+    detail: "Set PEH_LOCAL_BACKEND=llama-cpp and PEH_LOCAL_ENDPOINT=http://localhost:8080 in your .env.local file, then restart Peh.",
   });
 
   steps.push({
     step: 5,
     title: "Verify it works",
     command: "curl http://localhost:8080/health",
-    detail: 'You should see {"status":"ok"} or similar. Then refresh Squidley.',
+    detail: 'You should see {"status":"ok"} or similar. Then refresh Peh.',
   });
 
   return {
     provider,
     os,
     steps,
-    verifyHint: "After setup, run npm run smoke:llama-server. If it passes, set SQUIDLEY_LOCAL_BACKEND=llama-cpp in .env.local. Squidley will detect the server and show your model.",
+    verifyHint: "After setup, run npm run smoke:llama-server. If it passes, set PEH_LOCAL_BACKEND=llama-cpp in .env.local. Peh will detect the server and show your model.",
   };
 }
 

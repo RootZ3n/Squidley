@@ -1,6 +1,6 @@
 # Local User Service
 
-Public Squidley can run as a local user-level systemd service. This is useful
+Peh can run as a local user-level systemd service. This is useful
 when you want to treat the app like a local product instead of starting the
 Next.js process by hand every time.
 
@@ -159,7 +159,7 @@ This is optional for local development.
 
 ## Ollama
 
-Ollama must run separately. Public Squidley expects the local model server at:
+Ollama must run separately. Peh expects the local model server at:
 
 ```text
 http://localhost:11434

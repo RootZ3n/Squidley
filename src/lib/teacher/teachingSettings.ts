@@ -1,5 +1,5 @@
 /**
- * Teaching settings for Public Squidley.
+ * Teaching settings for Peh.
  *
  * Controls whether teach-while-chatting annotations appear,
  * and tracks first-run state. Browser localStorage only.
@@ -12,7 +12,7 @@ export interface TeachingSettings {
   showExplainHelpers: boolean;
 }
 
-export const TEACHING_SETTINGS_KEY = "squidley_teaching_settings";
+export const TEACHING_SETTINGS_KEY = "peh_teaching_settings";
 
 export const DEFAULT_TEACHING_SETTINGS: TeachingSettings = {
   teachWhileChatting: true,

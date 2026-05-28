@@ -1,7 +1,7 @@
 /**
- * Public Squidley module registry.
+ * Peh module registry.
  *
- * Single source of truth for every module visible in public Squidley.
+ * Single source of truth for every module visible in public Peh.
  * UI components, the module gallery, and tour scaffolding all read from here.
  *
  * Conventions:
@@ -40,10 +40,10 @@ import {
   VELUM_HANDOFF_KINDS,
   VELUM_RECEIPT_ACTIONS,
 } from "@/lib/velum/constants";
-import type { ModuleCategory, PublicSquidleyModuleDefinition } from "./contracts";
+import type { ModuleCategory, PublicPehModuleDefinition } from "./contracts";
 
-export type { ModuleCategory, PublicSquidleyModuleDefinition } from "./contracts";
-export type PublicModule = PublicSquidleyModuleDefinition;
+export type { ModuleCategory, PublicPehModuleDefinition } from "./contracts";
+export type PublicModule = PublicPehModuleDefinition;
 
 export const PUBLIC_MODULES: readonly PublicModule[] = [
   {
@@ -51,7 +51,7 @@ export const PUBLIC_MODULES: readonly PublicModule[] = [
     displayName: "Colloquium",
     latinMeaning: "conversation, discussion",
     beginnerDescription:
-      "Chat with Squidley. Ask questions, think out loud, and let Squidley walk you through the rest of the app.",
+      "Chat with Peh. Ask questions, think out loud, and let Peh walk you through the rest of the app.",
     category: "core-local",
     status: "active",
     publicEnabled: true,
@@ -121,7 +121,7 @@ export const PUBLIC_MODULES: readonly PublicModule[] = [
     id: "more-input",
     displayName: "More Input",
     beginnerDescription:
-      "Bring text into Squidley by pasting it into Archivum's local More Input flow.",
+      "Bring text into Peh by pasting it into Archivum's local More Input flow.",
     category: "core-local",
     status: "active",
     publicEnabled: true,
@@ -205,7 +205,7 @@ export const PUBLIC_MODULES: readonly PublicModule[] = [
     displayName: "Tabularium",
     latinMeaning: "record office, ledger",
     beginnerDescription:
-      "Squidley's browser-local receipt room. See what happened, what stayed local, and what used a model.",
+      "Peh's browser-local receipt room. See what happened, what stayed local, and what used a model.",
     category: "core-local",
     status: "active",
     publicEnabled: true,
@@ -224,7 +224,7 @@ export const PUBLIC_MODULES: readonly PublicModule[] = [
     id: "nous",
     displayName: "Nous",
     beginnerDescription:
-      "Squidley's understanding map. See modules, Ratio adaptive intelligence, local model preferences, and cloud providers locked.",
+      "Peh's understanding map. See modules, Ratio adaptive intelligence, local model preferences, and cloud providers locked.",
     category: "core-local",
     status: "active",
     publicEnabled: true,

@@ -1,9 +1,9 @@
-# Capability Matrix — Public Squidley
+# Capability Matrix — Peh
 
-This document is the **truth matrix** for what Public Squidley can and cannot
+This document is the **truth matrix** for what Peh can and cannot
 do locally. Classifications are based on real code paths, not on aspirational
 copy. The machine-readable form is
-[`docs/capability-matrix.public-squidley.json`](capability-matrix.public-squidley.json)
+[`docs/capability-matrix.public-peh.json`](capability-matrix.public-peh.json)
 (schema version 2 — adds per-backend status and proofReferences).
 
 ## Legend
@@ -100,7 +100,7 @@ The `system:llama-server.smoke` capability is **LOCAL_PARTIAL** until
 
 ## Tool-call locality
 
-Public Squidley **does not ship a tool execution surface**.
+Peh **does not ship a tool execution surface**.
 
 - No `tools` / `tool_choice` / `functions` fields are sent on chat calls
   (asserted by `publicReleaseSafety.test.ts`).
@@ -112,7 +112,7 @@ Public Squidley **does not ship a tool execution surface**.
 
 ## Heuristic honesty
 
-Public Squidley uses deterministic heuristics in three places:
+Peh uses deterministic heuristics in three places:
 
 - **Velum deterministic review** — regex/heuristic content review in the
   browser. Capability is LOCAL_READY (the check runs); the review is NOT

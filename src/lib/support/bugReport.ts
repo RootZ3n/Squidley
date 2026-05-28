@@ -1,8 +1,8 @@
 import type { TabulariumReceipt } from "@/lib/tabularium/receipts";
 
-export const BUG_REPORT_PRODUCT = "Squidley Public";
+export const BUG_REPORT_PRODUCT = "Peh Public";
 export const UNKNOWN_BUILD = "unknown";
-export const BUG_REPORT_SUBJECT_PREFIX = "[Squidley Public Bug]";
+export const BUG_REPORT_SUBJECT_PREFIX = "[Peh Public Bug]";
 
 export interface BugReportContext {
   to?: string;
@@ -116,7 +116,7 @@ export function buildBugReportBody(args: BugReportContext): string {
     "",
     "Screenshots/logs attached manually:",
     "",
-    "Privacy note: Squidley did not attach raw prompts, document text, secrets, image data, local storage, or logs automatically.",
+    "Privacy note: Peh did not attach raw prompts, document text, secrets, image data, local storage, or logs automatically.",
   );
 
   return lines.join("\n");

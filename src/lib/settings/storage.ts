@@ -65,7 +65,7 @@ export function formatChatSessionsExport(
   exportedAt = new Date().toISOString(),
 ): string {
   return [
-    "Squidley Public Local Chat Export",
+    "Peh Public Local Chat Export",
     `exportedAt: ${exportedAt}`,
     "localOnly: true",
     "cloudUsed: false",

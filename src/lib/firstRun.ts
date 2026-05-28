@@ -2,17 +2,17 @@
  * First-run state — persisted in localStorage.
  *
  * Keys (plain strings so they're debuggable from devtools):
- *   squidley.firstRun.completed  → "true" once the user has chosen.
- *   squidley.tourMode            → "on" | "off".
- *   squidley.tourCompleted       → "true" once a tour has been finished or
+ *   peh.firstRun.completed  → "true" once the user has chosen.
+ *   peh.tourMode            → "on" | "off".
+ *   peh.tourCompleted       → "true" once a tour has been finished or
  *                                  ended at least once. Useful for friendlier
  *                                  copy on returning visits.
  */
 
 export const KEYS = {
-  firstRunCompleted: "squidley.firstRun.completed",
-  tourMode: "squidley.tourMode",
-  tourCompleted: "squidley.tourCompleted",
+  firstRunCompleted: "peh.firstRun.completed",
+  tourMode: "peh.tourMode",
+  tourCompleted: "peh.tourCompleted",
 } as const;
 
 export type TourMode = "on" | "off";

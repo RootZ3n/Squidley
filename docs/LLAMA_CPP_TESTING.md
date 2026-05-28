@@ -1,4 +1,4 @@
-# Testing Squidley with llama-server (llama.cpp)
+# Testing Peh with llama-server (llama.cpp)
 
 Manual validation guide for the llama.cpp / llama-server integration.
 
@@ -11,7 +11,7 @@ llama-server support.
 
 - llama.cpp built with `llama-server` binary available
 - A GGUF model file (e.g., `llama-3.2-3b-instruct-q4_k_m.gguf`)
-- Node.js installed for running Squidley
+- Node.js installed for running Peh
 
 ## 1. Start llama-server
 
@@ -61,7 +61,7 @@ The smoke checks:
   localhost, `127.x.x.x`, or `::1`
 
 If every row is `PASS`, the local OpenAI-compatible text server is ready for
-the Squidley UI checks below. If any row is `PARTIAL` or `FAIL`, keep the real
+the Peh UI checks below. If any row is `PARTIAL` or `FAIL`, keep the real
 `llama-server` validation caveat and copy the output into the release notes or
 issue.
 
@@ -108,23 +108,23 @@ Note: Ollama does NOT expose `/health`, so the llama-cpp health probe will
 return `ok: false` with "responded with HTTP 404". Chat and models will still
 work. This is expected.
 
-## 4. Configure Squidley
+## 4. Configure Peh
 
 Create or update `.env.local`:
 
 ```env
-SQUIDLEY_LOCAL_BACKEND=llama-cpp
-SQUIDLEY_LOCAL_ENDPOINT=http://127.0.0.1:8080
-SQUIDLEY_LOCAL_MODEL=the-model-id-from-smoke-output
+PEH_LOCAL_BACKEND=llama-cpp
+PEH_LOCAL_ENDPOINT=http://127.0.0.1:8080
+PEH_LOCAL_MODEL=the-model-id-from-smoke-output
 ```
 
-Or leave `SQUIDLEY_LOCAL_BACKEND` unset for auto-detection (probes Ollama first,
+Or leave `PEH_LOCAL_BACKEND` unset for auto-detection (probes Ollama first,
 then llama-server at the same endpoint).
 
-## 5. Start Squidley
+## 5. Start Peh
 
 ```bash
-SQUIDLEY_LOCAL_BACKEND=llama-cpp SQUIDLEY_LOCAL_ENDPOINT=http://127.0.0.1:8080 SQUIDLEY_LOCAL_MODEL=the-model-id-from-smoke-output npm run dev
+PEH_LOCAL_BACKEND=llama-cpp PEH_LOCAL_ENDPOINT=http://127.0.0.1:8080 PEH_LOCAL_MODEL=the-model-id-from-smoke-output npm run dev
 ```
 
 Open http://localhost:3000 in your browser.
@@ -165,14 +165,14 @@ Open http://localhost:3000 in your browser.
 
 - **Vision**: Oculus blocks llama.cpp/llama-server vision in this release.
   It is unsupported until real binary vision validation is completed.
-- **Model names**: llama-server model IDs may be file paths. Squidley strips
+- **Model names**: llama-server model IDs may be file paths. Peh strips
   paths and `.gguf` extensions for display, but the raw ID is used for API calls.
 - **Single model**: llama-server typically serves one model at a time, loaded
   at startup. The model dropdown will show only that model.
-- **Auto-detection**: When `SQUIDLEY_LOCAL_BACKEND=auto`, Squidley probes
+- **Auto-detection**: When `PEH_LOCAL_BACKEND=auto`, Peh probes
   Ollama first. If Ollama is running on the same port, it will be detected
   instead of llama-server.
-- **Thinking models**: Squidley sends `think: false` in Ollama requests to
+- **Thinking models**: Peh sends `think: false` in Ollama requests to
   avoid empty replies from models that use extended thinking mode (e.g., qwen3.5).
   This is not needed for llama-server's OpenAI-compatible endpoint.
 - **Token counts in streaming**: llama-server may not include `usage` data in
@@ -186,9 +186,9 @@ To switch from llama-server back to Ollama:
 
 ```env
 # .env.local
-SQUIDLEY_LOCAL_BACKEND=ollama
-SQUIDLEY_LOCAL_ENDPOINT=http://localhost:11434
-SQUIDLEY_LOCAL_MODEL=llama3.2
+PEH_LOCAL_BACKEND=ollama
+PEH_LOCAL_ENDPOINT=http://localhost:11434
+PEH_LOCAL_MODEL=llama3.2
 ```
 
-Or remove `SQUIDLEY_LOCAL_BACKEND` entirely for auto-detection.
+Or remove `PEH_LOCAL_BACKEND` entirely for auto-detection.

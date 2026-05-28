@@ -87,7 +87,7 @@ describe("planning/types — invariants", () => {
       relatedFiles: [],
       evidenceRefs: [],
       blockedReason:
-        "Squidley does not delete files. This step would be performed by the user.",
+        "Peh does not delete files. This step would be performed by the user.",
       userConfirmationRequired: true,
     };
     expect(s.status).toBe("blocked");

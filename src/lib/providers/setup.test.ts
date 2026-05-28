@@ -58,9 +58,9 @@ describe("llama-cpp setup guide", () => {
     expect(startStep).toBeDefined();
   });
 
-  it("mentions SQUIDLEY_LOCAL_BACKEND env var", () => {
+  it("mentions PEH_LOCAL_BACKEND env var", () => {
     const guide = getLlamaCppSetupGuide("linux");
-    const envStep = guide.steps.find((s) => s.detail?.includes("SQUIDLEY_LOCAL_BACKEND"));
+    const envStep = guide.steps.find((s) => s.detail?.includes("PEH_LOCAL_BACKEND"));
     expect(envStep).toBeDefined();
   });
 });

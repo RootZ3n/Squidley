@@ -10,7 +10,7 @@ describe("detectPlanningIntent — matches", () => {
     "how should I approach this?",
     "what files are involved?",
     "how hard would this be?",
-    "what would Squidley need to inspect?",
+    "what would Peh need to inspect?",
     "outline the steps please",
     "step-by-step plan",
     "what's the plan?",

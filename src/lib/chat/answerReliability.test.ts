@@ -222,7 +222,7 @@ describe("wrapLocalAnswer — upstream errors pass through unchanged", () => {
           toolsUsed: false,
           error: {
             code: "local_provider_unreachable",
-            message: "Squidley couldn't reach the local server.",
+            message: "Peh couldn't reach the local server.",
           },
         },
       };

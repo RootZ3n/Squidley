@@ -23,7 +23,7 @@ import {
   ONBOARDING_STAGES,
   getStagesInOrder,
 } from "./onboarding";
-import { explainSquidleyConcept } from "./explain";
+import { explainPehConcept } from "./explain";
 import type { RuntimeTeachingEvent } from "./types";
 
 const REPO_ROOT = path.resolve(__dirname, "../../..");
@@ -263,10 +263,10 @@ describe("Onboarding stages", () => {
     expect(ordered[0].id).toBe("welcome");
   });
 
-  it("every stage has an objective and squidleyExplanation", () => {
+  it("every stage has an objective and pehExplanation", () => {
     for (const stage of ONBOARDING_STAGES) {
       expect(stage.objective.length).toBeGreaterThan(0);
-      expect(stage.squidleyExplanation.length).toBeGreaterThan(0);
+      expect(stage.pehExplanation.length).toBeGreaterThan(0);
     }
   });
 
@@ -285,38 +285,38 @@ describe("Onboarding stages", () => {
 
 describe("Self-explanation engine", () => {
   it("can answer: what is a tool call?", () => {
-    const result = explainSquidleyConcept({ userQuestion: "What is a tool call?" });
+    const result = explainPehConcept({ userQuestion: "What is a tool call?" });
     expect(result.confidence).not.toBe("low");
     expect(result.conceptsCovered).toContain("tool_call");
     expect(result.answer.length).toBeGreaterThan(0);
   });
 
   it("can answer: what is a token?", () => {
-    const result = explainSquidleyConcept({ userQuestion: "What is a token?" });
+    const result = explainPehConcept({ userQuestion: "What is a token?" });
     expect(result.conceptsCovered).toContain("token");
     expect(result.answer).toContain("token");
   });
 
   it("can answer: what is Local Mode?", () => {
-    const result = explainSquidleyConcept({ userQuestion: "What is Local Mode?" });
+    const result = explainPehConcept({ userQuestion: "What is Local Mode?" });
     expect(result.conceptsCovered).toContain("local_mode");
     expect(result.answer).toContain("machine");
   });
 
   it("can answer: what is Cloud Mode?", () => {
-    const result = explainSquidleyConcept({ userQuestion: "What is Cloud Mode?" });
+    const result = explainPehConcept({ userQuestion: "What is Cloud Mode?" });
     expect(result.conceptsCovered).toContain("cloud_mode");
     expect(result.answer.toLowerCase()).toContain("cloud");
   });
 
   it("can answer: what is a receipt?", () => {
-    const result = explainSquidleyConcept({ userQuestion: "What is a receipt?" });
+    const result = explainPehConcept({ userQuestion: "What is a receipt?" });
     expect(result.conceptsCovered).toContain("receipt");
     expect(result.answer.toLowerCase()).toContain("proof");
   });
 
   it("can answer: what can you do locally?", () => {
-    const result = explainSquidleyConcept({
+    const result = explainPehConcept({
       userQuestion: "What can you do?",
       currentMode: "local",
     });
@@ -325,7 +325,7 @@ describe("Self-explanation engine", () => {
   });
 
   it("can answer: did anything leave my computer?", () => {
-    const result = explainSquidleyConcept({
+    const result = explainPehConcept({
       userQuestion: "Did anything leave my computer?",
       currentMode: "local",
     });
@@ -334,7 +334,7 @@ describe("Self-explanation engine", () => {
   });
 
   it("does not claim Cloud Mode is implemented", () => {
-    const result = explainSquidleyConcept({
+    const result = explainPehConcept({
       userQuestion: "What is Cloud Mode?",
       currentMode: "cloud",
     });
@@ -342,7 +342,7 @@ describe("Self-explanation engine", () => {
   });
 
   it("does not claim fs.write/shell/web are available if matrix says NOT_IMPLEMENTED", () => {
-    const result = explainSquidleyConcept({
+    const result = explainPehConcept({
       userQuestion: "Can you write a file for me?",
       currentMode: "local",
     });
@@ -351,17 +351,17 @@ describe("Self-explanation engine", () => {
   });
 
   it("returns low confidence for unrecognized questions", () => {
-    const result = explainSquidleyConcept({ userQuestion: "xyzzy plugh" });
+    const result = explainPehConcept({ userQuestion: "xyzzy plugh" });
     expect(result.confidence).toBe("low");
   });
 
   it("includes safety notes for risky topics", () => {
-    const result = explainSquidleyConcept({ userQuestion: "What is an approval gate?" });
+    const result = explainPehConcept({ userQuestion: "What is an approval gate?" });
     expect(result.safetyNotes.length).toBeGreaterThan(0);
   });
 
   it("includes source docs when concepts have linked docs", () => {
-    const result = explainSquidleyConcept({ userQuestion: "What is a receipt?" });
+    const result = explainPehConcept({ userQuestion: "What is a receipt?" });
     expect(result.sourceDocs.length).toBeGreaterThan(0);
   });
 });

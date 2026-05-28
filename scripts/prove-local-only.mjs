@@ -2,7 +2,7 @@
 /**
  * scripts/prove-local-only.mjs
  *
- * Egress proof for Public Squidley.
+ * Egress proof for Peh.
  *
  * Two layers:
  *

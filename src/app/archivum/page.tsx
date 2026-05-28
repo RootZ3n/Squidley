@@ -163,7 +163,7 @@ export default function ArchivumPage() {
       entryType: type,
     });
     if (!ok) {
-      setNotice("Squidley could not prepare this text for Velum in this browser.");
+      setNotice("Peh could not prepare this text for Velum in this browser.");
       return;
     }
     logTabulariumReceipt(window.localStorage, buildArchivumVelumHandoffCreatedReceipt());
@@ -179,7 +179,7 @@ export default function ArchivumPage() {
       entryId: editingId,
     });
     if (!ok) {
-      setNotice("Squidley could not prepare this edited text for Velum in this browser.");
+      setNotice("Peh could not prepare this edited text for Velum in this browser.");
       return;
     }
     logTabulariumReceipt(window.localStorage, buildArchivumVelumHandoffCreatedReceipt({
@@ -291,7 +291,7 @@ export default function ArchivumPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `squidley-archivum-${entry.id}.txt`;
+    a.download = `peh-archivum-${entry.id}.txt`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -304,7 +304,7 @@ export default function ArchivumPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `squidley-archivum-bundle-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `peh-archivum-bundle-${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -319,13 +319,13 @@ export default function ArchivumPage() {
       const raw = await file.text();
       const preview = parseArchivumBundle(raw);
       if (!preview) {
-        setImportError("That file is not a valid Squidley Public Archivum Bundle.");
+        setImportError("That file is not a valid Peh Public Archivum Bundle.");
         logTabulariumReceipt(window.localStorage, buildArchivumBundleImportFailedReceipt());
         return;
       }
       setImportPreview(preview);
     } catch {
-      setImportError("Squidley could not read that file in this browser.");
+      setImportError("Peh could not read that file in this browser.");
     }
   }
 
@@ -345,14 +345,14 @@ export default function ArchivumPage() {
       <TourHighlight target="intro" active={activeTarget}>
       <header className="border-b border-ink-200 pb-5 dark:border-ink-700">
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-iris-600 dark:text-iris-300">
-          Squidley · Archivum
+          Peh · Archivum
         </p>
         <h1 className="mt-1 font-serif text-3xl font-semibold text-ink-900 dark:text-ink-50">
           Local knowledge shelf
         </h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-600 dark:text-ink-300">
           Archivum is your local knowledge shelf. Save notes, snippets, and
-          documents here so Squidley can help you organize and understand them.
+          documents here so Peh can help you organize and understand them.
         </p>
         <TourHighlight target="local-only-indicator" active={activeTarget}>
           <p className="mt-3 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-800 dark:border-emerald-700/60 dark:bg-emerald-900/20 dark:text-emerald-100">

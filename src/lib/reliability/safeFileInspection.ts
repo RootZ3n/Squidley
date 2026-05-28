@@ -195,7 +195,7 @@ function approvalRequiredOutcome(args: {
       action: "reliability.file-inspection-requested",
       status: "info",
       title: "File inspection approval requested",
-      summary: `Squidley wants approval to read '${args.path}' once. Reading is not the same as editing.`,
+      summary: `Peh wants approval to read '${args.path}' once. Reading is not the same as editing.`,
       metadata: { path: args.path },
       now: args.now,
     }),
@@ -205,7 +205,7 @@ function approvalRequiredOutcome(args: {
     status: "approval-required",
     path: args.path,
     summary:
-      "Squidley wants to read this file so it can answer your question. Reading is not the same as editing. Approve or decline below.",
+      "Peh wants to read this file so it can answer your question. Reading is not the same as editing. Approve or decline below.",
     approvalRequest: request,
     redactionsApplied: [],
     receipts: args.receipts,
@@ -234,7 +234,7 @@ function deniedOutcome(args: {
     ok: false,
     status: "denied",
     path: args.path,
-    summary: `Squidley needs a fresh approval for '${args.path}'. ${args.detail}`,
+    summary: `Peh needs a fresh approval for '${args.path}'. ${args.detail}`,
     redactionsApplied: [],
     receipts: args.receipts,
     cloudUsed: false,
@@ -309,7 +309,7 @@ export async function safeFileInspect(
   if (stat.size > MAX_INSPECT_FILE_BYTES) {
     return blockedOutcome({
       path: safety.relativePath,
-      reason: `File is ${stat.size} bytes; limit is ${MAX_INSPECT_FILE_BYTES}. Squidley does not silently truncate at this stage.`,
+      reason: `File is ${stat.size} bytes; limit is ${MAX_INSPECT_FILE_BYTES}. Peh does not silently truncate at this stage.`,
       receipts,
       now,
     });
@@ -399,8 +399,8 @@ export async function safeFileInspect(
     status: "completed",
     path: safety.relativePath,
     summary: redaction.anyApplied
-      ? `Squidley read '${safety.relativePath}' (read-only) and redacted obvious secrets before reasoning about it.`
-      : `Squidley read '${safety.relativePath}' (read-only). No obvious secrets were detected.`,
+      ? `Peh read '${safety.relativePath}' (read-only) and redacted obvious secrets before reasoning about it.`
+      : `Peh read '${safety.relativePath}' (read-only). No obvious secrets were detected.`,
     packedContext: packed,
     redactionsApplied: redaction.applied,
     receipts,

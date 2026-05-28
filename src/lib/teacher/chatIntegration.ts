@@ -10,7 +10,7 @@
 
 import type { TeacherExplanationResult } from "./types";
 import { isTeacherIntent } from "./detect";
-import { explainSquidleyConcept } from "./explain";
+import { explainPehConcept } from "./explain";
 import type { ResponseMode } from "../chat/responseMode";
 
 export type TeacherResponseMode = "teacher_layer";
@@ -55,7 +55,7 @@ export function tryTeacherAnswer(
     return { handled: false };
   }
 
-  const explanation = explainSquidleyConcept({
+  const explanation = explainPehConcept({
     userQuestion: message,
     currentMode,
     includeExamples: true,

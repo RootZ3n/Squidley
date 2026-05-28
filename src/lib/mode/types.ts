@@ -1,15 +1,15 @@
 /**
- * Squidley operating mode types.
+ * Peh operating mode types.
  *
  * Two clear modes:
  *   - local: audited local-first behavior, cloud locked, no tool execution
  *   - cloud: explicit opt-in, cloud APIs enabled, tools can be enabled
  *
- * Mode determines what Squidley can do. It is NOT inferred from API keys
+ * Mode determines what Peh can do. It is NOT inferred from API keys
  * or environment variables alone — cloud mode requires explicit activation.
  */
 
-export type SquidleyMode = "local" | "cloud";
+export type PehMode = "local" | "cloud";
 
 export type ToolPolicy = "none" | "local-safe" | "approval-gated" | "all";
 export type ProviderPolicy = "local-only" | "cloud-configured";
@@ -17,7 +17,7 @@ export type CapabilityPolicy = "local-baseline" | "cloud-extended";
 
 export interface ModeState {
   /** The resolved operating mode. */
-  readonly mode: SquidleyMode;
+  readonly mode: PehMode;
   /** Whether cloud providers are unlocked for use. */
   readonly cloudUnlocked: boolean;
   /** Which tool execution policy is active. */

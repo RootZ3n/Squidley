@@ -103,7 +103,7 @@ export interface TinyEditProposal {
   readonly reason: string;
   readonly confidence: TinyEditConfidence;
   readonly riskLevel: TinyEditRiskLevel;
-  /** What checks Squidley will run after applying the edit. */
+  /** What checks Peh will run after applying the edit. */
   readonly verificationPlan: readonly TinyEditCheckId[];
   /** Always true in this build — we always have an in-memory backup. */
   readonly rollbackAvailable: true;

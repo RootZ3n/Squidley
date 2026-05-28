@@ -110,7 +110,7 @@ describe("Tabularium receipts", () => {
 
   it("formats export with local-only header", () => {
     const exported = formatTabulariumExport(createTabulariumDocument([], 1), "2026-04-25T00:00:00.000Z");
-    expect(exported).toContain("Squidley Public Tabularium Export");
+    expect(exported).toContain("Peh Public Tabularium Export");
     expect(exported).toContain("localOnly: true");
     expect(exported).toContain("cloudUsed: false");
   });

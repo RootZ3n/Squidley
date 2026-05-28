@@ -1,6 +1,6 @@
-# Public Squidley Capability Taxonomy
+# Peh Capability Taxonomy
 
-> Canonical vocabulary for describing what Squidley can and cannot do.
+> Canonical vocabulary for describing what Peh can and cannot do.
 > Every doc, matrix, lesson, UI label, and runtime badge MUST use these
 > tiers consistently. If a surface uses a different word, it is wrong
 > and should be updated to match this file.
@@ -52,7 +52,7 @@ user is authorising. Receipts record both the request and the outcome.
 
 ### 3. `LOCAL_PARTIAL`
 Implemented locally but quality, coverage, or backend support is
-limited. Squidley says this honestly when the limitation matters.
+limited. Peh says this honestly when the limitation matters.
 
 Includes:
 - **Small-model reliability layer** — bounded compound-tool runs for
@@ -86,7 +86,7 @@ Includes:
 
 Implication: every cloud-related UI surface says "not implemented
 yet" in the same words ("Cloud Mode is not implemented yet."). API
-keys alone NEVER unlock Cloud Mode. Setting `SQUIDLEY_MODE=cloud`
+keys alone NEVER unlock Cloud Mode. Setting `PEH_MODE=cloud`
 changes the mode badge but no cloud feature works.
 
 ### 5. `NOT_IMPLEMENTED`
@@ -109,7 +109,7 @@ Includes:
 - Image generation
 
 Implication: the honesty annotator overrides any model claim that
-Squidley did one of these. UI says "this build does not have an X
+Peh did one of these. UI says "this build does not have an X
 tool" with a one-line reason.
 
 ### 6. `BLOCKED`
@@ -121,7 +121,7 @@ Includes:
 - **Unrestricted filesystem access** — file inspection is path-bound,
   approval-bound, single-file, size-capped; broader access is rejected
 - **Hidden cloud calls** — `cloudUsed: false` is a literal type, not
-  a boolean; cloud mode requires explicit `SQUIDLEY_MODE=cloud`
+  a boolean; cloud mode requires explicit `PEH_MODE=cloud`
 - **Silent tool execution** — every tool action must produce a receipt;
   no result is returned without one
 - **Destructive operations during planning** — the planner returns
@@ -138,11 +138,11 @@ proposal.
 This file is the canonical vocabulary. The machine-readable expression
 of the taxonomy lives in two JSON files:
 
-- `docs/capability-matrix.public-squidley.json` — every capability,
+- `docs/capability-matrix.public-peh.json` — every capability,
   with `canonicalTier` (one of the six tiers below), legacy
   `classification` field for diagnostic backward compatibility, and
   per-row proof references / tests / receipts.
-- `docs/tool-matrix.public-squidley.json` — every tool surface, with
+- `docs/tool-matrix.public-peh.json` — every tool surface, with
   `canonicalTier`, legacy `publicLocalStatus`, scope limits, and
   approval requirements.
 
@@ -179,8 +179,8 @@ crosswalk during rewrites:
 | LOCAL_BLOCKED | `BLOCKED` if by design, else `NOT_IMPLEMENTED` |
 | MOCK_DEMO_ONLY | `NOT_IMPLEMENTED` (only registry shell exists) |
 
-The `capability-matrix.public-squidley.json` and
-`tool-matrix.public-squidley.json` retain their internal `classification`
+The `capability-matrix.public-peh.json` and
+`tool-matrix.public-peh.json` retain their internal `classification`
 field for backwards compatibility with the diagnostic, but every doc
 that summarises them should translate to the six canonical tiers.
 
@@ -203,7 +203,7 @@ follow this exact column structure.
 ## Words to Avoid in User-Facing Copy
 
 The following words make beginners feel locked out or imply more
-autonomy than Squidley has. Use them only in technical / advanced
+autonomy than Peh has. Use them only in technical / advanced
 docs, never in onboarding, UI labels, or teacher lessons:
 
 - "agentic"
@@ -218,12 +218,12 @@ Acceptable replacements:
 
 | Avoid | Use instead |
 |---|---|
-| agentic behaviour | what Squidley can actually do |
-| orchestration layer | how Squidley plans steps |
+| agentic behaviour | what Peh can actually do |
+| orchestration layer | how Peh plans steps |
 | execution graph | the plan |
-| runtime substrate | the part of Squidley that runs your request |
+| runtime substrate | the part of Peh that runs your request |
 | deterministic | predictable; no guessing |
-| subsystem | part of Squidley |
+| subsystem | part of Peh |
 
 ## Standard Phrases (Use Verbatim)
 
@@ -231,15 +231,15 @@ To keep cross-surface wording consistent, always use these phrases:
 
 - Cloud not implemented: **"Cloud Mode is not implemented yet."**
 - Build identifier (when distinguishing from future features):
-  **"this public Squidley build"**
+  **"this public Peh build"**
 - Provenance footer: **"answered by local model only · no tool used ·
   no cloud used"** (or the structured form `Local Mode / model_name /
   no cloud / no tool`)
 - Approval prompt (file inspection): **"Approve and read once"**
 - Approval prompt (tiny edit): **"Approve this edit"**
-- After approval (inspection): **"Approved. Squidley is reading the
+- After approval (inspection): **"Approved. Peh is reading the
   file once and will not change it."**
-- After approval (edit): **"Approved. Squidley is applying the edit
+- After approval (edit): **"Approved. Peh is applying the edit
   and verifying it now."**
 - After decline: **"Declined. The file was not read."** /
   **"Declined. No edit was applied."**

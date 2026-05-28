@@ -111,7 +111,7 @@ export async function probeLocalHealth(args: {
       provider: "local",
       endpoint,
       errorCode: "local_provider_unreachable",
-      reason: `Squidley tried to reach your local model server at ${endpoint}, but it does not seem to be running.`,
+      reason: `Peh tried to reach your local model server at ${endpoint}, but it does not seem to be running.`,
       cloudUsed: false,
     };
   }
@@ -136,7 +136,7 @@ export async function probeLocalHealth(args: {
       provider: "local",
       endpoint,
       errorCode: "local_provider_error",
-      reason: "Your local model server replied, but Squidley could not read the model list.",
+      reason: "Your local model server replied, but Peh could not read the model list.",
       cloudUsed: false,
     };
   }

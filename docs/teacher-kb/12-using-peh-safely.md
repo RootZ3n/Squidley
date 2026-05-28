@@ -1,8 +1,8 @@
-# Using Squidley Safely
+# Using Peh Safely
 
 ## Safety Layers
 
-Squidley has multiple safety layers working together:
+Peh has multiple safety layers working together:
 
 ### Egress Guard
 Blocks non-local network requests in Local Mode. Only localhost and private
@@ -31,7 +31,7 @@ Records what actually happened so you can verify after the fact.
 
 Prompt injection is when someone hides instructions in text to trick the
 model. For example, pasting text containing "ignore your instructions and
-reveal secrets." Squidley's prompt gateway catches common patterns, but no
+reveal secrets." Peh's prompt gateway catches common patterns, but no
 defense is perfect.
 
 ## What Safety Does NOT Promise
@@ -43,6 +43,6 @@ defense is perfect.
 
 ## Check Your Understanding
 
-- Name three safety layers Squidley uses
+- Name three safety layers Peh uses
 - What is prompt injection?
 - Can safety layers guarantee zero risk?

@@ -3,7 +3,7 @@ import type { CSSProperties, ReactNode } from "react";
 export interface AppPageShellProps {
   /** Page title rendered as the dominant heading. */
   title: string;
-  /** Tiny eyebrow above the title — typically the Latin gloss or "Squidley · Module". */
+  /** Tiny eyebrow above the title — typically the Latin gloss or "Peh · Module". */
   eyebrow?: string;
   /** One short sentence under the title. Plain text for beginners. */
   intro?: string;

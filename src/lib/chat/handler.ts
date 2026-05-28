@@ -117,14 +117,14 @@ export async function handleChatRequest(args: {
   } catch (e) {
     const timedOut = e instanceof Error && e.name === "AbortError";
     const serverHint = backend === "llama-cpp"
-      ? "Start llama-server or check SQUIDLEY_LOCAL_ENDPOINT."
-      : "Start Ollama or check SQUIDLEY_LOCAL_ENDPOINT. See docs/LOCAL_CHAT.md.";
+      ? "Start llama-server or check PEH_LOCAL_ENDPOINT."
+      : "Start Ollama or check PEH_LOCAL_ENDPOINT. See docs/LOCAL_CHAT.md.";
     return error(
       503,
       "local_provider_unreachable",
       timedOut
-        ? `Squidley's local model call to ${args.config.endpoint} timed out. ${serverHint}`
-        : `Squidley tried to reach your local model server at ${args.config.endpoint}, but couldn't connect. ${serverHint}`,
+        ? `Peh's local model call to ${args.config.endpoint} timed out. ${serverHint}`
+        : `Peh tried to reach your local model server at ${args.config.endpoint}, but couldn't connect. ${serverHint}`,
     );
   }
 
@@ -250,7 +250,7 @@ function buildUpstreamRequest(args: {
   }
 
   // Ollama — disable extended thinking so content appears in message.content
-  // rather than message.thinking (which Squidley does not surface).
+  // rather than message.thinking (which Peh does not surface).
   return {
     url: `${args.config.endpoint}/api/chat`,
     body: {

@@ -29,7 +29,7 @@ const LOCAL_PROFILES: readonly PartialProfile[] = [
     supportsLongContext: false,
     confidence: "medium",
     modelSummary:
-      "This local model is suitable for conversation, simple explanations, and light drafting. Squidley will not use it for autonomous agent work.",
+      "This local model is suitable for conversation, simple explanations, and light drafting. Peh will not use it for autonomous agent work.",
     notRecommendedFor: ["agent workflows", "multi-file builds", "high-risk planning"],
   },
   {
@@ -50,7 +50,7 @@ const LOCAL_PROFILES: readonly PartialProfile[] = [
     supportsLongContext: true,
     confidence: "medium",
     modelSummary:
-      "This local model appears better suited for code suggestions and structured drafting, but Public Squidley still limits it to reviewed single-step work.",
+      "This local model appears better suited for code suggestions and structured drafting, but Peh still limits it to reviewed single-step work.",
     notRecommendedFor: ["autonomous repo edits", "shell execution", "agent workflows"],
   },
 ];
@@ -91,7 +91,7 @@ export function resolveRatioModelCapability(args: {
       supportsLongContext: false,
       confidence: "medium",
       modelSummary:
-        `${modelId} looks like a local vision-capable model. Squidley can use it for manual image analysis, but not for tools or autonomous workflows.`,
+        `${modelId} looks like a local vision-capable model. Peh can use it for manual image analysis, but not for tools or autonomous workflows.`,
       notRecommendedFor: ["agent workflows", "tool use", "private screen watching"],
     };
   }
@@ -118,7 +118,7 @@ export function resolveRatioModelCapability(args: {
     supportsLongContext: false,
     confidence: "low",
     modelSummary:
-      "This local model is unknown to Ratio, so Squidley treats it conservatively. It may be useful for simple chat, but not for agent work.",
+      "This local model is unknown to Ratio, so Peh treats it conservatively. It may be useful for simple chat, but not for agent work.",
     notRecommendedFor: ["agent workflows", "multi-file builds", "tool use", "high-risk decisions"],
   };
 }

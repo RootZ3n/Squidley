@@ -9,7 +9,7 @@ import {
 import { ratioDecisionForPublicModule } from "@/lib/ratio";
 
 export const metadata = {
-  title: "Modules · Squidley",
+  title: "Modules · Peh",
 };
 
 export default function ModulesPage() {
@@ -18,9 +18,9 @@ export default function ModulesPage() {
 
   return (
     <AppPageShell
-      eyebrow="Squidley · modules"
-      title="What Squidley can do"
-      intro="Squidley is made of small, named modules. Core modules run locally and work without an account. Advanced modules are listed too — so you can see what is coming — but they are locked in public mode."
+      eyebrow="Peh · modules"
+      title="What Peh can do"
+      intro="Peh is made of small, named modules. Core modules run locally and work without an account. Advanced modules are listed too — so you can see what is coming — but they are locked in public mode."
       accent="#a78bfa"
     >
       <Section

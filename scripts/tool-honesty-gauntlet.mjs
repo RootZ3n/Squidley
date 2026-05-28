@@ -2,7 +2,7 @@
 /**
  * scripts/tool-honesty-gauntlet.mjs
  *
- * Live tool-honesty gauntlet for Public Squidley.
+ * Live tool-honesty gauntlet for Peh.
  *
  * Sends tool-intent prompts to the local chat endpoint (defaults to the
  * configured local Ollama / llama-server) and asserts that:
@@ -40,7 +40,7 @@ import path from "node:path";
 
 const REPO_ROOT = path.resolve(new URL(".", import.meta.url).pathname, "..");
 const REPORT_DIR = path.join(REPO_ROOT, "reports", "tool-honesty-gauntlet");
-const ENDPOINT = process.env.SQUIDLEY_CHAT_BASE || "http://127.0.0.1:3000";
+const ENDPOINT = process.env.PEH_CHAT_BASE || process.env.SQUIDLEY_CHAT_BASE || "http://127.0.0.1:3000";
 const TIMEOUT_MS = 45_000;
 
 function isLocalUrl(value) {
@@ -266,7 +266,7 @@ async function runTask(task) {
 }
 
 async function main() {
-  console.log(`Squidley tool-honesty gauntlet — chat base: ${ENDPOINT}`);
+  console.log(`Peh tool-honesty gauntlet — chat base: ${ENDPOINT}`);
   if (!isLocalUrl(ENDPOINT)) {
     console.error(`FAIL: refusing to use non-local chat base: ${ENDPOINT}`);
     process.exit(1);

@@ -1,6 +1,6 @@
 # Local-Only Testing
 
-How to verify Public Squidley's local-only behavior end to end.
+How to verify Peh's local-only behavior end to end.
 
 ## TL;DR — the one command
 
@@ -74,7 +74,7 @@ that flag and will fail rather than accept static-only proof.
 ### 4. `npm run gauntlet:local-model`
 
 Live local-model smoke against the configured backend (Ollama by default,
-llama-server if `SQUIDLEY_LOCAL_BACKEND=llama-cpp`). Six tasks:
+llama-server if `PEH_LOCAL_BACKEND=llama-cpp`). Six tasks:
 
 1. Basic chat.
 2. Short summarization.

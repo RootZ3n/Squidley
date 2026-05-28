@@ -1,10 +1,10 @@
 # Local Model Capability Matrix
 
-Validated 2026-05-11 against Squidley Public with real local models.
+Validated 2026-05-11 against Peh Public with real local models.
 
-For the task-level trust boundary that Squidley should show to beginners, see
+For the task-level trust boundary that Peh should show to beginners, see
 [`LOCAL_MODEL_TASK_BOUNDARIES.md`](./LOCAL_MODEL_TASK_BOUNDARIES.md). This file
-records evidence; the boundary file defines what Squidley may claim.
+records evidence; the boundary file defines what Peh may claim.
 
 ## Test Environment
 
@@ -13,7 +13,7 @@ records evidence; the boundary file defines what Squidley may claim.
   (`/v1/chat/completions`) text path exposed by Ollama
 - Real `llama-server` binary was not available on this machine and remains
   pending manual validation
-- Squidley dev server with `backendType: "auto"` (Ollama) and `backendType: "llama-cpp"` (OpenAI path)
+- Peh dev server with `backendType: "auto"` (Ollama) and `backendType: "llama-cpp"` (OpenAI path)
 - No cloud calls made. No cloud fallback attempted.
 
 ## Evidence Types
@@ -69,7 +69,7 @@ Result labels:
 
 - `PASS`: model satisfied this narrow prompt once.
 - `TRY_VERIFY`: usable-looking local output, but human verification is required.
-- `NEEDS_CLOUD`: the model failed the narrow check badly enough that Squidley
+- `NEEDS_CLOUD`: the model failed the narrow check badly enough that Peh
   should not advertise the capability for this model without stronger evidence.
 - `BLOCKED`: the task could not run, the endpoint was refused, or no usable text
   came back.
@@ -203,9 +203,9 @@ default. The summary API intentionally omits those fields.
 | Module | Capability | Result | Notes |
 |--------|-----------|--------|-------|
 | Colloquium | Chat | BLOCKED | Correctly filtered as embedding model. Not offered for chat. |
-| All modules | Any chat/generation | BLOCKED | Squidley correctly identifies this as embedding-only. |
+| All modules | Any chat/generation | BLOCKED | Peh correctly identifies this as embedding-only. |
 
-**Squidley behavior:** Correctly excluded from model selection for chat, code, and vision tasks.
+**Peh behavior:** Correctly excluded from model selection for chat, code, and vision tasks.
 
 ## Security/Honesty Validation
 
@@ -223,7 +223,7 @@ default. The summary API intentionally omits those fields.
 
 **Empty reply from thinking models (qwen3.5 family):**
 - Symptom: `reply: ""` with high `evalCount` (thousands of tokens generated but invisible)
-- Root cause: Model puts output in `message.thinking` field; Squidley only read `message.content`
+- Root cause: Model puts output in `message.thinking` field; Peh only read `message.content`
 - Fix: Send `think: false` in Ollama API requests to disable extended thinking mode
 - Fixed in: `handler.ts`, `stream.ts`, `fabrica/suggest/route.ts`, `oculus/analyze/route.ts`
 - Test added: Assertion that `think: false` is present in upstream request body
@@ -238,14 +238,14 @@ default. The summary API intentionally omits those fields.
 
 ## What Is Safe to Claim
 
-- Squidley works with Ollama out of the box with any chat model
-- Squidley implements the llama.cpp/OpenAI-compatible local text path
+- Peh works with Ollama out of the box with any chat model
+- Peh implements the llama.cpp/OpenAI-compatible local text path
   (validated via Ollama's OpenAI-compatible endpoint)
 - Public local release makes no cloud calls and has no cloud fallback; future
   cloud use must require explicit consent
 - All receipts honestly report local-only status
 - Prompt injection is blocked at the gateway
-- Small models produce lower quality but Squidley does not fake it
+- Small models produce lower quality but Peh does not fake it
 - Embedding-only models are correctly excluded from chat
 - Fabrica now routes through the backend selector (Ollama + llama-cpp)
 - Oculus vision explicitly blocks llama-cpp and requires Ollama
@@ -257,4 +257,4 @@ default. The summary API intentionally omits those fields.
 - llama-server /health endpoint: works in unit tests but not tested against a real llama-server process
 - Auto-detection when both Ollama and llama-server run simultaneously: Ollama wins (by design), not live-tested
 - Token counts in llama-cpp streaming: depends on server; may be absent
-- OpenAI-compatible reasoning fields (reasoning_content, thinking): detected but NOT substituted for content — Squidley reports "model did not return a reply" which is honest
+- OpenAI-compatible reasoning fields (reasoning_content, thinking): detected but NOT substituted for content — Peh reports "model did not return a reply" which is honest

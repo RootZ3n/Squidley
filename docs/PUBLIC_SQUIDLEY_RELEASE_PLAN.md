@@ -1,8 +1,8 @@
-# Public Squidley Release Plan
+# Peh Release Plan
 
 ## Product Status: NOT RELEASE READY
 
-Public Squidley is not yet ready for public release. Local Mode is an audited
+Peh is not yet ready for public release. Local Mode is an audited
 subsystem, but the full product requires Cloud Mode, a teaching layer, tool
 execution, autonomous workflows, and beginner onboarding before it can ship.
 
@@ -48,8 +48,8 @@ What it proves:
 What it does NOT prove:
 - Cloud Mode works
 - Tools work
-- Squidley can teach beginners
-- Squidley can explain herself
+- Peh can teach beginners
+- Peh can explain herself
 - The product is ready for a user with zero experience
 
 ### Phase 2 — Teaching Layer
@@ -80,13 +80,13 @@ What it requires:
   - "What are receipts?"
 - Guided local setup (install Ollama, pull model, verify)
 - Guided first local chat
-- Explanation of local limitations ("why Squidley can't write files yet")
-- Self-explanation system (Squidley can answer questions about herself)
+- Explanation of local limitations ("why Peh can't write files yet")
+- Self-explanation system (Peh can answer questions about herself)
 - Teacher-first doctrine enforced in UI copy
 
 Why it matters:
-- A beginner with no AI experience must be able to understand Squidley
-- Squidley must explain what she can and cannot do before the user asks
+- A beginner with no AI experience must be able to understand Peh
+- Peh must explain what she can and cannot do before the user asks
 - Teaching is the core differentiator, not just capability
 
 ### Phase 3 — Cloud Mode Foundation
@@ -105,7 +105,7 @@ What it requires:
 - Cloud safety boundaries (Velum review before sending content to cloud)
 
 Why it matters:
-- Cloud Mode is where Squidley becomes a fully capable agent
+- Cloud Mode is where Peh becomes a fully capable agent
 - Without cloud adapters, Cloud Mode is just architecture
 - Users must understand cost, privacy, and provider differences before using cloud
 
@@ -167,9 +167,9 @@ What it requires:
 
 Why it matters:
 - Autonomous workflows are the end-state product goal
-- Users must understand what Squidley is doing at each step
+- Users must understand what Peh is doing at each step
 - Failures must be honest, not hidden
-- Squidley must be competitive with other agents when Cloud Mode is enabled
+- Peh must be competitive with other agents when Cloud Mode is enabled
 
 ### Phase 6 — Release Candidate
 **Status: FUTURE**
@@ -185,21 +185,21 @@ Requirements for public release:
 - User can understand the system with zero prior AI experience
 - Autonomous workflow smoke test passes
 - Local-to-cloud graduation flow works end-to-end
-- Squidley can hold her own against comparable agents in Cloud Mode
+- Peh can hold her own against comparable agents in Cloud Mode
 
 ## What "Release Ready" Means
 
-Public Squidley is release-ready when a person who has never used an AI tool
+Peh is release-ready when a person who has never used an AI tool
 before can:
 
-1. Install Squidley
+1. Install Peh
 2. Understand what it is and what it does
 3. Run a local chat and understand the limitations
 4. Learn what cloud providers are and why they matter
 5. Safely enable Cloud Mode with a provider
 6. Use tools with approval gates
 7. Understand receipts and provenance
-8. Trust that Squidley is honest about what she did and did not do
+8. Trust that Peh is honest about what she did and did not do
 9. Graduate from beginner to confident agent user
 
 Until all of that works, the product is not ready to ship publicly.

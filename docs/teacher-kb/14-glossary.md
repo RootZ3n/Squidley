@@ -1,6 +1,6 @@
 # Glossary
 
-> **Module names in plain English.** Squidley's modules have Latin names
+> **Module names in plain English.** Peh's modules have Latin names
 > for personality. The friendly label is shown first; the Latin name
 > follows in parentheses. See [docs/UI_LANGUAGE_GUIDE.md](../UI_LANGUAGE_GUIDE.md).
 >
@@ -11,7 +11,7 @@
 > | Notes | Archivum | Save snippets in this browser only. |
 > | Safety Check | Velum | Review text before sharing with the model. |
 > | Image Review | Oculus | Describe an image with a local vision model. |
-> | Activity Log | Tabularium | See what Squidley actually did. |
+> | Activity Log | Tabularium | See what Peh actually did. |
 > | System Map | Nous | What is configured and connected. |
 > | Memory (planned) | Archelon | Persistent memory — not built yet. |
 > | Agent Workflows (locked) | Legatus | Multi-step agent flows — Cloud Mode only. |
@@ -27,17 +27,17 @@
 
 **API Key:** A password that lets an app use a cloud provider's models. Tied to your account, usually costs money per use.
 
-**Approval Gate:** A safety checkpoint where Squidley asks permission before doing something risky.
+**Approval Gate:** A safety checkpoint where Peh asks permission before doing something risky.
 
-**Approval Token:** A short-lived, scoped permission Squidley uses to apply an approved action. Bound to a specific file (and, for tiny edits, to specific snippet hashes). Expires automatically; cannot be reused for a different file.
+**Approval Token:** A short-lived, scoped permission Peh uses to apply an approved action. Bound to a specific file (and, for tiny edits, to specific snippet hashes). Expires automatically; cannot be reused for a different file.
 
 **Autonomous Workflow:** A multi-step task where the agent plans, executes, and checks in at key points.
 
-**Capability Matrix:** A table showing what Squidley can and cannot do in each mode. See [docs/MODE_CAPABILITY_MATRIX.md](../MODE_CAPABILITY_MATRIX.md).
+**Capability Matrix:** A table showing what Peh can and cannot do in each mode. See [docs/MODE_CAPABILITY_MATRIX.md](../MODE_CAPABILITY_MATRIX.md).
 
 **Capability Tier:** One of `LOCAL_READY`, `LOCAL_LIMITED`, `LOCAL_PARTIAL`, `CLOUD_PLANNED`, `NOT_IMPLEMENTED`, `BLOCKED`. See the [Capability Taxonomy](../CAPABILITY_TAXONOMY.md).
 
-**Cloud Mode:** Squidley's full-capability mode using cloud providers, tools, and autonomous workflows. Requires explicit opt-in.
+**Cloud Mode:** Peh's full-capability mode using cloud providers, tools, and autonomous workflows. Requires explicit opt-in.
 
 **Cloud Model:** An AI model running on a company's server. Costs money, data leaves your machine.
 
@@ -45,19 +45,19 @@
 
 **Cost:** Cloud providers charge per token. Local models are free.
 
-**Deterministic:** Predictable. Given the same input, you get the same output, with no guessing. Used in Squidley for the parts that must behave consistently — approval gates, refusals, planning logic, receipts.
+**Deterministic:** Predictable. Given the same input, you get the same output, with no guessing. Used in Peh for the parts that must behave consistently — approval gates, refusals, planning logic, receipts.
 
-**Egress:** Data leaving your machine. Squidley's egress guard blocks non-local requests in Local Mode.
+**Egress:** Data leaving your machine. Peh's egress guard blocks non-local requests in Local Mode.
 
 **Hallucination:** When a model confidently says something that is not true.
 
-**Honesty Annotation / Honesty Correction:** Squidley's system for detecting and correcting false claims from the model. When the model says it did something this build cannot do, Squidley adds a correction note under the reply.
+**Honesty Annotation / Honesty Correction:** Peh's system for detecting and correcting false claims from the model. When the model says it did something this build cannot do, Peh adds a correction note under the reply.
 
-**Inspection (approval-gated file inspection):** Squidley reads one file at a time, only after you approve the exact path. Read-only, ≤256 KB, secrets redacted before they reach the model context. Bound to a short-lived approval token.
+**Inspection (approval-gated file inspection):** Peh reads one file at a time, only after you approve the exact path. Read-only, ≤256 KB, secrets redacted before they reach the model context. Bound to a short-lived approval token.
 
 **llama.cpp / llama-server:** A program for running AI models locally using GGUF files. Alternative to Ollama.
 
-**Local Mode:** Squidley's default mode where everything runs on your machine. Private, free, offline-capable.
+**Local Mode:** Peh's default mode where everything runs on your machine. Private, free, offline-capable.
 
 **Local Model:** An AI model running on your own computer. Private and free.
 
@@ -67,7 +67,7 @@
 
 **Ollama:** A program that makes it easy to download and run AI models locally.
 
-**Planning (Squidley's planner):** Squidley reads your goal and produces a structured plan with evidence labels (known, inferred, assumed, missing) and a risk level (safe, review, elevated, blocked). The planner does not execute — it just describes how Squidley would approach the task. Blocked plans return zero executable steps.
+**Planning (Peh's planner):** Peh reads your goal and produces a structured plan with evidence labels (known, inferred, assumed, missing) and a risk level (safe, review, elevated, blocked). The planner does not execute — it just describes how Peh would approach the task. Blocked plans return zero executable steps.
 
 **Privacy:** Whether your text stays on your machine (local) or goes to a server (cloud).
 
@@ -79,11 +79,11 @@
 
 **Provenance:** Information about where an answer came from and how it was produced.
 
-**Ratio:** Squidley's decision engine that picks which capability handles a request and surfaces honest limitations when the model or mode cannot fully deliver.
+**Ratio:** Peh's decision engine that picks which capability handles a request and surfaces honest limitations when the model or mode cannot fully deliver.
 
 **Reliability Layer:** A bounded wrapper for small local models. It plans a short sequence of safe compound tools (explain project structure, inspect one file, summarise an error, run a health check) with caps of 6 steps and 2 retries. It can suggest cloud escalation but cannot run it.
 
-**Receipt:** A record of what Squidley actually did, stored for verification.
+**Receipt:** A record of what Peh actually did, stored for verification.
 
 **Response:** The text a model writes back after reading your prompt.
 
@@ -91,21 +91,21 @@
 
 **Safety:** The combination of guards, checks, and approval gates that keep you in control.
 
-**Tabularium:** Squidley's receipt ledger where you can review everything she did.
+**Tabularium:** Peh's receipt ledger where you can review everything she did.
 
 **Tiny Edit:** A narrow, approval-gated edit that replaces exactly one snippet in one already-inspected file. Diff capped at 4 KB. Includes an in-memory backup and automatic rollback if verification fails after applying.
 
 **Token:** A small piece of text (roughly a word) that models process. Used for pricing and limits.
 
-**Tool Call:** When Squidley uses a real tool to take an action, not just generate text.
+**Tool Call:** When Peh uses a real tool to take an action, not just generate text.
 
 **Tool-Backed Action:** A response based on a real tool action, with a receipt as proof.
 
-**Velum (Safety Check):** Squidley's predictable text review tool. Runs pattern-based checks (secrets, prompt-injection patterns, risky requests) before text reaches the model. Helpful, but not a guarantee of safety.
+**Velum (Safety Check):** Peh's predictable text review tool. Runs pattern-based checks (secrets, prompt-injection patterns, risky requests) before text reaches the model. Helpful, but not a guarantee of safety.
 
 ## Capability Tiers (beginner-friendly labels)
 
-Squidley sorts every capability into one of six tiers. UI badges show the friendly label; this glossary maps them to plain English.
+Peh sorts every capability into one of six tiers. UI badges show the friendly label; this glossary maps them to plain English.
 
 - **Ready (LOCAL_READY):** Works locally. No approval needed.
 - **Approval needed (LOCAL_LIMITED):** Works locally with safety limits and your approval (file inspection, tiny edits, etc.).

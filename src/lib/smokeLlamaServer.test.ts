@@ -62,7 +62,7 @@ describe("smoke-llama-server script contract", () => {
 
   it("PROOF.json is the marker the diagnostic looks for", () => {
     const diagnosticSource = readFileSync(
-      path.join(REPO_ROOT, "scripts/public-squidley-diagnostic.mjs"),
+      path.join(REPO_ROOT, "scripts/peh-pub-diagnostic.mjs"),
       "utf8",
     );
     expect(diagnosticSource).toMatch(/llama-server-smoke\/PROOF\.json/);

@@ -136,7 +136,7 @@ export async function explainProjectStructure(
       summary,
       evidence: `entries=${visible.length} (ignored: ${[...IGNORED_DIRS].join(",")})`,
       nextStep:
-        "Pick one likely entry point and ask Squidley to inspect that one file safely.",
+        "Pick one likely entry point and ask Peh to inspect that one file safely.",
       steps,
     };
   } catch (err) {
@@ -145,10 +145,10 @@ export async function explainProjectStructure(
     return {
       ok: false,
       toolId: "explain_project_structure",
-      summary: "Squidley could not read the project root.",
+      summary: "Peh could not read the project root.",
       evidence: error,
       nextStep:
-        "Check the project root path. Squidley will not pretend to know files it could not read.",
+        "Check the project root path. Peh will not pretend to know files it could not read.",
       steps,
     };
   }
@@ -180,7 +180,7 @@ export async function inspectOneFileSafely(
     return {
       ok: false,
       toolId: "inspect_one_file_safely",
-      summary: "Squidley refused to read that path because it looked unsafe.",
+      summary: "Peh refused to read that path because it looked unsafe.",
       evidence: "rejected: contains '..'",
       nextStep: "Pass a clean path relative to the project root.",
       steps,
@@ -196,10 +196,10 @@ export async function inspectOneFileSafely(
     return {
       ok: false,
       toolId: "inspect_one_file_safely",
-      summary: `Squidley could not read \`${args.path}\`.`,
+      summary: `Peh could not read \`${args.path}\`.`,
       evidence: error,
       nextStep:
-        "Confirm the file exists and the path is correct. Squidley will not invent contents.",
+        "Confirm the file exists and the path is correct. Peh will not invent contents.",
       steps,
     };
   }
@@ -222,7 +222,7 @@ export async function inspectOneFileSafely(
       summary: `\`${args.path}\` was too large to inspect safely.`,
       evidence: `omitted: ${packed.omittedItems[0]?.reason ?? "unknown"}`,
       nextStep:
-        "Ask Squidley to summarize this file or to inspect a smaller portion (e.g., a specific function).",
+        "Ask Peh to summarize this file or to inspect a smaller portion (e.g., a specific function).",
       steps,
     };
   }
@@ -241,8 +241,8 @@ export async function inspectOneFileSafely(
     summary,
     evidence: `bytes=${included.includedSize}, truncated=${included.truncated}, originalSize=${included.originalSize}`,
     nextStep: included.truncated
-      ? "The file was truncated. Ask Squidley to inspect a specific function or symbol within it."
-      : "Ask Squidley a focused question about this file.",
+      ? "The file was truncated. Ask Peh to inspect a specific function or symbol within it."
+      : "Ask Peh a focused question about this file.",
     steps,
   };
 }
@@ -302,13 +302,13 @@ export function summarizeErrorAndNextStep(args: ErrorContext): CompoundToolResul
     next = "Check that Ollama or llama-server is running, then run the local health check.";
   } else if (/ENOENT|no such file/i.test(text)) {
     cause = "a referenced file or directory does not exist";
-    next = "Re-check the path. Ask Squidley to list the project structure to find the right one.";
+    next = "Re-check the path. Ask Peh to list the project structure to find the right one.";
   } else if (/timeout|timed out/i.test(text)) {
     cause = "the request timed out";
     next = "Try a smaller prompt or a smaller model. Long contexts make small models stall.";
   } else if (/EACCES|permission denied/i.test(text)) {
     cause = "the OS denied permission";
-    next = "Check file or port permissions. Squidley will not bypass OS protections.";
+    next = "Check file or port permissions. Peh will not bypass OS protections.";
   } else if (/empty (?:reply|content|response)|no content/i.test(text)) {
     cause = "the model returned empty content (possibly hidden in `thinking`)";
     next = "Confirm `think: false` is set on Ollama calls, or try another model.";
@@ -371,7 +371,7 @@ export async function runLocalHealthCheck(
       toolId: "run_local_health_check",
       summary: `Local model ready: ${report.backend} @ ${report.endpoint} (${report.modelCount ?? "?"} models).`,
       evidence: `backend=${report.backend}, modelCount=${report.modelCount ?? "?"}`,
-      nextStep: "Ask Squidley a focused question and watch the receipts.",
+      nextStep: "Ask Peh a focused question and watch the receipts.",
       steps,
     };
   } catch (err) {
@@ -415,10 +415,10 @@ export async function makeSmallTextChangeAndVerify(
       ok: false,
       toolId: "make_small_text_change_and_verify",
       summary:
-        "Squidley does not change files automatically in this build. This is a deliberate stub.",
+        "Peh does not change files automatically in this build. This is a deliberate stub.",
       evidence: "edit-tool disabled; no write was attempted",
       nextStep:
-        "Make the change yourself, then ask Squidley to verify the result. A real edit tool will require explicit approval before being enabled.",
+        "Make the change yourself, then ask Peh to verify the result. A real edit tool will require explicit approval before being enabled.",
       steps,
     };
   }
@@ -428,7 +428,7 @@ export async function makeSmallTextChangeAndVerify(
     return {
       ok: false,
       toolId: "make_small_text_change_and_verify",
-      summary: "Squidley refused to edit that path because it looked unsafe.",
+      summary: "Peh refused to edit that path because it looked unsafe.",
       evidence: "rejected: contains '..'",
       nextStep: "Pass a clean path relative to the project root.",
       steps,
@@ -444,7 +444,7 @@ export async function makeSmallTextChangeAndVerify(
     return {
       ok: false,
       toolId: "make_small_text_change_and_verify",
-      summary: `Squidley could not read \`${args.path}\` to edit it.`,
+      summary: `Peh could not read \`${args.path}\` to edit it.`,
       evidence: error,
       nextStep: "Confirm the file exists. No write was attempted.",
       steps,
@@ -458,7 +458,7 @@ export async function makeSmallTextChangeAndVerify(
       toolId: "make_small_text_change_and_verify",
       summary: `The text to replace was not found in \`${args.path}\`. No change made.`,
       evidence: "find-text not present",
-      nextStep: "Re-check the exact text to find. Squidley will not approximate edits.",
+      nextStep: "Re-check the exact text to find. Peh will not approximate edits.",
       steps,
     };
   }
@@ -493,7 +493,7 @@ export async function makeSmallTextChangeAndVerify(
         summary: `Edit applied to \`${args.path}\` but verification failed.`,
         evidence: verdict.detail ?? "verifier returned ok=false",
         nextStep:
-          "Revert the edit (or ask for help) before continuing. Squidley does not silently keep failing edits.",
+          "Revert the edit (or ask for help) before continuing. Peh does not silently keep failing edits.",
         steps,
       };
     }

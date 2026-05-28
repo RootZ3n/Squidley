@@ -27,8 +27,8 @@ describe("bug report helpers", () => {
     });
 
     expect(url).toContain("mailto:bugs%40example.com");
-    expect(decodeURIComponent(url ?? "")).toContain("[Squidley Public Bug] Chat button failed");
-    expect(decodeURIComponent(url ?? "")).toContain("Product: Squidley Public");
+    expect(decodeURIComponent(url ?? "")).toContain("[Peh Public Bug] Chat button failed");
+    expect(decodeURIComponent(url ?? "")).toContain("Product: Peh Public");
     expect(decodeURIComponent(url ?? "")).toContain("Page/module: Colloquium");
     expect(decodeURIComponent(url ?? "")).toContain("Model/provider: llama3.2 / local");
   });

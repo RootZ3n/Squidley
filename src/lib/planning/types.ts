@@ -1,7 +1,7 @@
 /**
  * Structured Planning + Provenance Layer — types.
  *
- * Plans are deterministic, evidence-backed descriptions of how Squidley
+ * Plans are deterministic, evidence-backed descriptions of how Peh
  * *would* approach a local task. They are NOT execution: nothing in this
  * module performs IO, calls a model, or modifies state.
  *
@@ -16,7 +16,7 @@
  *     blocked. `blocked` plans return zero executable steps and a clear
  *     beginner-readable refusal.
  *   - Receipts are TabulariumReceipt instances so they round-trip with
- *     the rest of Squidley's audit log.
+ *     the rest of Peh's audit log.
  */
 
 import type { TabulariumReceipt } from "@/lib/tabularium/receipts";
@@ -52,7 +52,7 @@ export interface PlanStep {
   readonly summary: string;
   readonly status: PlanStepStatus;
   readonly requiredInputs: readonly string[];
-  /** Tool ids the step would *consider*. Squidley does not run them. */
+  /** Tool ids the step would *consider*. Peh does not run them. */
   readonly suggestedTools: readonly string[];
   /** Files the step would benefit from but has not yet seen. */
   readonly relatedFiles: readonly string[];
@@ -116,7 +116,7 @@ export interface PlanProvenanceReport {
   readonly assumed: readonly string[];
   /** Missing information — never claims to know. */
   readonly missing: readonly string[];
-  /** Files Squidley would *like* to see next, never silently read. */
+  /** Files Peh would *like* to see next, never silently read. */
   readonly suggestedNextInspections: readonly string[];
 }
 

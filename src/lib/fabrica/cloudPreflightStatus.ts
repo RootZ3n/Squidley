@@ -83,7 +83,7 @@ export function fabricaConsentStatusCopy(
     case "denied":
       return {
         message:
-          "Cloud consent was denied. Squidley will keep this local or stop this action.",
+          "Cloud consent was denied. Peh will keep this local or stop this action.",
         tabulariumHint: TABULARIUM_HINT,
         variant: "denied",
       };

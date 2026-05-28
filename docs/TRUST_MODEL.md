@@ -1,6 +1,6 @@
 # Local-First Trust Model
 
-Public Squidley uses a layered trust architecture to keep user data local by
+Peh uses a layered trust architecture to keep user data local by
 default, make every boundary decision auditable, and prevent silent cloud calls.
 This document explains the system as implemented.
 
@@ -138,7 +138,7 @@ The following are designed but not active:
   across sessions.
 - **Provider switching.** Cloud providers are locked metadata only.
 - **Broad production tool-use execution.** Tool boundaries exist but tools are
-  not executed in public Squidley.
+  not executed in public Peh.
 
 ## Principles
 

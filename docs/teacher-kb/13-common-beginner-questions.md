@@ -1,7 +1,7 @@
 # Common Beginner Questions
 
 ## What are you?
-Squidley is a teaching agent. She helps you learn how AI agents work, starting
+Peh is a teaching agent. She helps you learn how AI agents work, starting
 locally on your own machine and graduating to cloud-powered workflows.
 
 ## What can you do right now?
@@ -31,10 +31,10 @@ Not yet. Shell execution is planned for Phase 4 and will require explicit
 scoped approval.
 
 ## How do I stop you?
-Close the browser tab or stop the server. Squidley does not run in the
+Close the browser tab or stop the server. Peh does not run in the
 background.
 
 ## What is the difference between you and ChatGPT?
-ChatGPT is a chatbot — it generates text. Squidley is designed to be an agent
+ChatGPT is a chatbot — it generates text. Peh is designed to be an agent
 that teaches you how agents work, with tools, approvals, and receipts. Local
 Mode is the starting classroom.

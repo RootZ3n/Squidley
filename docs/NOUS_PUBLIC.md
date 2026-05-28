@@ -1,6 +1,6 @@
-# Nous in Public Squidley
+# Nous in Peh
 
-Nous is Squidley's system and model map. It helps beginners see which modules
+Nous is Peh's system and model map. It helps beginners see which modules
 exist, what each one does, and whether a module uses a model.
 
 ## What Nous Shows
@@ -17,8 +17,8 @@ Nous itself does not call a model.
 
 ## Adaptive System Intelligence
 
-Nous now shows **Ratio**, Squidley's Adaptive System Intelligence layer. Ratio
-explains how Squidley changes behavior based on:
+Nous now shows **Ratio**, Peh's Adaptive System Intelligence layer. Ratio
+explains how Peh changes behavior based on:
 
 - selected local model
 - provider type
@@ -29,7 +29,7 @@ explains how Squidley changes behavior based on:
 - workspace/tool/approval permissions
 
 In the current public version, the unlock level is `public-local`. Ratio shows
-what Squidley can do now, what is limited by local model strength, what modules
+what Peh can do now, what is limited by local model strength, what modules
 need no model, and what remains locked for future Cloud Agent mode.
 
 Ratio is also visible on individual module pages. Colloquium, Fabrica, Oculus,
@@ -52,7 +52,7 @@ models:
 Preferences are stored in localStorage under:
 
 ```text
-squidley.nous.modelPreferences.v1
+peh.nous.modelPreferences.v1
 ```
 
 Changing the Colloquium or Oculus model affects those pages too. Page-level
@@ -64,7 +64,7 @@ shared preference for that module.
 
 ## Provider Registry
 
-Public Squidley includes provider metadata for:
+Peh includes provider metadata for:
 
 - Ollama-compatible local server
 - llama.cpp / `llama-server` OpenAI-compatible local text server
@@ -98,5 +98,5 @@ Receipts do not store API keys or sensitive provider configuration.
 ## Local-Only Privacy
 
 Nous stores only small browser-local preferences. Clearing browser storage may
-remove those preferences. Public Squidley continues to use local-only behavior
+remove those preferences. Peh continues to use local-only behavior
 unless a future explicit cloud unlock is added.

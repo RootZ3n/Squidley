@@ -6,8 +6,8 @@ Use this before a public demo or release tag.
 
 - Run `npm install`.
 - Copy `.env.example` to `.env.local` only if you need non-default local model settings.
-- Confirm `SQUIDLEY_LOCAL_ENDPOINT` defaults to `http://localhost:11434`.
-- Confirm `SQUIDLEY_LOCAL_MODEL` defaults to `llama3.2`.
+- Confirm `PEH_LOCAL_ENDPOINT` defaults to `http://localhost:11434`.
+- Confirm `PEH_LOCAL_MODEL` defaults to `llama3.2`.
 
 ## Ollama Checks
 

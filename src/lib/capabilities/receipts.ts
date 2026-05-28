@@ -1,5 +1,5 @@
 /**
- * Public Squidley capability decision receipt helpers.
+ * Peh capability decision receipt helpers.
  *
  * Pure helpers that turn a CapabilityRuntimeDecision into an auditable receipt
  * event. The event shape (`type: "capability.decision"`) is intentionally

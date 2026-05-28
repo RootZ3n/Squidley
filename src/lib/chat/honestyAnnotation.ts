@@ -1,7 +1,7 @@
 /**
  * Honesty annotation for local-model replies.
  *
- * Public Squidley ships zero action tools (no fs.write, no shell, no web
+ * Peh ships zero action tools (no fs.write, no shell, no web
  * search, no document parser, no agent loop). A local model can still
  * HALLUCINATE that it performed one of those actions ("I wrote the file",
  * "I ran the test", "I searched the web"). This module detects that
@@ -10,7 +10,7 @@
  * The detector is intentionally pure and side-effect-free:
  *   - input: the model's reply string
  *   - output: which tool-action verbs were hallucinated, plus a single
- *     short honesty message Squidley can render alongside the reply.
+ *     short honesty message Peh can render alongside the reply.
  *
  * It does NOT rewrite or censor the reply. The original text is preserved.
  * The annotation is a separate user-facing message stating what the local
@@ -36,7 +36,7 @@ export type HallucinatedAction =
 
 export interface HonestyAnnotation {
   hallucinatedActions: readonly HallucinatedAction[];
-  /** A single short message Squidley can render next to the reply. */
+  /** A single short message Peh can render next to the reply. */
   userVisibleHonestyMessage?: string;
   /** Stable list of tool ids the user appeared to want. */
   unavailableTools: readonly string[];
@@ -157,7 +157,7 @@ const PATTERNS: readonly Pattern[] = [
 const DISCLAIMER_PHRASES = [
   /\bi\s+(?:can(?:'t|not)?|cannot|could(?:n['']t)?|won['']t|will\s+not|am\s+unable|won't|don['']t)\b/i,
   /\bthis\s+(?:public\s+)?(?:local\s+)?(?:version|build|release|mode)\s+(?:does\s+not|doesn['']t|cannot|can['']t)\b/i,
-  /\bsquidley\s+(?:does\s+not|doesn['']t|cannot|can['']t)\b/i,
+  /\b(?:peh|squidley)\s+(?:does\s+not|doesn['']t|cannot|can['']t)\b/i,
 ];
 
 function containsDisclaimerNearby(text: string, matchIndex: number, matchLen: number): boolean {
@@ -210,7 +210,7 @@ function buildHonestyMessage(actions: readonly HallucinatedAction[]): string {
   const has = (a: HallucinatedAction) => actions.includes(a);
   if (has("fs.write") || has("fs.delete") || has("fs.move")) {
     pieces.push(
-      "This public local build does not have a file-write tool. Squidley did not save, edit, delete, or move any file. The reply above is local-model text only.",
+      "This public local build does not have a file-write tool. Peh did not save, edit, delete, or move any file. The reply above is local-model text only.",
     );
   }
   if (has("fs.read")) {
@@ -245,7 +245,7 @@ function buildHonestyMessage(actions: readonly HallucinatedAction[]): string {
   }
   if (has("memory_write")) {
     pieces.push(
-      "This public local build does not have a long-term memory tool. Squidley will not remember this beyond the current browser session and conversation.",
+      "This public local build does not have a long-term memory tool. Peh will not remember this beyond the current browser session and conversation.",
     );
   }
   if (pieces.length === 0) {

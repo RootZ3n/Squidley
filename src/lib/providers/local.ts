@@ -1,17 +1,18 @@
 /**
  * Local provider configuration.
  *
- * Public Squidley speaks only to a local chat endpoint — either Ollama
+ * Peh speaks only to a local chat endpoint — either Ollama
  * (default) or llama-server (llama.cpp). There is no cloud fallback in
  * this pass — by design.
  *
  * Defaults are set up so a fresh checkout works against a stock Ollama
  * install with `llama3.2` pulled. They can be overridden per-process via
- * environment variables:
+ * environment variables (canonical PEH_* names; legacy SQUIDLEY_* names are
+ * still honored as a fallback — see src/lib/compat/env.ts):
  *
- *   SQUIDLEY_LOCAL_ENDPOINT   e.g. http://localhost:11434
- *   SQUIDLEY_LOCAL_MODEL      e.g. llama3.2
- *   SQUIDLEY_LOCAL_BACKEND    "ollama" | "llama-cpp" | "auto" (default: "auto")
+ *   PEH_LOCAL_ENDPOINT   e.g. http://localhost:11434
+ *   PEH_LOCAL_MODEL      e.g. llama3.2
+ *   PEH_LOCAL_BACKEND    "ollama" | "llama-cpp" | "auto" (default: "auto")
  *
  * All are read on the server only. They are never read from the browser
  * because the chat call is proxied through /api/chat.

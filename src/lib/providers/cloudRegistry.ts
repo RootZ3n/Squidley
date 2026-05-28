@@ -1,7 +1,7 @@
 /**
- * Cloud provider registry for Squidley Cloud Mode.
+ * Cloud provider registry for Peh Cloud Mode.
  *
- * Explicit, auditable registry of every cloud provider Squidley may
+ * Explicit, auditable registry of every cloud provider Peh may
  * eventually support. Each entry is marked with its implementation status.
  *
  * Critical rule: if a provider adapter does not exist and is not tested,
@@ -46,7 +46,7 @@ export const CLOUD_PROVIDER_REGISTRY: readonly CloudProviderEntry[] = [
     status: "IMPLEMENTED",
     locality: "local",
     requiresApiKey: false,
-    envVarNames: ["SQUIDLEY_LOCAL_ENDPOINT"],
+    envVarNames: ["PEH_LOCAL_ENDPOINT"],
     supportsChat: true,
     supportsStreaming: true,
     supportsVision: true,
@@ -64,7 +64,7 @@ export const CLOUD_PROVIDER_REGISTRY: readonly CloudProviderEntry[] = [
     status: "PARTIAL",
     locality: "local",
     requiresApiKey: false,
-    envVarNames: ["SQUIDLEY_LOCAL_ENDPOINT"],
+    envVarNames: ["PEH_LOCAL_ENDPOINT"],
     supportsChat: true,
     supportsStreaming: true,
     supportsVision: false,

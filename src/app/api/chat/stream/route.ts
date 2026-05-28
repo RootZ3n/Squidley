@@ -500,7 +500,7 @@ export async function POST(req: Request): Promise<Response> {
               toolsUsed: false,
               error: {
                 code: "local_provider_error",
-                message: "The local model stream stopped before Squidley could finish the reply.",
+                message: "The local model stream stopped before Peh could finish the reply.",
               },
             }),
           ),

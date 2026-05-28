@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Squidley Public — Local Egress Proof Procedure
+# Peh Public — Local Egress Proof Procedure
 #
-# This script documents how to verify that Squidley Public local mode
+# This script documents how to verify that Peh Public local mode
 # makes NO outbound requests to cloud AI endpoints. It is a procedure
 # document, not an automated test. Run each section manually.
 #
@@ -11,7 +11,7 @@
 #
 # 1. Ollama running locally:  ollama serve
 # 2. A model pulled:          ollama pull llama3.2
-# 3. Squidley dev server:     npm run dev
+# 3. Peh dev server:     npm run dev
 # 4. Root/sudo for tcpdump (optional)
 #
 # ─── Cloud endpoints to monitor ──────────────────────────────────────
@@ -29,7 +29,7 @@ CLOUD_DOMAINS=(
 
 set -euo pipefail
 
-echo "=== Squidley Public — Egress Proof Procedure ==="
+echo "=== Peh Public — Egress Proof Procedure ==="
 echo ""
 
 # ─── Layer 1: Code-level proof (static analysis) ────────────────────
@@ -82,10 +82,10 @@ echo ""
 echo "To run packet capture during a local session:"
 echo ""
 echo "  # Terminal 1: Start tcpdump watching for cloud DNS/connections"
-echo "  sudo tcpdump -i any -n 'port 443 or port 53' -w squidley-egress.pcap &"
+echo "  sudo tcpdump -i any -n 'port 443 or port 53' -w peh-egress.pcap &"
 echo "  TCPDUMP_PID=\$!"
 echo ""
-echo "  # Terminal 2: Start Squidley"
+echo "  # Terminal 2: Start Peh"
 echo "  npm run dev"
 echo ""
 echo "  # Terminal 3: Exercise all local features"
@@ -107,7 +107,7 @@ for d in "${CLOUD_DOMAINS[@]}"; do
   fi
   DOMAIN_FILTER="${DOMAIN_FILTER}host $d"
 done
-echo "  tcpdump -r squidley-egress.pcap '$DOMAIN_FILTER' | head -50"
+echo "  tcpdump -r peh-egress.pcap '$DOMAIN_FILTER' | head -50"
 echo ""
 echo "  # Expected result: 0 packets matching cloud endpoints."
 echo ""
@@ -115,7 +115,7 @@ echo ""
 # ─── Layer 4: ss/lsof spot check ────────────────────────────────────
 echo "--- Layer 4: Active connection spot check ---"
 echo ""
-echo "While Squidley dev server is running, check for cloud connections:"
+echo "While Peh dev server is running, check for cloud connections:"
 echo ""
 echo "  # Check established connections from the Node process:"
 echo "  ss -tnp | grep node | grep -v '127.0.0.1\|::1\|localhost'"
@@ -133,7 +133,7 @@ echo "All fetch() calls in src/ (excluding tests):"
 grep -rn 'fetch(' src/ --include='*.ts' --include='*.tsx' | grep -v '\.test\.' | grep -v 'node_modules' || true
 echo ""
 echo "Each fetch call above should target:"
-echo "  - The configured local endpoint (SQUIDLEY_LOCAL_ENDPOINT)"
+echo "  - The configured local endpoint (PEH_LOCAL_ENDPOINT)"
 echo "  - A relative /api/ path (Next.js internal routing)"
 echo "  - No hardcoded cloud URLs"
 echo ""

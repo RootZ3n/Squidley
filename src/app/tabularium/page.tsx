@@ -99,7 +99,7 @@ export default function TabulariumPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `squidley-tabularium-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.download = `peh-tabularium-${new Date().toISOString().slice(0, 10)}.txt`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -120,13 +120,13 @@ export default function TabulariumPage() {
       <TourHighlight target="intro" active={activeTarget}>
         <header className="border-b border-ink-200 pb-5 dark:border-ink-700">
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-iris-600 dark:text-iris-300">
-            Squidley · Tabularium
+            Peh · Tabularium
           </p>
           <h1 className="mt-1 font-serif text-3xl font-semibold text-ink-900 dark:text-ink-50">
             Receipt room
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-600 dark:text-ink-300">
-            Tabularium is Squidley&rsquo;s receipt room. It shows what happened,
+            Tabularium is Peh&rsquo;s receipt room. It shows what happened,
             what stayed local, and what changed.
           </p>
           <TourHighlight target="local-only-indicator" active={activeTarget}>
@@ -238,7 +238,7 @@ export default function TabulariumPage() {
               </div>
               {receipts.length === 0 ? (
                 <p className="mt-4 rounded-lg border border-dashed border-ink-200 bg-ink-50/70 px-3 py-4 text-center text-sm text-ink-500 dark:border-ink-700 dark:bg-ink-900/40 dark:text-ink-300">
-                  No receipts yet. Squidley will add local receipts as you chat, review text, save entries, or change local settings.
+                  No receipts yet. Peh will add local receipts as you chat, review text, save entries, or change local settings.
                 </p>
               ) : filtered.length === 0 ? (
                 <p className="mt-4 rounded-lg border border-dashed border-ink-200 bg-ink-50/70 px-3 py-4 text-center text-sm text-ink-500 dark:border-ink-700 dark:bg-ink-900/40 dark:text-ink-300">

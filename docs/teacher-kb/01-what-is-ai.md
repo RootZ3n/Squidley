@@ -19,7 +19,7 @@ made by different companies.
 
 ### Prompt
 
-A prompt is the text you send to a model. When you type a question in Squidley,
+A prompt is the text you send to a model. When you type a question in Peh,
 your question is the prompt.
 
 **Example:** "What is the capital of France?" is a prompt.
@@ -39,7 +39,7 @@ hallucination. The model is not lying on purpose — it just generates text base
 on patterns, and sometimes those patterns lead to incorrect output.
 
 **Example:** A model might claim it wrote a file when no file was written.
-Squidley detects these hallucinations and adds a correction.
+Peh detects these hallucinations and adds a correction.
 
 ## Common Misunderstandings
 

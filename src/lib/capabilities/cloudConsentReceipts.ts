@@ -147,7 +147,7 @@ const DECISION_SUMMARIES: Record<CloudConsentDecision, string> = {
   granted:
     "Cloud consent granted for this capability. Nothing has been sent yet.",
   denied:
-    "Cloud consent denied. Squidley will keep this local or stop this action.",
+    "Cloud consent denied. Peh will keep this local or stop this action.",
   cancelled:
     "Cloud consent dialog was closed. Nothing has been sent.",
   blocked:

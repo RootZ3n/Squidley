@@ -1,5 +1,5 @@
 /**
- * Squidley Public — Electron main process.
+ * Peh — Electron main process.
  *
  * Starts the Next.js standalone server on a free port, then opens an
  * Electron BrowserWindow pointing at the local server. No cloud calls,
@@ -88,7 +88,7 @@ function createWindow(port) {
     height: 800,
     minWidth: 800,
     minHeight: 600,
-    title: "Squidley",
+    title: "Peh",
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -140,7 +140,7 @@ app.whenReady().then(async () => {
     console.log(`Next.js server ready on http://127.0.0.1:${port}`);
     createWindow(port);
   } catch (err) {
-    console.error("Failed to start Squidley:", err);
+    console.error("Failed to start Peh:", err);
     app.quit();
   }
 });

@@ -55,13 +55,13 @@ export const EXPLAIN_THIS_LABELS: Record<string, { short: string; conceptId: str
   "local-mode": { short: "Everything runs on your machine. No data leaves your device.", conceptId: "local_mode" },
   "cloud-mode": { short: "Cloud Mode uses remote AI providers. Planned but not implemented yet.", conceptId: "cloud_mode" },
   "no-cloud": { short: "No data was sent to any cloud server for this response.", conceptId: "privacy" },
-  "no-tool": { short: "Squidley only generated text. No files were read, written, or changed.", conceptId: "model_only_answer" },
+  "no-tool": { short: "Peh only generated text. No files were read, written, or changed.", conceptId: "model_only_answer" },
   "model-only": { short: "This answer came from the model's text generation, not from a real tool action.", conceptId: "model_only_answer" },
-  "receipt": { short: "A record of what Squidley actually did. Check the Tabularium to review.", conceptId: "receipt" },
+  "receipt": { short: "A record of what Peh actually did. Check the Tabularium to review.", conceptId: "receipt" },
   "provenance": { short: "Shows where this answer came from: which mode, model, and whether tools or cloud were used.", conceptId: "provenance" },
   "not-implemented": { short: "This feature is planned for a future version. It does not exist yet.", conceptId: "capability_matrix" },
   "try-verify": { short: "The model's response may not be fully accurate. Please review it manually.", conceptId: "hallucination" },
-  "approval": { short: "Some actions need your explicit permission before Squidley can proceed.", conceptId: "approval" },
+  "approval": { short: "Some actions need your explicit permission before Peh can proceed.", conceptId: "approval" },
 };
 
 /**

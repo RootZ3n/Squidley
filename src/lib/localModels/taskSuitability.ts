@@ -69,12 +69,12 @@ export function evaluateLocalModelForTask(args: {
   }
 
   if (taskId === "fabrica.multi-file-build" || taskId === "agent.tool-use") {
-    return decision(taskId, "needs-cloud-unlock", "high", "Cloud/tool mode required", "Public Squidley does not run autonomous tools or multi-file repo agents locally. Keep this locked unless a future cloud/tool mode is explicitly enabled.");
+    return decision(taskId, "needs-cloud-unlock", "high", "Cloud/tool mode required", "Peh does not run autonomous tools or multi-file repo agents locally. Keep this locked unless a future cloud/tool mode is explicitly enabled.");
   }
 
   const model = args.model;
   if (!model) {
-    return decision(taskId, "blocked", "high", "No local model selected", "Install or start a local model first. Squidley will not fall back to the cloud.");
+    return decision(taskId, "blocked", "high", "No local model selected", "Install or start a local model first. Peh will not fall back to the cloud.");
   }
 
   if (isLikelyEmbeddingModel(model)) {
@@ -88,7 +88,7 @@ export function evaluateLocalModelForTask(args: {
 
   if (taskId === "oculus.image-analysis") {
     if (backend === "llama-cpp") {
-      return decision(taskId, "blocked", "high", "llama.cpp vision not validated", "Public Squidley blocks llama.cpp vision until real local vision support is validated. Use an Ollama vision model such as LLaVA, Moondream, MiniCPM-V, or Qwen-VL.");
+      return decision(taskId, "blocked", "high", "llama.cpp vision not validated", "Peh blocks llama.cpp vision until real local vision support is validated. Use an Ollama vision model such as LLaVA, Moondream, MiniCPM-V, or Qwen-VL.");
     }
     if (vision) {
       return decision(taskId, "try-locally-verify", "medium", "Try local vision, verify", "This looks like a local vision model. Image analysis can run locally, but small vision models may miss details.");
@@ -111,7 +111,7 @@ export function evaluateLocalModelForTask(args: {
 
   if (taskId === "chat.advanced-planning") {
     if (paramsB === undefined) {
-      return decision(taskId, "try-locally-verify", "low", "Unknown model size", "Squidley cannot infer this model's size, so advanced planning should be treated as experimental and verified.", "7B+ general model; 14B+ preferred");
+      return decision(taskId, "try-locally-verify", "low", "Unknown model size", "Peh cannot infer this model's size, so advanced planning should be treated as experimental and verified.", "7B+ general model; 14B+ preferred");
     }
     if (params < 7) {
       return decision(taskId, "needs-stronger-local-model", "high", "Too small for planning", "Small local models are fine for simple chat, but they are not reliable for multi-step planning.", "7B+ general model; 14B+ preferred");

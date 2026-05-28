@@ -394,7 +394,7 @@ export function formatConversationExport(args: {
 }): string {
   const exportedAt = args.exportedAt ?? new Date().toISOString();
   const lines = [
-    "Squidley Public Colloquium Export",
+    "Peh Public Colloquium Export",
     `exportedAt: ${exportedAt}`,
     "localOnly: true",
     "cloudUsed: false",

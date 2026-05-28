@@ -110,7 +110,7 @@ interface UiMessage {
   receiptId?: string;
   metrics?: MessageMetrics;
   safetyReceiptHref?: string;
-  /** Squidley's user-visible correction when the model implied a tool action
+  /** Peh's user-visible correction when the model implied a tool action
    *  this build cannot perform. Shown as a small banner under the reply. The
    *  reply text itself is unchanged. */
   honestyMessage?: string;
@@ -217,11 +217,11 @@ interface UiMessage {
 }
 
 const EXAMPLE_MESSAGES: readonly UiMessage[] = [
-  { id: "ex-1", role: "user", text: "Hi Squidley — what is this app for?" },
+  { id: "ex-1", role: "user", text: "Hi Peh — what is this app for?" },
   {
     id: "ex-2",
     role: "assistant",
-    text: 'I\'m Squidley. This is Colloquium — Latin for "conversation." We can chat here, and I can teach you the rest of the app as we go.',
+    text: 'I\'m Peh. This is Colloquium — Latin for "conversation." We can chat here, and I can teach you the rest of the app as we go.',
     metrics: {
       source: "local",
       model: "example",
@@ -449,7 +449,7 @@ export default function ColloquiumClient() {
           status: "unavailable",
           endpoint: "http://localhost:11434",
           reason:
-            "Squidley tried to check your local model server, but the check could not complete.",
+            "Peh tried to check your local model server, but the check could not complete.",
         });
         setModels([]);
         setModelsReason("Start Ollama, then refresh models after the server is running.");
@@ -600,7 +600,7 @@ export default function ColloquiumClient() {
       setGatewayNotice(null);
       if (injectionAssessment.shouldWarnUser) {
         setInjectionNotice(
-          "Squidley noticed instructions that look like they may be trying to override safety, tools, receipts, or cloud controls. " +
+          "Peh noticed instructions that look like they may be trying to override safety, tools, receipts, or cloud controls. " +
           "Chat will continue locally, but tool and cloud actions may require review later.",
         );
       } else {
@@ -669,7 +669,7 @@ export default function ColloquiumClient() {
           return;
         }
         fail(
-          "Squidley couldn't reach the local server. Check that it's running, then try again.",
+          "Peh couldn't reach the local server. Check that it's running, then try again.",
         );
         return;
       }
@@ -725,7 +725,7 @@ export default function ColloquiumClient() {
             evalCount = event.evalCount;
           } else if (event.type === "honesty") {
             // The local model implied a tool action this build cannot
-            // perform. Squidley surfaces the correction next to the reply.
+            // perform. Peh surfaces the correction next to the reply.
             const honestyMessage = event.message;
             setMessages((prev) =>
               prev.map((m) =>
@@ -925,7 +925,7 @@ export default function ColloquiumClient() {
           fail("Stopped before the local model finished replying.");
           return;
         }
-        fail("The local model stream stopped before Squidley could finish the reply.");
+        fail("The local model stream stopped before Peh could finish the reply.");
         return;
       }
 
@@ -1042,7 +1042,7 @@ export default function ColloquiumClient() {
           ? {
               ...m,
               text:
-                "Squidley did not apply the edit. Nothing was written to disk.",
+                "Peh did not apply the edit. Nothing was written to disk.",
               editApprovalRequest: {
                 ...m.editApprovalRequest,
                 state: "declined",
@@ -1060,7 +1060,7 @@ export default function ColloquiumClient() {
           ? {
               ...m,
               text:
-                "Squidley did not read the file. You can ask again when you're ready, or rephrase the question.",
+                "Peh did not read the file. You can ask again when you're ready, or rephrase the question.",
               approvalRequest: { ...m.approvalRequest, state: "declined" },
             }
           : m,
@@ -1144,7 +1144,7 @@ export default function ColloquiumClient() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `squidley-colloquium-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.download = `peh-colloquium-${new Date().toISOString().slice(0, 10)}.txt`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -1155,7 +1155,7 @@ export default function ColloquiumClient() {
     if (pending || draft.trim().length === 0) return;
     const ok = saveColloquiumToVelumHandoff(window.sessionStorage, draft);
     if (!ok) {
-      setImportedDraftNote("Squidley could not prepare this draft for Velum in this browser.");
+      setImportedDraftNote("Peh could not prepare this draft for Velum in this browser.");
       return;
     }
     logTabulariumReceipt(window.localStorage, buildColloquiumVelumHandoffCreatedReceipt());
@@ -1418,10 +1418,10 @@ export default function ColloquiumClient() {
                 onKeyDown={handleKey}
                 placeholder={
                   pending
-                    ? "Squidley is thinking…"
+                    ? "Peh is thinking…"
                     : selectedModel.length === 0
                       ? "Pull a local model with Ollama to start chatting"
-                      : "Message Squidley… (Enter to send, Shift+Enter for newline)"
+                      : "Message Peh… (Enter to send, Shift+Enter for newline)"
                 }
                 rows={2}
                 style={{
@@ -1845,7 +1845,7 @@ function LocalHealthBanner({
       <StatusCallout
         tone="info"
         title="Checking your local model server…"
-        body="Public Squidley uses your local model server here. No cloud fallback is used."
+        body="Peh uses your local model server here. No cloud fallback is used."
       />
     );
   }
@@ -1864,7 +1864,7 @@ function LocalHealthBanner({
         hint={
           <>
             {selectionNote ? `${selectionNote} ` : ""}
-            {readinessMessage} Public Squidley uses your local model server here, with no cloud fallback.
+            {readinessMessage} Peh uses your local model server here, with no cloud fallback.
             {health.backendType === "llama-cpp" ? " llama-server support is pending real binary validation." : ""}
           </>
         }
@@ -1879,7 +1879,7 @@ function LocalHealthBanner({
       title="Local model server not available yet."
       body={
         health.reason ??
-        `Squidley tried to reach your local model server at ${health.endpoint}, but it does not seem to be running.`
+        `Peh tried to reach your local model server at ${health.endpoint}, but it does not seem to be running.`
       }
       detail={
         <>
@@ -1888,12 +1888,12 @@ function LocalHealthBanner({
           <div>ollama pull llama3.2</div>
           <div style={{ marginTop: 8, marginBottom: 6, fontWeight: 600, fontSize: 12, opacity: 0.7 }}>Option B: llama-server</div>
           <div>llama-server -m your-model.gguf --port 8080</div>
-          <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>Set SQUIDLEY_LOCAL_BACKEND=llama-cpp in .env.local</div>
+          <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>Set PEH_LOCAL_BACKEND=llama-cpp in .env.local</div>
         </>
       }
       hint={
         <>
-          Start Ollama or an OpenAI-compatible local backend, then refresh models. Check <code style={{ fontFamily: "var(--font-mono)" }}>SQUIDLEY_LOCAL_ENDPOINT</code> if using a custom port. No cloud fallback is used.
+          Start Ollama or an OpenAI-compatible local backend, then refresh models. Check <code style={{ fontFamily: "var(--font-mono)" }}>PEH_LOCAL_ENDPOINT</code> if using a custom port. No cloud fallback is used.
         </>
       }
       action={refreshButton}
@@ -1917,7 +1917,7 @@ function LocalReadinessGuidance({
     return (
       <InlineCallout
         tone="info"
-        title="Squidley found your local model server, but no local models are available yet."
+        title="Peh found your local model server, but no local models are available yet."
         body={
           modelsReason ??
           "Install one local model, then use Refresh models. Send stays disabled until a local model is available. No cloud fallback will be used."
@@ -1931,7 +1931,7 @@ function LocalReadinessGuidance({
     return (
       <InlineCallout
         tone="warn"
-        title="Squidley tried to reach your local model server."
+        title="Peh tried to reach your local model server."
         body="Start Ollama or an OpenAI-compatible local backend, pull/load a local model if needed, then use Refresh models. Send stays disabled until a local model is ready."
         detail={
           <>
@@ -2066,7 +2066,7 @@ function MessageBubble({
             WebkitBackdropFilter: "blur(8px)",
           }}
         >
-          <p style={{ fontWeight: 600 }}>Squidley hit a snag.</p>
+          <p style={{ fontWeight: 600 }}>Peh hit a snag.</p>
           <p style={{ marginTop: 4 }}>{message.text}</p>
           {message.safetyReceiptHref && (
             <p style={{ marginTop: 8 }}>
@@ -2132,14 +2132,14 @@ function MessageBubble({
             message.text
           ) : (
             <span style={{ fontStyle: "italic", color: "var(--text-dim)" }}>
-              Squidley is thinking…
+              Peh is thinking…
             </span>
           )}
         </div>
         {message.role === "assistant" && message.honestyMessage && (
           <div
             role="note"
-            aria-label="Squidley honesty correction"
+            aria-label="Peh honesty correction"
             style={{
               marginTop: 8,
               padding: "10px 12px",
@@ -2301,7 +2301,7 @@ function MessageBubble({
         {message.role === "assistant" && message.approvalRequest && (
           <div
             role="region"
-            aria-label="Squidley wants approval to read a file"
+            aria-label="Peh wants approval to read a file"
             style={{
               marginTop: 8,
               padding: "12px 14px",
@@ -2314,10 +2314,10 @@ function MessageBubble({
             }}
           >
             <div style={{ fontWeight: 600, marginBottom: 6 }}>
-              Squidley wants to read this file
+              Peh wants to read this file
             </div>
             <div style={{ marginBottom: 8 }}>
-              Reading is not the same as editing. Squidley will not change the
+              Reading is not the same as editing. Peh will not change the
               file. You can decline at any time.
             </div>
             <div style={{ marginBottom: 6 }}>
@@ -2397,7 +2397,7 @@ function MessageBubble({
                 }}
               >
                 {message.approvalRequest.state === "approved"
-                  ? "Approved. Squidley is reading the file once and will not change it."
+                  ? "Approved. Peh is reading the file once and will not change it."
                   : "Declined. The file was not read."}
               </div>
             )}
@@ -2419,12 +2419,12 @@ function MessageBubble({
             }}
           >
             <div style={{ fontWeight: 600, marginBottom: 4 }}>
-              Squidley wants to make a tiny edit
+              Peh wants to make a tiny edit
             </div>
             <div style={{ marginBottom: 6 }}>
               Editing is not the same as automatic. This applies one
               targeted text replacement and then re-reads the file to
-              verify. Squidley rolls back if anything looks wrong.
+              verify. Peh rolls back if anything looks wrong.
             </div>
             <div style={{ marginBottom: 6 }}>
               <span
@@ -2512,7 +2512,7 @@ function MessageBubble({
                 }}
               >
                 {message.editApprovalRequest.state === "approved"
-                  ? "Approved. Squidley is applying the edit and verifying it now."
+                  ? "Approved. Peh is applying the edit and verifying it now."
                   : "Declined. Nothing was written to disk."}
               </div>
             )}
@@ -2576,7 +2576,7 @@ function MessageBubble({
               textTransform: "uppercase",
               color: "var(--text-dim)",
             }}
-            title="Provenance: this reply was generated by the local model only. Public Squidley does not ship any tool execution surface."
+            title="Provenance: this reply was generated by the local model only. Peh does not ship any tool execution surface."
           >
             answered by local model only · no tool used · no cloud used
           </div>
@@ -2903,7 +2903,7 @@ async function readChatError(response: Response): Promise<string> {
   } catch {
     // Fall through to the friendly default.
   }
-  return "Squidley could not start a local model stream. Check that Ollama is running and the selected model is installed.";
+  return "Peh could not start a local model stream. Check that Ollama is running and the selected model is installed.";
 }
 
 async function* readStreamEvents(body: ReadableStream<Uint8Array>): AsyncGenerator<StreamEvent> {

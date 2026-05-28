@@ -1,7 +1,7 @@
-# Settings in Public Squidley
+# Settings in Peh
 
-Settings is Public Squidley's local control center. It helps you understand and
-manage what this browser stores for Squidley.
+Settings is Peh's local control center. It helps you understand and
+manage what this browser stores for Peh.
 
 ## Local Model
 
@@ -15,7 +15,7 @@ Settings shows read-only local model information:
 - discovered model count
 
 Endpoint and model editing are read-only in this pass because chat API routes
-use server-side configuration. Public Squidley does not use cloud fallback here.
+use server-side configuration. Peh does not use cloud fallback here.
 
 ## Tours and Onboarding
 
@@ -72,7 +72,7 @@ Controls:
 - export receipts as a client-side text file
 - clear receipts after confirmation
 
-Receipt retention is not editable yet; Public Squidley currently keeps the
+Receipt retention is not editable yet; Peh currently keeps the
 existing local receipt cap.
 
 ## Privacy and Local-Only
@@ -86,7 +86,7 @@ In the current public local version:
 - No cloud fallback is used.
 - No telemetry is uploaded.
 
-Clearing browser storage may remove local Squidley data.
+Clearing browser storage may remove local Peh data.
 
 ## Bug Reports
 

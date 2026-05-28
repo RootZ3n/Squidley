@@ -9,7 +9,7 @@
  * Important contract:
  *   - These helpers describe *decisions and permissions*, not *invocations*.
  *   - `cloudUsed` is ALWAYS false: a capability decision receipt records
- *     what Squidley evaluated, never that a cloud call took place.
+ *     what Peh evaluated, never that a cloud call took place.
  *   - `cloudAllowed === true` means cloud is permitted (consent + Velum +
  *     matching cloud profile). It is NOT the same as "cloud was used."
  *   - `providerMode === "cloud"` likewise describes routing intent on a
@@ -89,11 +89,11 @@ function detailFor(
 ): string {
   switch (state) {
     case "LOCAL_READY":
-      return "Squidley can run this locally. No cloud is required.";
+      return "Peh can run this locally. No cloud is required.";
     case "LOCAL_LIMITED":
-      return "Squidley can try this locally, but results may be weaker or slower than a larger model.";
+      return "Peh can try this locally, but results may be weaker or slower than a larger model.";
     case "CLOUD_OPTIONAL":
-      return "Squidley can run this locally. Cloud could improve the result, but is not used unless you opt in.";
+      return "Peh can run this locally. Cloud could improve the result, but is not used unless you opt in.";
     case "CLOUD_REQUIRED":
       return cloudAllowed
         ? "This needs a cloud capability. Consent was granted, but no cloud call was made by this decision."
@@ -111,7 +111,7 @@ const NEUTRAL_VIEW: CapabilityBadgeView = {
   tone: "neutral",
   shortDescription: "Capability state is not available.",
   detail:
-    "Squidley does not have enough information to describe this capability decision yet.",
+    "Peh does not have enough information to describe this capability decision yet.",
   cloudUsed: false,
   localAttemptAllowed: false,
   cloudAllowed: false,
@@ -271,7 +271,7 @@ function escalationDetail(
 
   switch (consentState) {
     case "required":
-      parts.push("Squidley needs your explicit consent before sending anything to the cloud.");
+      parts.push("Peh needs your explicit consent before sending anything to the cloud.");
       break;
     case "granted":
       parts.push("Cloud is allowed, but this receipt alone does not prove a cloud call happened.");
@@ -696,7 +696,7 @@ const CONSENT_DECISION_TONES: Record<ConsentDecisionString, CapabilityBadgeTone>
 
 const CONSENT_DECISION_SHORT: Record<ConsentDecisionString, string> = {
   granted: "Permission granted. Nothing has been sent by this receipt.",
-  denied: "Cloud use was denied. Squidley will keep this local.",
+  denied: "Cloud use was denied. Peh will keep this local.",
   cancelled: "No cloud decision was made. Nothing has been sent.",
   blocked: "Cloud use is blocked. Nothing has been sent.",
 };
@@ -721,7 +721,7 @@ function consentDecisionDetail(
       break;
     case "denied":
       parts.push(
-        "You denied cloud access. Squidley will keep this local or stop this action.",
+        "You denied cloud access. Peh will keep this local or stop this action.",
       );
       break;
     case "cancelled":

@@ -1,7 +1,7 @@
-# Public Squidley — Build Plan
+# Peh — Build Plan
 
 > Created 2026-05-04. Not a release audit — this is the phased build plan
-> for bringing public Squidley from current state to shippable MVP.
+> for bringing public Peh from current state to shippable MVP.
 
 ## Current Repo Assessment
 
@@ -38,7 +38,7 @@
 
 ### What this means
 
-Public Squidley is **substantially built**. The core local-chat-with-Ollama
+Peh is **substantially built**. The core local-chat-with-Ollama
 loop is validated, the llama.cpp/OpenAI-compatible local text path is
 implemented with real `llama-server` binary validation still pending, and all
 7 planned modules, the tour system, the receipt system, the prompt gateway,
@@ -154,7 +154,7 @@ works on a fresh machine, polish rough edges, and package for distribution."
 
 ### Phase 4: Tours + Onboarding Polish
 
-**Goal**: A complete beginner can use Squidley without reading docs.
+**Goal**: A complete beginner can use Peh without reading docs.
 
 - [ ] Tour flow: welcome → colloquium → velum → archivum → tabularium → nous → fabrica → done
 - [ ] Each tour step highlights the right element and has clear copy
@@ -168,7 +168,7 @@ works on a fresh machine, polish rough edges, and package for distribution."
 
 ### Phase 5: Packaging + Distribution
 
-**Goal**: Squidley is installable by the target audience.
+**Goal**: Peh is installable by the target audience.
 
 - [ ] Production build: `npm run build && npm start` serves the app correctly
 - [ ] systemd service template (Linux)
@@ -196,13 +196,13 @@ works on a fresh machine, polish rough edges, and package for distribution."
 ## First Implementation Prompt
 
 ```
-Fix public Squidley Phase 1: local chat and model detection.
+Fix public Peh Phase 1: local chat and model detection.
 
 Repo:
 /mnt/ai/squidley
 
 Context:
-Public Squidley has a working Colloquium chat, Ollama provider, streaming
+Peh has a working Colloquium chat, Ollama provider, streaming
 proxy, and 312 passing tests. Phase 1 goal is making the core
 install-to-chat path work perfectly on a fresh machine.
 

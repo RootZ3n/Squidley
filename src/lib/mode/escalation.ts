@@ -1,19 +1,19 @@
 /**
- * Cloud escalation policy for Squidley.
+ * Cloud escalation policy for Peh.
  *
  * Defines when and how local-to-cloud escalation may happen.
  * In Local Mode: no escalation, ever.
  * In Cloud Mode: escalation requires explicit policy, consent, and receipt.
  */
 
-import type { SquidleyMode, ModeState } from "./types";
+import type { PehMode, ModeState } from "./types";
 import type { ModeCapabilityStatus } from "./capabilityMatrix";
 
 export interface EscalationRequest {
   /** The capability being requested. */
   capabilityId: string;
   /** Current operating mode. */
-  mode: SquidleyMode;
+  mode: PehMode;
   /** Mode state at request time. */
   modeState: ModeState;
   /** Local capability status. */

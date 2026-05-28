@@ -31,7 +31,7 @@ export function buildNousModelPreferencesResetReceipt(): TabulariumReceiptInput 
     action: NOUS_RECEIPT_ACTION.modelPreferencesReset,
     status: "succeeded",
     title: "Local model preferences reset",
-    summary: "Nous cleared browser-local model preferences. Public Squidley still uses the local model server only.",
+    summary: "Nous cleared browser-local model preferences. Peh still uses the local model server only.",
     modelUsed: false,
     changedLocalStorage: true,
   };

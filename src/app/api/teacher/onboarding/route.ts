@@ -22,7 +22,7 @@ export async function GET(): Promise<Response> {
       objective: s.objective,
       requiredConcepts: s.requiredConcepts,
       userAction: s.userAction,
-      squidleyExplanation: s.squidleyExplanation,
+      pehExplanation: s.pehExplanation,
       completionCriteria: s.completionCriteria,
       nextStage: s.nextStage,
     })),

@@ -10,7 +10,7 @@
  *   - We never construct an offer without a Velum-redacted preview.
  *   - `cloudUsed` is `false` on every receipt until consent has been
  *     granted *and* an actual cloud call has been made elsewhere.
- *   - In Public Squidley, cloud execution is not implemented; this module
+ *   - In Peh, cloud execution is not implemented; this module
  *     therefore stops at "consent_denied"/"skipped" by default and exposes
  *     types so a future build can wire actual cloud calls without changing
  *     the receipt contract.
@@ -80,7 +80,7 @@ export function buildEscalationOffer(
     taskId: input.task.id,
     reason: sanitizeReceiptText(input.localFailureSummary, 220),
     beginnerExplanation:
-      "The local model got stuck. Squidley can ask a cloud model, but here is exactly what would be sent — and nothing has been sent yet.",
+      "The local model got stuck. Peh can ask a cloud model, but here is exactly what would be sent — and nothing has been sent yet.",
     redactedPreview: redacted,
     consentState: "pending",
     cloudConfigured: input.cloudConfigured,
@@ -124,7 +124,7 @@ export function buildEscalationOfferedReceipt(args: {
     status: "info",
     title: "Cloud escalation offered",
     summary:
-      "Squidley offered to ask a cloud model. Nothing has been sent. The user must approve first.",
+      "Peh offered to ask a cloud model. Nothing has been sent. The user must approve first.",
     metadata: {
       offerId: args.offer.id,
       taskId: args.offer.taskId,
@@ -178,7 +178,7 @@ export function buildConsentDecisionReceipt(args: {
     summary:
       isGranted
         ? "The user approved escalation. This build does not yet wire a cloud call, so nothing has been sent."
-        : "Squidley will stay local. Nothing has been sent.",
+        : "Peh will stay local. Nothing has been sent.",
     metadata: {
       offerId: args.offer.id,
       taskId: args.offer.taskId,

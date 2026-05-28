@@ -8,7 +8,7 @@ export const tabulariumTour: ModuleTour = {
       id: "intro",
       target: "intro",
       title: "Welcome to Tabularium",
-      body: '"Tabularium" means record room. This page shows local receipts so you can see what Squidley did.',
+      body: '"Tabularium" means record room. This page shows local receipts so you can see what Peh did.',
     },
     {
       id: "local",

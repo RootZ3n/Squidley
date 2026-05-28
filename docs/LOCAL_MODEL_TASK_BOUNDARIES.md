@@ -1,6 +1,6 @@
 # Local Model Task Boundaries
 
-Public Squidley's local-first rule is simple: **try the local model only when the task is inside that model's trust boundary; otherwise say what is missing.** Do not silently fall back to cloud.
+Peh's local-first rule is simple: **try the local model only when the task is inside that model's trust boundary; otherwise say what is missing.** Do not silently fall back to cloud.
 
 This document defines the first-pass task taxonomy used by `src/lib/localModels/taskSuitability.ts` and the local gauntlet.
 
@@ -10,9 +10,9 @@ This document defines the first-pass task taxonomy used by `src/lib/localModels/
 | --- | --- | --- |
 | `no-model-needed` | Browser-local or deterministic task. | Say it works without a model. |
 | `can-do-locally` | Reasonable local fit based on model class/size and current validation. | Say it can run locally, but still verify important facts/code. |
-| `try-locally-verify` | Local model can attempt it, but output quality is not trustworthy enough to advertise as reliable. | Say Squidley can try, then require human review. |
+| `try-locally-verify` | Local model can attempt it, but output quality is not trustworthy enough to advertise as reliable. | Say Peh can try, then require human review. |
 | `needs-stronger-local-model` | Current local model is too small or wrong class. | Recommend a stronger/specialized local model before offering cloud. |
-| `needs-cloud-unlock` | Local-only Public Squidley must not attempt this task. | Say it needs a future explicit cloud/tool unlock. |
+| `needs-cloud-unlock` | Local-only Peh must not attempt this task. | Say it needs a future explicit cloud/tool unlock. |
 | `blocked` | Missing model, wrong model type, or unsupported backend path. | Explain the local setup fix. |
 
 ## First-pass model boundaries

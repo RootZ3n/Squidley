@@ -150,10 +150,10 @@ function verificationPlanFor(extension: string): readonly TinyEditCheckId[] {
 }
 
 const TINY_EDIT_LIMITATIONS: readonly string[] = [
-  "Squidley applies one targeted text replacement and nothing else.",
-  "Squidley does not run shell commands or build steps.",
-  "Squidley does not edit more than one file per approval.",
-  "Squidley re-reads the file after writing and rolls back on any verification failure.",
+  "Peh applies one targeted text replacement and nothing else.",
+  "Peh does not run shell commands or build steps.",
+  "Peh does not edit more than one file per approval.",
+  "Peh re-reads the file after writing and rolls back on any verification failure.",
 ];
 
 function blockedResult(args: {
@@ -202,7 +202,7 @@ export async function proposeTinyEdit(
   if (!args.inspectedPaths.includes(path.relativePath)) {
     return blockedResult({
       path: path.relativePath,
-      reason: `Squidley will only edit files that were previously approved for inspection. Inspect '${path.relativePath}' first.`,
+      reason: `Peh will only edit files that were previously approved for inspection. Inspect '${path.relativePath}' first.`,
       receipts,
       now,
     });
@@ -318,7 +318,7 @@ export async function proposeTinyEdit(
       status: "info",
       title: "Tiny edit approval requested",
       summary:
-        "Squidley wants your approval to apply this tiny edit. Reading is not editing — approval applies to this exact change only.",
+        "Peh wants your approval to apply this tiny edit. Reading is not editing — approval applies to this exact change only.",
       metadata: { path: path.relativePath, proposal_id: proposal.id },
       now,
     }),
@@ -574,7 +574,7 @@ async function rollback(
         status: "failed",
         title: "Rollback failed",
         summary:
-          "Squidley could not restore the original contents. The file may be in a partially-edited state. " +
+          "Peh could not restore the original contents. The file may be in a partially-edited state. " +
           (err instanceof Error ? err.message : "unknown error"),
         metadata: { path: absolutePath },
         now,

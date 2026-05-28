@@ -7,9 +7,9 @@ export function explainRatioModel(profile: RatioModelCapabilityProfile): string 
 export function beginnerMessageForStatus(status: RatioDecisionStatus): string {
   switch (status) {
     case "available":
-      return "Squidley can do this with the current local setup.";
+      return "Peh can do this with the current local setup.";
     case "limited":
-      return "Squidley can help, but will stay in a safer limited mode.";
+      return "Peh can help, but will stay in a safer limited mode.";
     case "needs-stronger-model":
       return "This action needs a stronger reasoning model.";
     case "needs-cloud-unlock":
@@ -19,9 +19,9 @@ export function beginnerMessageForStatus(status: RatioDecisionStatus): string {
     case "needs-workspace":
       return "This action needs explicit workspace permission before it can run.";
     case "requires-approval":
-      return "Squidley can do this only after asking for approval.";
+      return "Peh can do this only after asking for approval.";
     case "blocked":
-      return "Squidley paused this because the safety posture is too risky for this action.";
+      return "Peh paused this because the safety posture is too risky for this action.";
     case "future":
       return "This is prepared for a future version and is not wired yet.";
   }

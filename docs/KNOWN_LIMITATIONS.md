@@ -1,6 +1,6 @@
 # Known Limitations
 
-Public Squidley is intentionally local-first and beginner-safe. These limits are
+Peh is intentionally local-first and beginner-safe. These limits are
 part of the current product boundary.
 
 ## Not Included Yet
@@ -34,7 +34,7 @@ part of the current product boundary.
 ## Browser Storage
 
 Local chats, Archivum entries, Tabularium receipts, and Nous model preferences
-are saved in this browser. Clearing browser storage can remove Squidley data.
+are saved in this browser. Clearing browser storage can remove Peh data.
 
 Use each module's export controls before clearing storage if you want a local
 backup.

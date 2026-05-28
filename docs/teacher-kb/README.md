@@ -1,6 +1,6 @@
-# Squidley Teaching Knowledge Base
+# Peh Teaching Knowledge Base
 
-This directory contains Squidley's teaching curriculum — beginner-friendly
+This directory contains Peh's teaching curriculum — beginner-friendly
 lessons that explain AI, agents, tools, modes, and safety from scratch.
 
 These lessons are designed for someone who has never used an AI tool before.

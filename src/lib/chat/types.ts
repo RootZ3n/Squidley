@@ -90,7 +90,7 @@ export interface ChatSuccessBody {
   responseMode?: import("./responseMode").ResponseMode;
   /**
    * If the local model's reply hallucinated a tool action (e.g. "I wrote the
-   * file"), this is Squidley's user-visible correction message. The model's
+   * file"), this is Peh's user-visible correction message. The model's
    * original `reply` is preserved unchanged.
    */
   honestyMessage?: string;
@@ -185,7 +185,7 @@ export interface ChatSuccessBody {
   };
   /**
    * Approval-required body for a tiny edit. Present when the user
-   * asked Squidley to make an edit but did not supply an approval
+   * asked Peh to make an edit but did not supply an approval
    * token. The UI renders a diff-preview + Approve/Decline panel. No
    * file content has been written.
    */

@@ -47,7 +47,7 @@ export function resolveModelSelection(args: {
   if (current.length > 0 && current !== fallback) {
     return {
       selectedModel: fallback,
-      note: `The selected model "${current}" is no longer available, so Squidley selected "${fallback}".`,
+      note: `The selected model "${current}" is no longer available, so Peh selected "${fallback}".`,
     };
   }
 
@@ -65,7 +65,7 @@ export function getModelReadiness(args: {
     return {
       kind: "streaming",
       canSend: false,
-      message: "Squidley is streaming a local reply.",
+      message: "Peh is streaming a local reply.",
     };
   }
 
@@ -73,7 +73,7 @@ export function getModelReadiness(args: {
     return {
       kind: "refreshing",
       canSend: false,
-      message: "Squidley is refreshing local models.",
+      message: "Peh is refreshing local models.",
     };
   }
 
@@ -81,7 +81,7 @@ export function getModelReadiness(args: {
     return {
       kind: "checking",
       canSend: false,
-      message: "Squidley is checking your local model server.",
+      message: "Peh is checking your local model server.",
     };
   }
 

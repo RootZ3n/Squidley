@@ -62,13 +62,13 @@ export function decomposeTask(
         {
           title: "Ask the user before continuing",
           description:
-            "This request was classified as too risky to run automatically. Squidley will explain what she sees and let the user decide.",
+            "This request was classified as too risky to run automatically. Peh will explain what she sees and let the user decide.",
           suggestedAction: "ask_user",
           safe: true,
         },
       ],
       beginnerExplanation:
-        "Squidley stopped because the request looked risky. She does not try to bypass that — she asks the user instead.",
+        "Peh stopped because the request looked risky. She does not try to bypass that — she asks the user instead.",
     };
   }
 
@@ -108,8 +108,8 @@ export function decomposeTask(
 
   const beginner =
     reason === "max-retries"
-      ? "Squidley tried this a few times and the same problem kept happening. Instead of looping forever, she broke the work into smaller, safer steps."
-      : "Squidley saw the same error twice. Rather than repeat herself, she suggests smaller steps so the user can pick what to try next.";
+      ? "Peh tried this a few times and the same problem kept happening. Instead of looping forever, she broke the work into smaller, safer steps."
+      : "Peh saw the same error twice. Rather than repeat herself, she suggests smaller steps so the user can pick what to try next.";
 
   return {
     originalTaskId: task.id,

@@ -44,7 +44,7 @@ export async function POST(req: Request): Promise<Response> {
   if (backend === "llama-cpp") {
     return error(
       "vision_not_supported",
-      "Oculus image analysis is not yet supported with llama-server. Ollama is required for local vision. Set SQUIDLEY_LOCAL_BACKEND=ollama to use a vision model.",
+      "Oculus image analysis is not yet supported with llama-server. Ollama is required for local vision. Set PEH_LOCAL_BACKEND=ollama to use a vision model.",
       400,
     );
   }
@@ -100,7 +100,7 @@ export async function POST(req: Request): Promise<Response> {
   } catch {
     return error(
       "local_provider_unreachable",
-      `Squidley tried to reach your local model server at ${config.endpoint}, but couldn't connect.`,
+      `Peh tried to reach your local model server at ${config.endpoint}, but couldn't connect.`,
       503,
     );
   }
@@ -113,7 +113,7 @@ export async function POST(req: Request): Promise<Response> {
   try {
     result = await upstream.json();
   } catch {
-    return error("local_provider_error", "The local model replied, but Squidley could not read the analysis.", 502);
+    return error("local_provider_error", "The local model replied, but Peh could not read the analysis.", 502);
   }
 
   const analysis =

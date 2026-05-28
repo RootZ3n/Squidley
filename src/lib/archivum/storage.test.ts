@@ -231,7 +231,7 @@ describe("Archivum storage", () => {
   it("formats exports with local-only header", () => {
     const entry = createArchivumEntry({ id: "e1", title: "Export", type: "note", text: "body", now: 1 });
     const exported = formatArchivumExport(entry, "2026-04-25T00:00:00.000Z");
-    expect(exported).toContain("Squidley Public Archivum Export");
+    expect(exported).toContain("Peh Public Archivum Export");
     expect(exported).toContain("localOnly: true");
     expect(exported).toContain("cloudUsed: false");
     expect(exported).toContain("body");
@@ -242,7 +242,7 @@ describe("Archivum storage", () => {
     const entry = createArchivumEntryFromOculusAnalysis({ id: "e1", title: "Bundle", text: "body", tags: "backup", now: 1 });
     const raw = formatArchivumBundle(createArchivumDocument([entry], 2), "2026-04-25T00:00:00.000Z");
     const preview = parseArchivumBundle(raw);
-    expect(raw).toContain("Squidley Public Archivum Bundle");
+    expect(raw).toContain("Peh Public Archivum Bundle");
     expect(preview?.entryCount).toBe(1);
     expect(preview?.sampleTitles).toEqual(["Bundle"]);
     expect(preview?.bundle.entries[0].tags).toEqual(["backup"]);

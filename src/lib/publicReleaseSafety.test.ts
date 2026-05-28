@@ -285,7 +285,7 @@ describe("public release safety contract", () => {
     expect(localChat).not.toContain("There is no other provider in the codebase");
     expect(matrix).toContain("Real `llama-server` binary was not available");
     expect(checklist).toContain("Full `llama-server` support is validated");
-    expect(checklist).toContain("Public Squidley does not use cloud providers without explicit consent");
+    expect(checklist).toContain("Peh does not use cloud providers without explicit consent");
     expect(nous).toContain("Ollama is the validated default local provider");
     expect(nous).toMatch(/real\s+`llama-server` binary still needs manual validation/);
     expect(nous).not.toContain("Ollama is the only active default provider");

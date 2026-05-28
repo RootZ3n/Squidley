@@ -58,7 +58,7 @@ describe("settings storage helpers", () => {
 
   it("formats local chat export with local-only metadata", () => {
     const exported = formatChatSessionsExport(createSessionsDocument({ now: 1 }), "2026-04-25T00:00:00.000Z");
-    expect(exported).toContain("Squidley Public Local Chat Export");
+    expect(exported).toContain("Peh Public Local Chat Export");
     expect(exported).toContain("localOnly: true");
     expect(exported).toContain("cloudUsed: false");
   });

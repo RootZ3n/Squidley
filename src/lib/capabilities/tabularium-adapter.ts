@@ -47,13 +47,13 @@ const TABULARIUM_MODULES: ReadonlySet<TabulariumModule> = new Set<TabulariumModu
 ]);
 
 const STATE_SUMMARY_PREFIX: Record<CapabilityRuntimeState, string> = {
-  LOCAL_READY: "Local ready: Squidley can attempt this locally.",
+  LOCAL_READY: "Local ready: Peh can attempt this locally.",
   LOCAL_LIMITED:
-    "Local limited: Squidley can attempt this locally, but results may be limited.",
+    "Local limited: Peh can attempt this locally, but results may be limited.",
   CLOUD_OPTIONAL:
-    "Cloud optional: Squidley can try locally, but cloud may improve the result.",
+    "Cloud optional: Peh can try locally, but cloud may improve the result.",
   CLOUD_REQUIRED:
-    "Cloud required: Squidley needs cloud capability before this can run.",
+    "Cloud required: Peh needs cloud capability before this can run.",
   BLOCKED: "Blocked: This capability is currently blocked.",
 };
 

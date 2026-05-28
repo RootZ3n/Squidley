@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { SquidleyMascot } from "@/components/SquidleyMascot";
+import { PehMascot } from "@/components/PehMascot";
 import type { ModuleTour } from "@/lib/tour";
 
 /**
@@ -103,7 +103,7 @@ export function CompanionTourPanel({
         className="motion-safe:animate-panel-in fixed bottom-6 right-6 z-40 w-[min(92vw,360px)] rounded-2xl border border-iris-200 bg-white p-5 shadow-xl dark:border-iris-700/60 dark:bg-ink-800"
       >
         <div className="flex items-start gap-3">
-          <SquidleyMascot size={56} framed className="shrink-0" />
+          <PehMascot size={56} framed className="shrink-0" />
           <div className="min-w-0 flex-1">
             <p className="text-xs font-medium uppercase tracking-wide text-iris-600 dark:text-iris-300">
               All done
@@ -140,7 +140,7 @@ export function CompanionTourPanel({
       className="motion-safe:animate-panel-in fixed bottom-6 right-6 z-40 w-[min(92vw,380px)] rounded-2xl border border-ink-200 bg-white/95 p-4 shadow-xl backdrop-blur-sm dark:border-ink-700 dark:bg-ink-800/95"
     >
       <div className="flex items-start gap-3">
-        <SquidleyMascot size={56} framed className="shrink-0" />
+        <PehMascot size={56} framed className="shrink-0" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <p className="text-[11px] font-medium uppercase tracking-wide text-iris-600 dark:text-iris-300">

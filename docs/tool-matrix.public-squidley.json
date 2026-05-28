@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
-  "product": "Public Squidley",
+  "product": "Peh",
   "generatedAt": "2026-05-20",
-  "principle": "A local model is not a tool by itself. This matrix enumerates every tool-like ability a user might EXPECT Squidley to perform and records the truth about whether the build ships a real implementation. The application-layer honesty annotator (src/lib/chat/honestyAnnotation.ts) overrides the model's text whenever it implies a tool action that this build cannot perform.",
-  "machineReadableSourceOfTruth": "This JSON is the machine-readable source of truth for the tool surface. It is consumed by scripts/public-squidley-diagnostic.mjs and the npm run verify:capabilities script. The markdown view (docs/TOOL_MATRIX_PUBLIC_SQUIDLEY.md) is a human-readable projection. When the two disagree, this JSON wins.",
+  "principle": "A local model is not a tool by itself. This matrix enumerates every tool-like ability a user might EXPECT Peh to perform and records the truth about whether the build ships a real implementation. The application-layer honesty annotator (src/lib/chat/honestyAnnotation.ts) overrides the model's text whenever it implies a tool action that this build cannot perform.",
+  "machineReadableSourceOfTruth": "This JSON is the machine-readable source of truth for the tool surface. It is consumed by scripts/peh-pub-diagnostic.mjs and the npm run verify:capabilities script. The markdown view (docs/TOOL_MATRIX_PUBLIC_SQUIDLEY.md) is a human-readable projection. When the two disagree, this JSON wins.",
   "statuses": {
     "LOCAL_TOOL_READY": "Real local tool is implemented, enabled, and tested. Produces a real tool receipt on success.",
     "LOCAL_MODEL_ONLY": "The capability is answered by the local model's TEXT alone, with no tool action. The model cannot claim a tool action; the honesty annotator overrides such claims.",
@@ -169,7 +169,7 @@
       "canUseNetwork": false,
       "publicLocalStatus": "NOT_IMPLEMENTED",
       "canonicalTier": "NOT_IMPLEMENTED",
-      "proof": "no PDF/DOCX parser dependency; static dep audit in scripts/public-squidley-diagnostic.mjs",
+      "proof": "no PDF/DOCX parser dependency; static dep audit in scripts/peh-pub-diagnostic.mjs",
       "receiptCoverage": "n/a",
       "honestUserMessage": "I can only work with text that has already been provided. This build does not include a local PDF/DOCX/spreadsheet parser."
     },
@@ -436,7 +436,7 @@
       "canonicalTier": "LOCAL_READY",
       "proof": "src/lib/providers/ollama.test.ts, src/lib/providers/llamacpp.test.ts, src/lib/egressGuard.test.ts",
       "receiptCoverage": "n/a (system listing)",
-      "honestUserMessage": "Squidley lists models from your local model server only — never from a cloud catalog."
+      "honestUserMessage": "Peh lists models from your local model server only — never from a cloud catalog."
     },
     {
       "toolId": "model_health",
@@ -458,7 +458,7 @@
       "canonicalTier": "LOCAL_READY",
       "proof": "src/lib/providers/ollama.test.ts, src/lib/providers/llamacpp.test.ts, src/lib/egressGuard.test.ts",
       "receiptCoverage": "n/a",
-      "honestUserMessage": "Squidley pings your configured local model server only."
+      "honestUserMessage": "Peh pings your configured local model server only."
     },
     {
       "toolId": "receipts_view",
@@ -507,8 +507,8 @@
     {
       "toolId": "diagnostics",
       "name": "Release-readiness diagnostic",
-      "route": "scripts/public-squidley-diagnostic.mjs",
-      "files": ["scripts/public-squidley-diagnostic.mjs"],
+      "route": "scripts/peh-pub-diagnostic.mjs",
+      "files": ["scripts/peh-pub-diagnostic.mjs"],
       "implemented": true,
       "enabledByDefault": true,
       "localOnly": true,
@@ -648,7 +648,7 @@
       },
       "proof": "src/lib/reliability/safeFileInspection.test.ts, src/lib/reliability/fileApproval.test.ts, src/lib/reliability/fileSafety.test.ts, src/lib/reliability/secretRedaction.test.ts, src/lib/chat/inspectionIntent.test.ts",
       "receiptCoverage": "yes (inspection.requested, inspection.approved, inspection.completed)",
-      "honestUserMessage": "Squidley reads one file at a time, only after you approve the exact path. Approval expires in ten minutes and is bound to that file — it cannot be reused for another file. Secrets are redacted before they reach the model."
+      "honestUserMessage": "Peh reads one file at a time, only after you approve the exact path. Approval expires in ten minutes and is bound to that file — it cannot be reused for another file. Secrets are redacted before they reach the model."
     },
     {
       "toolId": "tiny_edit",
@@ -692,7 +692,7 @@
       },
       "proof": "src/lib/editing/apply.test.ts, src/lib/editing/approval.test.ts, src/lib/editing/safety.test.ts, src/lib/editing/verifier.test.ts, src/lib/editing/diff.test.ts, src/lib/editing/types.test.ts, src/lib/chat/editIntent.test.ts, src/lib/chat/editingChat.test.ts",
       "receiptCoverage": "yes (editing.proposed, editing.approval-requested, editing.approved, editing.applied, editing.verified, editing.rollback-started, editing.rollback-completed)",
-      "honestUserMessage": "Squidley can replace ONE exact snippet in ONE already-inspected file (≤4 KB diff) — only after you approve the diff. A backup is kept in memory; if verification fails after the write, Squidley rolls back automatically. No mkdir, no unlink, no rename, no exec."
+      "honestUserMessage": "Peh can replace ONE exact snippet in ONE already-inspected file (≤4 KB diff) — only after you approve the diff. A backup is kept in memory; if verification fails after the write, Peh rolls back automatically. No mkdir, no unlink, no rename, no exec."
     },
     {
       "toolId": "planning",
@@ -726,7 +726,7 @@
       },
       "proof": "src/lib/planning/planner.test.ts, src/lib/planning/intent.test.ts, src/lib/planning/provenance.test.ts, src/lib/planning/types.test.ts, src/lib/chat/planningChat.test.ts",
       "receiptCoverage": "yes (planning.started, planning.completed, planning.blocked)",
-      "honestUserMessage": "Squidley can describe HOW she would approach a task with explicit evidence labels (known, inferred, assumed, missing) and a confidence level. The planner never executes — it only describes."
+      "honestUserMessage": "Peh can describe HOW she would approach a task with explicit evidence labels (known, inferred, assumed, missing) and a confidence level. The planner never executes — it only describes."
     },
     {
       "toolId": "reliability_layer",
@@ -769,7 +769,7 @@
       },
       "proof": "src/lib/reliability/runner.test.ts, src/lib/reliability/compoundTools.test.ts, src/lib/reliability/escalation.test.ts, src/lib/reliability/decompose.test.ts, src/lib/reliability/types.test.ts, src/lib/reliability/integration.test.ts",
       "receiptCoverage": "yes (reliability.task-started, reliability.step-pass, reliability.step-fail, reliability.cloud-suggested, reliability.completed)",
-      "honestUserMessage": "For complicated questions on a small local model, Squidley plans a short sequence of safe compound tools (explain project structure, inspect one file, summarise an error, run a health check) — max 6 steps, max 2 retries. Cloud escalation may be suggested but never auto-run."
+      "honestUserMessage": "For complicated questions on a small local model, Peh plans a short sequence of safe compound tools (explain project structure, inspect one file, summarise an error, run a health check) — max 6 steps, max 2 retries. Cloud escalation may be suggested but never auto-run."
     },
     {
       "toolId": "teacher_qa",
@@ -799,7 +799,7 @@
       "canonicalTier": "LOCAL_READY",
       "proof": "src/lib/teacher/teacher.test.ts, src/lib/teacher/integration.test.ts, src/lib/teacher/beginnerSimulation.test.ts",
       "receiptCoverage": "yes (teacher.concept-explained, teacher.lesson-viewed)",
-      "honestUserMessage": "Beginner questions about AI, models, cloud, tools, approvals, and Squidley herself are answered deterministically from the concept registry. No model call is required for known concepts."
+      "honestUserMessage": "Beginner questions about AI, models, cloud, tools, approvals, and Peh herself are answered deterministically from the concept registry. No model call is required for known concepts."
     },
     {
       "toolId": "honesty_annotation",
@@ -824,7 +824,7 @@
       "canonicalTier": "LOCAL_READY",
       "proof": "src/lib/chat/honestyAnnotation.test.ts, src/lib/toolHonesty.test.ts, src/lib/toolHonestyGauntletScript.test.ts",
       "receiptCoverage": "annotated on chat receipt; no separate receipt action",
-      "honestUserMessage": "When the model claims to have done a tool action this build cannot perform, Squidley adds a correction note explaining what really happened (or did not happen)."
+      "honestUserMessage": "When the model claims to have done a tool action this build cannot perform, Peh adds a correction note explaining what really happened (or did not happen)."
     },
     {
       "toolId": "provenance_footer",
@@ -847,7 +847,7 @@
       "canUseNetwork": false,
       "publicLocalStatus": "LOCAL_TOOL_READY",
       "canonicalTier": "LOCAL_READY",
-      "proof": "src/lib/publicReleaseSafety.test.ts (cloudUsed/toolsUsed forced false), scripts/public-squidley-diagnostic.mjs (provenance copy grep)",
+      "proof": "src/lib/publicReleaseSafety.test.ts (cloudUsed/toolsUsed forced false), scripts/peh-pub-diagnostic.mjs (provenance copy grep)",
       "receiptCoverage": "embedded in every chat receipt",
       "honestUserMessage": "Every reply tells you where it came from: 'answered by local model only · no tool used · no cloud used'. cloudUsed and toolsUsed are literal types in the response shape — they cannot be flipped at runtime."
     }

@@ -251,7 +251,7 @@ export function checkInspectPath(
   if (!ALLOWED_INSPECT_EXTENSIONS.includes(extension)) {
     return fail(
       "extension-not-allowed",
-      `Squidley only inspects source/doc files (${ALLOWED_INSPECT_EXTENSIONS.join(", ")}).`,
+      `Peh only inspects source/doc files (${ALLOWED_INSPECT_EXTENSIONS.join(", ")}).`,
     );
   }
 

@@ -202,7 +202,7 @@ export function buildVerification(args: BuildVerificationArgs): TinyEditVerifica
     return {
       checks,
       expectedOutcome:
-        "Squidley expected the file to contain the proposed snippet and remain well-formed.",
+        "Peh expected the file to contain the proposed snippet and remain well-formed.",
       verificationStatus: "failed",
       failureReason: failedCheck.detail ?? `Failed check: ${failedCheck.id}`,
     };
@@ -210,7 +210,7 @@ export function buildVerification(args: BuildVerificationArgs): TinyEditVerifica
   return {
     checks,
     expectedOutcome:
-      "Squidley expected the file to contain the proposed snippet and remain well-formed.",
+      "Peh expected the file to contain the proposed snippet and remain well-formed.",
     verificationStatus: "passed",
   };
 }

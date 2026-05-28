@@ -1,17 +1,17 @@
 /**
- * Mode-aware response provenance for Squidley.
+ * Mode-aware response provenance for Peh.
  *
  * Extends the existing ResponseProvenance with mode-specific fields.
  * Every response includes mode, cloud consent state, approval state,
  * and escalation tracking.
  */
 
-import type { SquidleyMode } from "./types";
+import type { PehMode } from "./types";
 import type { ResponseMode, ToolAttempt } from "../chat/responseMode";
 
 export interface ModeAwareProvenance {
   /** The operating mode that produced this response. */
-  mode: SquidleyMode;
+  mode: PehMode;
   /** Response mode classification. */
   responseMode: ResponseMode;
   /** Provider used (local or cloud provider id). */
@@ -128,7 +128,7 @@ export function makeCloudModeProvenance(args: {
  * Build provenance for a failed response in any mode.
  */
 export function makeFailedModeProvenance(args: {
-  mode: SquidleyMode;
+  mode: PehMode;
   reason: string;
   model?: string;
   backend?: "ollama" | "llama-cpp";

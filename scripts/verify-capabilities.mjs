@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * verify:capabilities — Public Squidley capability/tool matrix validator.
+ * verify:capabilities — Peh capability/tool matrix validator.
  *
  * Validates that docs/capability-matrix.public-squidley.json and
  * docs/tool-matrix.public-squidley.json are internally consistent and

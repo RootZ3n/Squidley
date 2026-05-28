@@ -1,6 +1,6 @@
 # Local Model Setup
 
-Public Squidley uses a local model server for Colloquium, Oculus, and
+Peh uses a local model server for Colloquium, Oculus, and
 Fabrica. Ollama is validated end-to-end. Colloquium and Fabrica can also use an
 OpenAI-compatible local text backend for llama.cpp/llama-server, but a real
 `llama-server` binary still needs manual validation. Oculus vision is
@@ -8,12 +8,12 @@ Ollama-only in this release. No cloud fallback is active.
 
 ## Defaults
 
-By default, Squidley expects:
+By default, Peh expects:
 
 ```text
-SQUIDLEY_LOCAL_ENDPOINT=http://localhost:11434
-SQUIDLEY_LOCAL_MODEL=llama3.2
-SQUIDLEY_LOCAL_BACKEND=auto
+PEH_LOCAL_ENDPOINT=http://localhost:11434
+PEH_LOCAL_MODEL=llama3.2
+PEH_LOCAL_BACKEND=auto
 ```
 
 These are server-side environment variables. They are not cloud credentials.
@@ -43,7 +43,7 @@ For the default public demo:
 ollama pull llama3.2
 ```
 
-Then start Squidley:
+Then start Peh:
 
 ```bash
 npm install
@@ -73,7 +73,7 @@ llama.cpp/llama-server vision is not supported in this release.
 
 ## Optional llama.cpp Text Backend
 
-Squidley has an OpenAI-compatible local text path for llama.cpp/llama-server.
+Peh has an OpenAI-compatible local text path for llama.cpp/llama-server.
 This path has been tested through Ollama's OpenAI-compatible endpoint. A real
 `llama-server` binary has not yet been validated on this release machine, so
 keep it labeled as pending real-machine validation.
@@ -81,9 +81,9 @@ keep it labeled as pending real-machine validation.
 Example configuration:
 
 ```text
-SQUIDLEY_LOCAL_BACKEND=llama-cpp
-SQUIDLEY_LOCAL_ENDPOINT=http://localhost:8080
-SQUIDLEY_LOCAL_MODEL=your-model-id
+PEH_LOCAL_BACKEND=llama-cpp
+PEH_LOCAL_ENDPOINT=http://localhost:8080
+PEH_LOCAL_MODEL=your-model-id
 ```
 
 Example server command for manual validation:

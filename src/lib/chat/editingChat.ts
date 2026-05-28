@@ -69,7 +69,7 @@ export interface EditingChatResult {
 
 function renderApprovalRequiredReply(req: TinyEditApprovalRequest, diff: TinyEditDiffPreview): string {
   const lines = [
-    `Squidley wants to make a tiny edit to \`${req.path}\`. Editing is not the same as automatic — you must approve this exact change before anything is written.`,
+    `Peh wants to make a tiny edit to \`${req.path}\`. Editing is not the same as automatic — you must approve this exact change before anything is written.`,
     "",
     `Summary: ${req.summary}`,
     `Confidence: ${req.confidence}   Risk: ${req.riskLevel}`,
@@ -79,7 +79,7 @@ function renderApprovalRequiredReply(req: TinyEditApprovalRequest, diff: TinyEdi
     ...diff.lines,
     "```",
     "",
-    "Click **Approve** below to apply this exact replacement once. Squidley will re-read the file and roll back automatically if anything looks wrong after writing.",
+    "Click **Approve** below to apply this exact replacement once. Peh will re-read the file and roll back automatically if anything looks wrong after writing.",
   ];
   return lines.join("\n");
 }
@@ -91,12 +91,12 @@ function renderApplyResultReply(r: TinyEditResult): string {
       .join("\n") ?? ""}`;
   }
   if (r.status === "applied-rolled-back") {
-    return `Squidley applied the edit, but verification failed and the original contents were restored.\n\nReason: ${r.failureReason ?? "verification failed"}`;
+    return `Peh applied the edit, but verification failed and the original contents were restored.\n\nReason: ${r.failureReason ?? "verification failed"}`;
   }
   if (r.status === "denied") {
-    return `Squidley refused to apply this edit. ${r.summary}`;
+    return `Peh refused to apply this edit. ${r.summary}`;
   }
-  return `Squidley refused to apply this edit. ${r.summary}`;
+  return `Peh refused to apply this edit. ${r.summary}`;
 }
 
 export async function handleEditingChatRequest(
@@ -124,7 +124,7 @@ export async function handleEditingChatRequest(
     const reply =
       r.status === "approval-required" && r.proposal
         ? renderApprovalRequiredReply(r.proposal.approvalRequest, r.diffPreview!)
-        : `Squidley refused to propose this edit. ${r.summary}`;
+        : `Peh refused to propose this edit. ${r.summary}`;
     return {
       status: r.status,
       reply,

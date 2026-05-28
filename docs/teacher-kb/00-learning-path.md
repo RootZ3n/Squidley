@@ -1,6 +1,6 @@
 # Learning Path
 
-This is the recommended order for learning how AI agents work with Squidley.
+This is the recommended order for learning how AI agents work with Peh.
 
 ## Beginner Path
 
@@ -12,16 +12,16 @@ This is the recommended order for learning how AI agents work with Squidley.
 6. **Tool Calls** — understand real actions vs generated text
 7. **Approvals and Risk** — understand why some actions need permission
 8. **Receipts and Provenance** — understand proof of what happened
-9. **Local Mode** — learn what Squidley can do locally
+9. **Local Mode** — learn what Peh can do locally
 10. **Cloud Mode** — learn what Cloud Mode adds
 11. **Autonomous Workflows** — learn about multi-step agent tasks
-12. **Safety** — understand Squidley's safety layers
+12. **Safety** — understand Peh's safety layers
 
 ## Reality Check
 
-13. **What Squidley Can Actually Do Today** — concrete, current
+13. **What Peh Can Actually Do Today** — concrete, current
     capabilities described in the same vocabulary as the capability
-    matrix. Read this before deciding what to ask Squidley to do.
+    matrix. Read this before deciding what to ask Peh to do.
 
 ## Quick Reference
 
@@ -31,7 +31,7 @@ This is the recommended order for learning how AI agents work with Squidley.
 ## Your Journey
 
 You start in Local Mode — everything is private by default and on your
-machine. As you learn, Squidley will help you understand when and how
+machine. As you learn, Peh will help you understand when and how
 to use Cloud Mode for more powerful capabilities. You are always in
-control. The "What Squidley Can Actually Do Today" module is the
+control. The "What Peh Can Actually Do Today" module is the
 shortest path to knowing what you can ask for right now.

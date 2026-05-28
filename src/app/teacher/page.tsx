@@ -12,7 +12,7 @@ interface OnboardingStage {
   objective: string;
   requiredConcepts: string[];
   userAction: string;
-  squidleyExplanation: string;
+  pehExplanation: string;
   completionCriteria: string;
   nextStage?: string;
 }
@@ -36,8 +36,8 @@ interface ConceptDetail extends Concept {
 // LocalStorage helpers
 // ---------------------------------------------------------------------------
 
-const PROGRESS_KEY = "squidley_onboarding_progress";
-const SETTINGS_KEY = "squidley_teaching_settings";
+const PROGRESS_KEY = "peh_onboarding_progress";
+const SETTINGS_KEY = "peh_teaching_settings";
 
 interface Progress {
   currentStage: string;
@@ -88,23 +88,23 @@ const defaultSettings: Settings = {
 const WIZARD_STEPS = [
   {
     id: "welcome",
-    title: "Welcome to Squidley",
-    body: "Squidley teaches AI agents step by step.\n\nShe is not just a chatbot. She is a guided learning environment that starts you locally, teaches every concept, and eventually graduates you into cloud-powered autonomous agent workflows.\n\nLet's walk through the basics.",
+    title: "Welcome to Peh",
+    body: "Peh teaches AI agents step by step.\n\nShe is not just a chatbot. She is a guided learning environment that starts you locally, teaches every concept, and eventually graduates you into cloud-powered autonomous agent workflows.\n\nLet's walk through the basics.",
   },
   {
     id: "local",
     title: "You are in Local Mode",
-    body: "Right now, everything runs on your machine.\n\nSquidley uses a local AI model (via Ollama) installed on your computer. Your text never leaves your device. There is no cost. There is no cloud call.\n\nThe provenance footer on every answer confirms this: \"answered by local model only / no tool used / no cloud used.\"",
+    body: "Right now, everything runs on your machine.\n\nPeh uses a local AI model (via Ollama) installed on your computer. Your text never leaves your device. There is no cost. There is no cloud call.\n\nThe provenance footer on every answer confirms this: \"answered by local model only / no tool used / no cloud used.\"",
   },
   {
     id: "can-do",
-    title: "What Squidley can do now",
-    body: "In Local Mode, Squidley can:\n\n- Chat with your local model\n- Answer questions about herself and AI concepts (from the Teacher Layer, no model call needed)\n- Show code suggestions (single-file, via Fabrica)\n- Analyze images (Ollama vision, limited)\n- Store notes in your browser (Archivum)\n- Show receipts for every action (Tabularium)\n- Explain her own capabilities honestly (Nous)",
+    title: "What Peh can do now",
+    body: "In Local Mode, Peh can:\n\n- Chat with your local model\n- Answer questions about herself and AI concepts (from the Teacher Layer, no model call needed)\n- Show code suggestions (single-file, via Fabrica)\n- Analyze images (Ollama vision, limited)\n- Store notes in your browser (Archivum)\n- Show receipts for every action (Tabularium)\n- Explain her own capabilities honestly (Nous)",
   },
   {
     id: "cannot-do",
-    title: "What Squidley cannot do yet",
-    body: "These features are planned but not implemented:\n\n- Write or read files on your computer\n- Run shell commands\n- Search the web\n- Inspect your project or repository\n- Connect to cloud AI providers (OpenAI, Anthropic, etc.)\n- Run autonomous multi-step workflows\n\nWhen Squidley cannot do something, she says so honestly. If the model claims otherwise, the honesty annotator catches it and adds a correction.",
+    title: "What Peh cannot do yet",
+    body: "These features are planned but not implemented:\n\n- Write or read files on your computer\n- Run shell commands\n- Search the web\n- Inspect your project or repository\n- Connect to cloud AI providers (OpenAI, Anthropic, etc.)\n- Run autonomous multi-step workflows\n\nWhen Peh cannot do something, she says so honestly. If the model claims otherwise, the honesty annotator catches it and adds a correction.",
   },
   {
     id: "provenance",
@@ -114,12 +114,12 @@ const WIZARD_STEPS = [
   {
     id: "tools",
     title: "Model text vs real tool actions",
-    body: "Right now, all of Squidley's answers are model-only: the model generates text, but no files are read, written, or changed.\n\nSometimes the model will say \"I wrote the file\" when no file was written. That is a hallucination. Squidley catches these and shows an honesty correction.\n\nIn the future, when tools are available, real tool actions will produce receipts as proof. Until then, if there is no receipt, it did not happen.",
+    body: "Right now, all of Peh's answers are model-only: the model generates text, but no files are read, written, or changed.\n\nSometimes the model will say \"I wrote the file\" when no file was written. That is a hallucination. Peh catches these and shows an honesty correction.\n\nIn the future, when tools are available, real tool actions will produce receipts as proof. Until then, if there is no receipt, it did not happen.",
   },
   {
     id: "next",
     title: "Try it out",
-    body: "Go to Colloquium (the chat page) and try asking:\n\n- \"What is a tool call?\"\n- \"What can you do locally?\"\n- \"Did anything leave my computer?\"\n\nThese questions are answered by the Teacher Layer, not the model. No model call needed.\n\nFor everything else, Squidley uses your local model. Check the provenance footer on each answer to see the difference.",
+    body: "Go to Colloquium (the chat page) and try asking:\n\n- \"What is a tool call?\"\n- \"What can you do locally?\"\n- \"Did anything leave my computer?\"\n\nThese questions are answered by the Teacher Layer, not the model. No model call needed.\n\nFor everything else, Peh uses your local model. Check the provenance footer on each answer to see the difference.",
   },
 ] as const;
 
@@ -207,7 +207,7 @@ export default function TeacherPage() {
   }, [expandedConcept]);
 
   // -- Ask --
-  const askSquidley = useCallback(async (question?: string) => {
+  const askPeh = useCallback(async (question?: string) => {
     const q = (question ?? askInput).trim();
     if (!q) return;
     if (question) setAskInput(question);
@@ -224,7 +224,7 @@ export default function TeacherPage() {
   // -- Render --
   return (
     <main className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-1">Squidley teaches AI agents step by step</h1>
+      <h1 className="text-2xl font-bold mb-1">Peh teaches AI agents step by step</h1>
       <p className="text-sm text-gray-600 mb-4">
         Local Mode: active | Cloud Mode: planned / not implemented
       </p>
@@ -236,7 +236,7 @@ export default function TeacherPage() {
         )}
         <TabBtn active={view === "onboarding"} onClick={() => setView("onboarding")}>Learning Path</TabBtn>
         <TabBtn active={view === "concepts"} onClick={() => setView("concepts")}>Concepts</TabBtn>
-        <TabBtn active={view === "ask"} onClick={() => setView("ask")}>Ask Squidley</TabBtn>
+        <TabBtn active={view === "ask"} onClick={() => setView("ask")}>Ask Peh</TabBtn>
         <TabBtn active={view === "settings"} onClick={() => setView("settings")}>Settings</TabBtn>
       </div>
 
@@ -296,7 +296,7 @@ export default function TeacherPage() {
               <h2 className="font-bold text-lg mb-1">{currentStage.title}</h2>
               <p className="text-sm text-gray-600 mb-2">{currentStage.objective}</p>
               <div className="bg-blue-50 rounded p-3 mb-3 text-sm leading-relaxed">
-                {currentStage.squidleyExplanation}
+                {currentStage.pehExplanation}
               </div>
               <p className="text-xs text-gray-500 mb-3">What to do: {currentStage.userAction}</p>
               {currentStage.requiredConcepts.length > 0 && (
@@ -385,21 +385,21 @@ export default function TeacherPage() {
       )}
 
       {/* ================================================================== */}
-      {/* ASK SQUIDLEY */}
+      {/* ASK PEH */}
       {/* ================================================================== */}
       {view === "ask" && (
         <section>
-          <h2 className="font-bold mb-1">Ask Squidley</h2>
+          <h2 className="font-bold mb-1">Ask Peh</h2>
           <p className="text-xs text-gray-500 mb-3">
             Answers come from the Teacher Layer. No model call. No cloud call.
           </p>
           <div className="flex gap-2 mb-4">
             <input type="text" value={askInput}
               onChange={e => setAskInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && askSquidley()}
+              onKeyDown={e => e.key === "Enter" && askPeh()}
               placeholder="e.g. What is a token?"
               className="flex-1 border rounded px-3 py-2 text-sm" />
-            <button onClick={() => askSquidley()}
+            <button onClick={() => askPeh()}
               className="px-3 py-2 bg-blue-500 text-white rounded text-sm">Ask</button>
           </div>
 
@@ -440,7 +440,7 @@ export default function TeacherPage() {
                 "Why can't you write files?",
                 "How do I start?",
               ].map(q => (
-                <button key={q} onClick={() => askSquidley(q)}
+                <button key={q} onClick={() => askPeh(q)}
                   className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200">{q}</button>
               ))}
             </div>

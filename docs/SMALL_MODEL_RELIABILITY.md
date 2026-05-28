@@ -14,7 +14,7 @@ llama-server) are useful but fragile. They:
 - repeat the same mistake when retried naively,
 - and can produce confident-sounding nonsense.
 
-The reliability layer adds beginner-safe guardrails so Squidley Public
+The reliability layer adds beginner-safe guardrails so Peh Public
 can use these models honestly without lying about their limits.
 
 ## Local-first policy
@@ -101,13 +101,13 @@ This contract is enforced by `integration.test.ts` and
 
 ## Read-only approval model (file inspection)
 
-Squidley Public can inspect project files from chat — once, read-only,
+Peh Public can inspect project files from chat — once, read-only,
 and only after the user clicks **Approve**. The pipeline is:
 
 1. **Intent detection** (`inspectionIntent.ts`): conservative regexes
    match phrases like "what does src/app/page.tsx do?", "inspect this
    file: package.json", "summarize docs/readme.md". A path is extracted
-   from the message; if intent matched but no path was found, Squidley
+   from the message; if intent matched but no path was found, Peh
    asks the user to name one rather than guessing.
 2. **Approval request** (`fileApproval.ts` + chat adapter): when no
    token is supplied, the response carries an `approvalRequired` body

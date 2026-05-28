@@ -1,21 +1,21 @@
 /**
- * Central mode resolver for Squidley.
+ * Central mode resolver for Peh.
  *
  * Determines the operating mode from config/env. Defaults to local.
  * Cloud mode requires EXPLICIT activation — API keys alone do not enable it.
  *
  * Resolution order:
- *   1. Explicit SQUIDLEY_MODE env var
+ *   1. Explicit PEH_MODE env var (legacy SQUIDLEY_MODE honored as fallback)
  *   2. Explicit config setting (future: UI-saved setting)
  *   3. Default: "local"
  *
  * Cloud mode activation requires:
- *   - SQUIDLEY_MODE=cloud (or equivalent explicit config)
+ *   - PEH_MODE=cloud (or equivalent explicit config)
  *   - At least one cloud provider configured (checked separately)
  *   - Invalid mode values fall back to "local" (fail closed)
  */
 
-import type { SquidleyMode, ModeState } from "./types";
+import type { PehMode, ModeState } from "./types";
 import { LOCAL_MODE_STATE, CLOUD_MODE_STATE } from "./types";
 import { ENV_ALIASES, resolveAliasedEnv } from "../compat/env";
 
@@ -41,7 +41,7 @@ export const CLOUD_API_KEY_ENV_VARS = [
   "ZAI_API_KEY",
 ] as const;
 
-function parseMode(value: string | undefined): SquidleyMode {
+function parseMode(value: string | undefined): PehMode {
   if (typeof value !== "string") return "local";
   const lower = value.trim().toLowerCase();
   if (lower === "cloud") return "cloud";
@@ -53,7 +53,7 @@ export interface ModeResolverInput {
   /** Environment variable bag. Defaults to process.env on server. */
   env?: Record<string, string | undefined>;
   /** Explicit mode override from UI/config. Takes precedence over env. */
-  explicitMode?: SquidleyMode;
+  explicitMode?: PehMode;
 }
 
 export interface ModeResolution {

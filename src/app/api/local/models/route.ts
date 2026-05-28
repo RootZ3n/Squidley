@@ -71,7 +71,7 @@ async function fetchOllamaModels(
           defaultModel: "",
           cloudUsed: false,
           errorCode: "local_provider_error",
-          reason: "Your local model server replied, but Squidley could not read the model list.",
+          reason: "Your local model server replied, but Peh could not read the model list.",
         },
         { status: 502 },
       );
@@ -105,7 +105,7 @@ async function fetchOllamaModels(
         configuredModel: config.model,
         cloudUsed: false,
         errorCode: "local_provider_unreachable",
-        reason: `Squidley tried to reach your local model server at ${config.endpoint}, but it does not seem to be running.`,
+        reason: `Peh tried to reach your local model server at ${config.endpoint}, but it does not seem to be running.`,
       },
       { status: 503 },
     );
@@ -149,7 +149,7 @@ async function fetchLlamaCppModels(
           defaultModel: "",
           cloudUsed: false,
           errorCode: "local_provider_error",
-          reason: "Your llama-server replied, but Squidley could not read the model list.",
+          reason: "Your llama-server replied, but Peh could not read the model list.",
         },
         { status: 502 },
       );
@@ -184,7 +184,7 @@ async function fetchLlamaCppModels(
         configuredModel: config.model,
         cloudUsed: false,
         errorCode: "local_provider_unreachable",
-        reason: `Squidley tried to reach llama-server at ${config.endpoint}, but it does not seem to be running.`,
+        reason: `Peh tried to reach llama-server at ${config.endpoint}, but it does not seem to be running.`,
       },
       { status: 503 },
     );

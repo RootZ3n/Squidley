@@ -1,8 +1,8 @@
 {
-  "name": "squidley",
+  "name": "peh-pub",
   "version": "0.1.0",
   "private": true,
-  "description": "Squidley — beginner-friendly, local-first, companion-guided AI workspace.",
+  "description": "Peh — beginner-friendly, local-first, companion-guided AI workspace.",
   "license": "Apache-2.0",
   "main": "electron/main.js",
   "scripts": {
@@ -20,7 +20,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "diagnostic": "node scripts/public-squidley-diagnostic.mjs",
+    "diagnostic": "node scripts/peh-pub-diagnostic.mjs",
     "prove:local-only": "node scripts/prove-local-only.mjs",
     "verify:capabilities": "node scripts/verify-capabilities.mjs",
     "verify:release": "npm run typecheck && npm run test && npm run diagnostic && npm run prove:local-only && npm run verify:capabilities && npm run gauntlet:local-model"
@@ -43,8 +43,8 @@
     "vitest": "1.6.1"
   },
   "build": {
-    "appId": "com.squidley.public",
-    "productName": "Squidley",
+    "appId": "com.peh.public",
+    "productName": "Peh",
     "directories": {
       "output": "dist-electron"
     },
@@ -71,14 +71,14 @@
           "arch": ["x64"]
         }
       ],
-      "icon": "public/squidley/icon.png"
+      "icon": "public/peh/icon.png"
     },
     "nsis": {
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "installerSidebar": null,
-      "shortcutName": "Squidley"
+      "shortcutName": "Peh"
     },
     "mac": {
       "target": [
@@ -88,7 +88,7 @@
         }
       ],
       "category": "public.app-category.developer-tools",
-      "icon": "public/squidley/icon.png"
+      "icon": "public/peh/icon.png"
     },
     "linux": {
       "target": [
@@ -96,7 +96,7 @@
         { "target": "deb", "arch": ["x64"] }
       ],
       "category": "Development",
-      "icon": "public/squidley/icon.png"
+      "icon": "public/peh/icon.png"
     }
   }
 }

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Squidley's Cloud Mode will eventually support autonomous tool execution. This document defines the safety design for that future capability.
+Peh's Cloud Mode will eventually support autonomous tool execution. This document defines the safety design for that future capability.
 
 ## Risk Tiers
 

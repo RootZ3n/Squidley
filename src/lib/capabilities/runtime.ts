@@ -1,5 +1,5 @@
 /**
- * Public Squidley capability runtime resolver.
+ * Peh capability runtime resolver.
  *
  * Pure, deterministic decision layer. Given a Capability and a snapshot of the
  * runtime context (available local/cloud provider profiles, consent flags,
@@ -181,7 +181,7 @@ export function decideCapabilityRuntime(
       requiresVelumReview: false,
       honestMessage:
         capability.honestMessages.blocked ??
-        "This capability is not active in public Squidley.",
+        "This capability is not active in public Peh.",
       reasons: ["Capability is registered with tier=blocked."],
     });
   }

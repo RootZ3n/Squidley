@@ -451,11 +451,11 @@ describe("Hallucinated tool/cloud claims in provenance", () => {
     const prov = makeLocalModeProvenance({
       hallucinatedActions: ["fs.write", "web_search"],
       unavailableTools: ["fs.write", "web.search"],
-      userVisibleHonestyMessage: "Squidley cannot write files.",
+      userVisibleHonestyMessage: "Peh cannot write files.",
     });
     expect(prov.hallucinatedActions).toEqual(["fs.write", "web_search"]);
     expect(prov.unavailableTools).toEqual(["fs.write", "web.search"]);
-    expect(prov.userVisibleHonestyMessage).toBe("Squidley cannot write files.");
+    expect(prov.userVisibleHonestyMessage).toBe("Peh cannot write files.");
     // cloudCalled must still be false
     expect(prov.cloudCalled).toBe(false);
   });

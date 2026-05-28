@@ -20,18 +20,18 @@ Each provider has different models, pricing, and policies.
 
 ## API Keys
 
-An API key is a password that lets Squidley talk to a provider's servers. You
+An API key is a password that lets Peh talk to a provider's servers. You
 get one by creating an account with a provider. Important:
 
 - API keys cost money per use (you pay for each request)
 - Keep your key secret — anyone with it can use your account
 - Do not put API keys in code that others can see
-- Squidley uses environment variables for API keys (not browser storage)
+- Peh uses environment variables for API keys (not browser storage)
 
 ## Cost
 
 Cloud calls cost money based on the number of tokens used. A typical
-conversation might cost a few cents. Longer conversations cost more. Squidley
+conversation might cost a few cents. Longer conversations cost more. Peh
 will warn you about costs before making cloud calls.
 
 ## Check Your Understanding

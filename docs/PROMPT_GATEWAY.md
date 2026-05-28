@@ -1,6 +1,6 @@
 # Prompt Gateway
 
-Public Squidley includes a deterministic Prompt Gateway in front of local model
+Peh includes a deterministic Prompt Gateway in front of local model
 calls. It is a small server-side safety check that runs before user-provided or
 imported text is sent to the configured local model server.
 
@@ -28,7 +28,7 @@ The gateway checks for prompt-injection signals such as:
 - exfiltration or data movement, such as "send this data"
 - secrecy and deception language, such as "do not tell the user"
 - encoded or hidden instruction hints, including suspicious HTML or code comments
-- requests to bypass Public Squidley's local/cloud boundaries
+- requests to bypass Peh's local/cloud boundaries
 
 Previews and summaries are redacted and shortened. The gateway should not store
 full user text, secrets, source files, generated output, or image data.
@@ -37,7 +37,7 @@ full user text, secrets, source files, generated output, or image data.
 
 When a browser client receives Prompt Gateway metadata, it creates a local
 Tabularium receipt. These receipts are written client-side to the same
-browser-local receipt store as other public Squidley receipts.
+browser-local receipt store as other public Peh receipts.
 
 Gateway receipts can show:
 
@@ -79,7 +79,7 @@ with a friendly structured error.
 The user-facing message is intentionally plain:
 
 ```text
-Squidley paused this request because it looked like it was trying to override
+Peh paused this request because it looked like it was trying to override
 system instructions or use tools this public version does not have. You can
 rephrase it as a question or review the text in Velum.
 ```
@@ -107,7 +107,7 @@ The gateway does not add:
 - agents, tools, or shell execution
 - file-system writes
 
-Public Squidley still uses only the configured local model server for model
+Peh still uses only the configured local model server for model
 workflows, with no cloud fallback.
 
 ## Limits

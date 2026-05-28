@@ -171,7 +171,7 @@ export default function FabricaPage() {
           setSafetyReceipt({
             message: response.ok && body.ok
               ? "Prompt Gateway added a safety caution before Fabrica used the local model."
-              : "Squidley paused this request to protect your local setup.",
+              : "Peh paused this request to protect your local setup.",
             href: tabulariumReceiptUrl(gatewayReceiptId),
           });
         }
@@ -339,14 +339,14 @@ export default function FabricaPage() {
       <TourHighlight target="intro" active={activeTarget}>
         <header className="border-b border-ink-200 pb-5 dark:border-ink-700">
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-iris-600 dark:text-iris-300">
-            Squidley · Fabrica
+            Peh · Fabrica
           </p>
           <h1 className="mt-1 font-serif text-3xl font-semibold text-ink-900 dark:text-ink-50">
             Beginner single-file workshop
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-600 dark:text-ink-300">
-            Fabrica is Squidley&rsquo;s beginner workshop. Paste or draft one file,
-            describe a small change, and Squidley can suggest an updated version for you to review.
+            Fabrica is Peh&rsquo;s beginner workshop. Paste or draft one file,
+            describe a small change, and Peh can suggest an updated version for you to review.
           </p>
           <TourHighlight target="local-only-indicator" active={activeTarget}>
             <div className="mt-3">
@@ -534,7 +534,7 @@ export default function FabricaPage() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="font-serif text-xl font-semibold text-ink-900 dark:text-ink-50">Suggested output</h2>
-            <p className="mt-1 text-sm text-ink-500 dark:text-ink-300">Review this carefully. Squidley has not saved or written anything.</p>
+            <p className="mt-1 text-sm text-ink-500 dark:text-ink-300">Review this carefully. Peh has not saved or written anything.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => void copyOutput()} disabled={!suggestion} className="rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm font-medium text-ink-700 hover:bg-ink-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-100">Copy output</button>

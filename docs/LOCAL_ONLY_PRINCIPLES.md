@@ -1,6 +1,6 @@
 # Local-Only Principles
 
-Public Squidley is **local-first**. The user should be able to install
+Peh is **local-first**. The user should be able to install
 the app, open it, and use the core modules without creating an account,
 reaching a cloud API, or trusting an external service.
 
@@ -21,8 +21,8 @@ In local-only mode, by default:
 
 ## What it does *not* mean
 
-- It does not mean Squidley is air-gapped. The OS can still reach the
-  network for things outside Squidley's control (DNS, OS updates).
+- It does not mean Peh is air-gapped. The OS can still reach the
+  network for things outside Peh's control (DNS, OS updates).
 - It does not mean encrypted-at-rest. Local storage is local-disk
   storage; users responsible for full-disk encryption use OS-level
   tools.

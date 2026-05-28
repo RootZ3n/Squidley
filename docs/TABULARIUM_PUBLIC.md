@@ -1,6 +1,6 @@
-# Tabularium in Public Squidley
+# Tabularium in Peh
 
-Tabularium is Squidley's local receipt room. It helps you understand what
+Tabularium is Peh's local receipt room. It helps you understand what
 happened, what stayed local, what used a model, and what changed in this
 browser.
 
@@ -22,18 +22,18 @@ A receipt is a small local record for a visible action, such as:
 - clearing local Colloquium chats from Settings
 
 Receipts are plain-language summaries. They are meant to build trust by showing
-what Squidley did.
+what Peh did.
 
 ## Local Storage
 
 Public Tabularium stores receipts in browser `localStorage`:
 
 ```text
-squidley.tabularium.receipts.v1
+peh.tabularium.receipts.v1
 ```
 
 The store is versioned and safe-parsed. If the stored data is corrupt or from an
-unsupported version, Squidley starts with an empty receipt list instead of
+unsupported version, Peh starts with an empty receipt list instead of
 crashing.
 
 Receipts include local-only metadata:
@@ -97,7 +97,7 @@ storage, or logs.
 **Export Receipts** creates a local text export with:
 
 ```text
-Squidley Public Tabularium Export
+Peh Public Tabularium Export
 exportedAt
 localOnly: true
 cloudUsed: false
@@ -116,4 +116,4 @@ Nothing is uploaded.
 
 Tabularium public v0.1 is not external auditing, compliance logging, telemetry,
 or cloud history. It is a local, beginner-readable receipt center for public
-Squidley.
+Peh.

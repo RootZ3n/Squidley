@@ -14,7 +14,7 @@ export interface ModuleProviderRequirement {
   active: boolean;
 }
 
-export interface PublicSquidleyModuleDefinition {
+export interface PublicPehModuleDefinition {
   id: string;
   displayName: string;
   latinMeaning?: string;

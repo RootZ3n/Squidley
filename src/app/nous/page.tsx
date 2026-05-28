@@ -214,7 +214,7 @@ export default function NousPage() {
         models: [],
         configuredModel: "",
         endpoint: "http://localhost:11434",
-        reason: "Squidley could not read the local model list. Start Ollama, then refresh this page.",
+        reason: "Peh could not read the local model list. Start Ollama, then refresh this page.",
       });
     }
   }
@@ -255,13 +255,13 @@ export default function NousPage() {
       <TourHighlight target="intro" active={activeTarget}>
         <header className="border-b border-ink-200 pb-5 dark:border-ink-700">
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-iris-600 dark:text-iris-300">
-            Squidley · Nous
+            Peh · Nous
           </p>
           <h1 className="mt-1 font-serif text-3xl font-semibold text-ink-900 dark:text-ink-50">
             System and model map
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-600 dark:text-ink-300">
-            Nous is Squidley&rsquo;s map of how the system thinks. It shows which modules exist,
+            Nous is Peh&rsquo;s map of how the system thinks. It shows which modules exist,
             what they do, and what models they use.
           </p>
           <TourHighlight target="local-only-indicator" active={activeTarget}>
@@ -299,7 +299,7 @@ export default function NousPage() {
                 Local model assignments
               </h2>
               <p className="mt-1 text-sm text-ink-500 dark:text-ink-300">
-                Changing these affects which local model Squidley uses where supported.
+                Changing these affects which local model Peh uses where supported.
               </p>
             </div>
             <button type="button" onClick={() => void loadLocalModels()} className="rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-100">
@@ -379,13 +379,13 @@ export default function NousPage() {
                 Ratio · Adaptive System Intelligence
               </p>
               <h2 className="mt-1 font-serif text-xl font-semibold text-ink-900 dark:text-ink-50">
-                How Squidley changes gears
+                How Peh changes gears
               </h2>
             </div>
             <span className={activeBadgeClass}>public-local</span>
           </div>
           <p className="mt-2 text-sm leading-6 text-ink-600 dark:text-ink-300">
-            Ratio is the source for the capability notes shown across Squidley. It changes gears based on the model and permissions available. Local models keep the public version private and safe. Capable cloud models can unlock advanced planning and agent workflows later, but only after explicit setup.
+            Ratio is the source for the capability notes shown across Peh. It changes gears based on the model and permissions available. Local models keep the public version private and safe. Capable cloud models can unlock advanced planning and agent workflows later, but only after explicit setup.
           </p>
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             <RatioProfileCard label="Colloquium model" model={selectedColloquiumModel} profile={ratioProfiles.colloquium} />
@@ -420,7 +420,7 @@ export default function NousPage() {
             Provider registry
           </h2>
           <p className="mt-1 text-sm text-ink-500 dark:text-ink-300">
-            This is metadata only. Public Squidley makes no cloud provider calls in this pass.
+            This is metadata only. Peh makes no cloud provider calls in this pass.
           </p>
           <div className="mt-3">
             <LocalStatusNote variant="cloudLocked" />
@@ -452,7 +452,7 @@ export default function NousPage() {
             Prepared for Cloud Unlock
           </h2>
           <p className="mt-2 text-sm leading-6 text-ink-600 dark:text-ink-300">
-            These providers are prepared but locked. Public Squidley will not use them unless you
+            These providers are prepared but locked. Peh will not use them unless you
             explicitly unlock and configure cloud access later. No API keys are collected here.
           </p>
           <ul className="mt-4 space-y-2 text-sm text-ink-600 dark:text-ink-300">

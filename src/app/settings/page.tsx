@@ -160,7 +160,7 @@ export default function SettingsPage() {
   function handleExportAllChats() {
     if (!sessionsDoc) return;
     downloadText(
-      `squidley-local-chats-${new Date().toISOString().slice(0, 10)}.txt`,
+      `peh-local-chats-${new Date().toISOString().slice(0, 10)}.txt`,
       formatChatSessionsExport(sessionsDoc),
       "text/plain;charset=utf-8",
     );
@@ -183,7 +183,7 @@ export default function SettingsPage() {
   function handleExportReceipts() {
     if (!tabulariumDoc) return;
     downloadText(
-      `squidley-tabularium-${new Date().toISOString().slice(0, 10)}.txt`,
+      `peh-tabularium-${new Date().toISOString().slice(0, 10)}.txt`,
       formatTabulariumExport(tabulariumDoc),
       "text/plain;charset=utf-8",
     );
@@ -203,13 +203,13 @@ export default function SettingsPage() {
     <div className="sq-page mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <header className="border-b border-ink-200 pb-5 dark:border-ink-700">
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-iris-600 dark:text-iris-300">
-          Squidley · Settings
+          Peh · Settings
         </p>
         <h1 className="mt-1 font-serif text-3xl font-semibold text-ink-900 dark:text-ink-50">
           Local Control Center
         </h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-600 dark:text-ink-300">
-          Manage the data Public Squidley stores in this browser, see local model
+          Manage the data Peh stores in this browser, see local model
           information, and restart guided tours. No cloud fallback is used here.
         </p>
         <nav className="mt-4 flex flex-wrap gap-2 text-xs">
@@ -250,8 +250,8 @@ export default function SettingsPage() {
           </dl>
           <p className="mt-3 text-xs text-ink-400">
             {localInfo.backendType === "llama-cpp"
-              ? "Using the llama.cpp/OpenAI-compatible text path. Real llama-server binary validation is still pending. Set SQUIDLEY_LOCAL_BACKEND in .env.local to change."
-              : "Public Squidley does not use cloud fallback here."
+              ? "Using the llama.cpp/OpenAI-compatible text path. Real llama-server binary validation is still pending. Set PEH_LOCAL_BACKEND in .env.local to change."
+              : "Peh does not use cloud fallback here."
             }
           </p>
         </Panel>
@@ -357,7 +357,7 @@ export default function SettingsPage() {
         </Panel>
 
         <Panel title="Tabularium Receipts">
-          <p className="text-sm text-ink-500 dark:text-ink-300">Receipts are local records of visible Squidley actions.</p>
+          <p className="text-sm text-ink-500 dark:text-ink-300">Receipts are local records of visible Peh actions.</p>
           <dl className="mt-4 space-y-2 text-sm">
             <InfoRow label="Receipts" value={String(tabulariumSummary.receiptCount)} />
             <InfoRow label="Oldest" value={formatMaybeDate(tabulariumSummary.oldestReceiptAt)} />
@@ -382,11 +382,11 @@ export default function SettingsPage() {
             <li>Notes (Archivum) are stored in this browser.</li>
             <li>Activity Log (Tabularium) receipts are stored in this browser.</li>
             <li>No cloud fallback is used in the current public local version.</li>
-            <li>Clearing browser storage may remove local Squidley data.</li>
+            <li>Clearing browser storage may remove local Peh data.</li>
           </ul>
           <div className="mt-4 rounded-lg border border-ink-100 bg-ink-50/70 p-3 dark:border-ink-700/60 dark:bg-ink-900/40">
             <p className="text-sm text-ink-600 dark:text-ink-300">
-              Found a bug? Squidley can open a prefilled email. No telemetry,
+              Found a bug? Peh can open a prefilled email. No telemetry,
               logs, local storage, prompts, or documents are attached automatically.
             </p>
             <BugReportLink

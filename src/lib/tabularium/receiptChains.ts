@@ -326,7 +326,7 @@ export function summarizeReceiptChain(chain: Readonly<TabulariumReceiptChain>): 
   }
 
   if (kind === "capability-decision") {
-    return "Squidley evaluated this capability before acting.";
+    return "Peh evaluated this capability before acting.";
   }
 
   if (kind === "standalone") {

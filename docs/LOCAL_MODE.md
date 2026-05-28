@@ -2,25 +2,25 @@
 
 ## What It Is
 
-Local Mode is Squidley's starting point — the foundation where everything runs
+Local Mode is Peh's starting point — the foundation where everything runs
 on your machine. It is the first phase of a larger product, not the final
 product itself.
 
 Local Mode is where beginners learn what AI models are, how chat works, and
-what "local-first" means, before graduating to Cloud Mode where Squidley
+what "local-first" means, before graduating to Cloud Mode where Peh
 becomes a fully capable autonomous agent.
 
 ## Status
 
 **Local Mode foundation: AUDITED / READY as a subsystem.**
 
-This does not mean Public Squidley is ready to ship. The product requires
+This does not mean Peh is ready to ship. The product requires
 Cloud Mode, teaching flows, tool execution, and beginner onboarding before
 public release. See [PUBLIC_SQUIDLEY_RELEASE_PLAN.md](PUBLIC_SQUIDLEY_RELEASE_PLAN.md).
 
 ## Key Properties
 
-- **Default mode** — active unless you explicitly set `SQUIDLEY_MODE=cloud`
+- **Default mode** — active unless you explicitly set `PEH_MODE=cloud`
 - **No cloud calls** — all fetch requests go to localhost only
 - **No tool execution** — no file write, no shell, no web search
 - **Local model chat** — Ollama or llama-server on localhost
@@ -59,7 +59,7 @@ These are planned capabilities. Local Mode is a stepping stone, not a ceiling.
 
 Setting `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or any other cloud API key does
 not change Local Mode behavior. Cloud Mode requires explicit opt-in via
-`SQUIDLEY_MODE=cloud`.
+`PEH_MODE=cloud`.
 
 ## Egress Guard
 

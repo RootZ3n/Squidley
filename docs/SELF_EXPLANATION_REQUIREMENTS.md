@@ -2,20 +2,20 @@
 
 ## Overview
 
-Squidley must be able to explain herself to a complete beginner. This is not
+Peh must be able to explain herself to a complete beginner. This is not
 optional polish — it is a core product requirement. The self-explanation system
 is part of the teaching layer (Phase 2) and must be implemented before public
 release.
 
 ## Required Questions
 
-Squidley must eventually be able to answer all of these in plain, beginner-
+Peh must eventually be able to answer all of these in plain, beginner-
 friendly language. Each answer must be accurate, honest, and free of jargon.
 
-### About Squidley
+### About Peh
 
 - **What are you?**
-  Squidley is a teaching agent that helps you learn how AI agents work, starting
+  Peh is a teaching agent that helps you learn how AI agents work, starting
   on your own machine and graduating to cloud-powered tools when you are ready.
 
 - **What can you do right now?**
@@ -39,13 +39,13 @@ friendly language. Each answer must be accurate, honest, and free of jargon.
   does the same job as Ollama.
 
 - **Why can't you write files in Local Mode?**
-  File writing is a tool action. In Local Mode, Squidley does not have tools
+  File writing is a tool action. In Local Mode, Peh does not have tools
   enabled. This is by design — it keeps things safe while you learn.
 
 ### About Cloud Mode
 
 - **What is Cloud Mode?**
-  Cloud Mode lets Squidley use AI models and tools hosted by companies like
+  Cloud Mode lets Peh use AI models and tools hosted by companies like
   OpenAI or Anthropic. It is more powerful but costs money and sends data over
   the internet.
 
@@ -54,7 +54,7 @@ friendly language. Each answer must be accurate, honest, and free of jargon.
   they process it, and send back a response.
 
 - **What is an API key?**
-  A password that lets Squidley talk to a cloud provider's servers. It is tied
+  A password that lets Peh talk to a cloud provider's servers. It is tied
   to your account and usually costs money per use.
 
 - **What is OpenRouter?**
@@ -63,41 +63,41 @@ friendly language. Each answer must be accurate, honest, and free of jargon.
 
 - **What is OpenAI?**
   The company that makes GPT models (like GPT-4). One of several cloud
-  providers Squidley can use in Cloud Mode.
+  providers Peh can use in Cloud Mode.
 
 - **How do I safely enable Cloud Mode?**
-  Set `SQUIDLEY_MODE=cloud` and configure an API key. Squidley will explain the
+  Set `PEH_MODE=cloud` and configure an API key. Peh will explain the
   cost and privacy implications before making any cloud calls.
 
 - **What costs money?**
-  Cloud provider calls cost money. Local mode is free. Squidley will warn you
+  Cloud provider calls cost money. Local mode is free. Peh will warn you
   before making any call that costs money.
 
 - **What data leaves my machine?**
   In Local Mode: nothing. In Cloud Mode: the text you send to the cloud
-  provider, after Velum review. Squidley will tell you what was sent.
+  provider, after Velum review. Peh will tell you what was sent.
 
 ### About Tools and Actions
 
 - **What is a tool?**
-  Something Squidley can use to take real actions, like reading a file, writing
+  Something Peh can use to take real actions, like reading a file, writing
   code, or searching the web. Tools are different from just generating text.
 
 - **What is a tool call?**
-  When Squidley uses a tool to do something real, not just talk about it.
+  When Peh uses a tool to do something real, not just talk about it.
 
 - **What is an approval gate?**
-  A safety checkpoint where Squidley asks your permission before doing something
+  A safety checkpoint where Peh asks your permission before doing something
   risky, like writing a file or running a command.
 
 ### About Trust and Honesty
 
 - **What does "no cloud call was made" mean?**
-  Squidley answered your question using only the local model on your machine.
+  Peh answered your question using only the local model on your machine.
   Nothing was sent to any company's server.
 
 - **What is a receipt?**
-  A record of what Squidley actually did. It shows which model answered, whether
+  A record of what Peh actually did. It shows which model answered, whether
   cloud was used, and whether any tools were used. It is proof, not just a claim.
 
 - **How do I know what you actually did?**
@@ -112,20 +112,20 @@ friendly language. Each answer must be accurate, honest, and free of jargon.
 ### About Control
 
 - **How do I stop you?**
-  Close the browser tab or stop the server. Squidley does not run in the
+  Close the browser tab or stop the server. Peh does not run in the
   background and does not continue working after you close the app.
 
 - **How do I undo something?**
   Tool actions that write files will (when implemented) produce receipts that
-  show exactly what was changed. Squidley will explain how to revert changes.
+  show exactly what was changed. Peh will explain how to revert changes.
 
 ### About Other Agents
 
 - **What is the difference between you and other agents?**
-  Squidley is designed to teach. She starts you locally so you learn the basics
+  Peh is designed to teach. She starts you locally so you learn the basics
   safely, then graduates you to cloud-powered agent workflows. Other agents
   like OpenClaw, Hermes, Aedis, and Ptah may have different strengths, but
-  Squidley's focus is making sure you understand what is happening at every step.
+  Peh's focus is making sure you understand what is happening at every step.
 
 ## Implementation Status
 
@@ -136,7 +136,7 @@ by a test suite — does not exist yet.
 ## Testing
 
 When implemented, a self-explanation test suite must verify:
-- Squidley can answer every question above
+- Peh can answer every question above
 - Answers are accurate against the current capability matrix
 - Answers do not overclaim
 - Answers do not use unexplained jargon

@@ -3,7 +3,7 @@ import type { ModuleTour } from "./types";
 /**
  * Colloquium tour. The first step MUST establish the Latin meaning of
  * "Colloquium" before anything else — that is the user's first impression of
- * Squidley as a companion that explains the system.
+ * Peh as a companion that explains the system.
  */
 export const colloquiumTour: ModuleTour = {
   moduleId: "colloquium",
@@ -13,13 +13,13 @@ export const colloquiumTour: ModuleTour = {
       id: "intro",
       target: "intro",
       title: "Welcome to Colloquium",
-      body: 'Hi! I\'m Squidley. "Colloquium" is Latin for "conversation" or "discussion" — that\'s what this screen is for. I\'ll walk you through it one small piece at a time, and you can stop whenever you like.',
+      body: 'Hi! I\'m Peh. "Colloquium" is Latin for "conversation" or "discussion" — that\'s what this screen is for. I\'ll walk you through it one small piece at a time, and you can stop whenever you like.',
     },
     {
       id: "chat-thread",
       target: "chat-thread",
       title: "The chat thread",
-      body: "Your messages and Squidley's replies appear here, newest at the bottom. Scroll up to see earlier turns. Nothing is sent anywhere unless you ask.",
+      body: "Your messages and Peh's replies appear here, newest at the bottom. Scroll up to see earlier turns. Nothing is sent anywhere unless you ask.",
     },
     {
       id: "input-box",
@@ -31,7 +31,7 @@ export const colloquiumTour: ModuleTour = {
       id: "local-only-indicator",
       target: "local-only-indicator",
       title: "Local-only mode",
-      body: "This badge tells you Squidley is running locally. Your conversations stay on this device. If we ever connect to a cloud model, the badge will change so you can see the difference at a glance.",
+      body: "This badge tells you Peh is running locally. Your conversations stay on this device. If we ever connect to a cloud model, the badge will change so you can see the difference at a glance.",
     },
     {
       id: "model-selector",

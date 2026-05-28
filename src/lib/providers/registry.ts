@@ -37,7 +37,7 @@ export const PROVIDER_REGISTRY: readonly ProviderRegistryEntry[] = [
     supportsStreaming: true,
     supportsVision: true,
     beginnerDescription:
-      "Runs on your computer. Public Squidley uses this for local chat and local image analysis when a matching model is available.",
+      "Runs on your computer. Peh uses this for local chat and local image analysis when a matching model is available.",
     status: "active",
   },
   {
@@ -52,7 +52,7 @@ export const PROVIDER_REGISTRY: readonly ProviderRegistryEntry[] = [
     supportsStreaming: true,
     supportsVision: false,
     beginnerDescription:
-      "A lightweight local inference server from llama.cpp. Squidley has an OpenAI-compatible local text path for it; real llama-server binary validation is still pending, and Oculus vision is not supported.",
+      "A lightweight local inference server from llama.cpp. Peh has an OpenAI-compatible local text path for it; real llama-server binary validation is still pending, and Oculus vision is not supported.",
     status: "active",
   },
   {
@@ -67,7 +67,7 @@ export const PROVIDER_REGISTRY: readonly ProviderRegistryEntry[] = [
     supportsStreaming: true,
     supportsVision: true,
     beginnerDescription:
-      "Prepared as future cloud-provider metadata. Public Squidley will not call it until cloud access is explicitly unlocked later.",
+      "Prepared as future cloud-provider metadata. Peh will not call it until cloud access is explicitly unlocked later.",
     status: "locked",
   },
   {

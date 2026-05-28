@@ -1,5 +1,5 @@
 /**
- * Onboarding progress model for Public Squidley.
+ * Onboarding progress model for Peh.
  *
  * Tracks which onboarding stages the user has completed, skipped, or
  * is currently viewing. Pure data model — storage is handled by the
@@ -129,4 +129,4 @@ export function getCompletionPercentage(progress: OnboardingProgress): number {
 /**
  * Storage key for browser localStorage.
  */
-export const ONBOARDING_STORAGE_KEY = "squidley_onboarding_progress";
+export const ONBOARDING_STORAGE_KEY = "peh_onboarding_progress";

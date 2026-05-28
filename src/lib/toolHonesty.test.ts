@@ -1,7 +1,7 @@
 /**
  * Tool-honesty integration tests.
  *
- * Public Squidley ships zero action tools. These tests prove that when the
+ * Peh ships zero action tools. These tests prove that when the
  * local model TEXT claims a tool action, the chat handler surfaces a
  * user-visible correction and does NOT let the answer slip through as a
  * success claim.

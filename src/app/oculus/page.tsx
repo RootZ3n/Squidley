@@ -220,7 +220,7 @@ export default function OculusPage() {
           setSafetyReceipt({
             message: response.ok && body.ok
               ? "Prompt Gateway added a safety caution before Oculus used the local model."
-              : "Squidley paused this request to protect your local setup.",
+              : "Peh paused this request to protect your local setup.",
             href: tabulariumReceiptUrl(gatewayReceiptId),
           });
         }
@@ -288,10 +288,10 @@ export default function OculusPage() {
     <div className="sq-page mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <TourHighlight target="intro" active={activeTarget}>
         <header className="border-b border-ink-200 pb-5 dark:border-ink-700">
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-iris-600 dark:text-iris-300">Squidley · Oculus</p>
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-iris-600 dark:text-iris-300">Peh · Oculus</p>
           <h1 className="mt-1 font-serif text-3xl font-semibold text-ink-900 dark:text-ink-50">Manual image review</h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-600 dark:text-ink-300">
-            Oculus helps Squidley look at an image or screenshot you choose. Nothing is watched in the background.
+            Oculus helps Peh look at an image or screenshot you choose. Nothing is watched in the background.
           </p>
           <TourHighlight target="local-only-indicator" active={activeTarget}>
             <div className="mt-3">

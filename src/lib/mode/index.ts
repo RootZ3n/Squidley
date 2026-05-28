@@ -1,4 +1,4 @@
-export type { SquidleyMode, ModeState, ToolPolicy, ProviderPolicy, CapabilityPolicy } from "./types";
+export type { PehMode, ModeState, ToolPolicy, ProviderPolicy, CapabilityPolicy } from "./types";
 export { LOCAL_MODE_STATE, CLOUD_MODE_STATE } from "./types";
 export {
   resolveMode,

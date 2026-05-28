@@ -78,7 +78,7 @@ export function createTabulariumReceipt(args: {
     module: args.module,
     action: sanitizeKey(args.action),
     status: args.status ?? "info",
-    title: sanitizeReceiptText(args.title, 96) || "Squidley receipt",
+    title: sanitizeReceiptText(args.title, 96) || "Peh receipt",
     summary: sanitizeReceiptText(args.summary),
     ...(args.provider ? { provider: args.provider } : {}),
     ...(args.model ? { model: sanitizeReceiptText(args.model, 96) } : {}),

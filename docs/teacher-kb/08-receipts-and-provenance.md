@@ -2,7 +2,7 @@
 
 ## What is a Receipt?
 
-A receipt is a record of what Squidley actually did. Every action gets a
+A receipt is a record of what Peh actually did. Every action gets a
 receipt — whether it is a model answer, a tool call, or a cloud request.
 
 A receipt shows:
@@ -15,7 +15,7 @@ A receipt shows:
 
 ## What is Provenance?
 
-Provenance means "where did this come from?" Every answer Squidley gives has
+Provenance means "where did this come from?" Every answer Peh gives has
 a provenance footer that shows:
 
 - **Mode:** Local or Cloud
@@ -27,7 +27,7 @@ Example: "Local Mode / Ollama / no cloud / no tool"
 
 ## The Tabularium
 
-The Tabularium is Squidley's receipt ledger. You can open it any time to
+The Tabularium is Peh's receipt ledger. You can open it any time to
 review all the receipts. It is stored in your browser only — clearing browser
 data removes it.
 
@@ -39,7 +39,7 @@ trail.
 
 Model text is not proof. A model saying "I wrote the file" does not mean a
 file was written. Only a receipt from a real tool action is proof. This is why
-Squidley's honesty system exists — to catch cases where the model claims
+Peh's honesty system exists — to catch cases where the model claims
 something that did not happen.
 
 ## Check Your Understanding

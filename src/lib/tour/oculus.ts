@@ -8,7 +8,7 @@ export const oculusTour: ModuleTour = {
       id: "intro",
       target: "intro",
       title: "Welcome to Oculus",
-      body: '"Oculus" means eye. This page helps Squidley look at an image or screenshot you choose manually.',
+      body: '"Oculus" means eye. This page helps Peh look at an image or screenshot you choose manually.',
     },
     {
       id: "privacy",

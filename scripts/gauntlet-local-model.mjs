@@ -17,17 +17,17 @@ const STATUS = {
 
 const backend = normalizeBackend(
   process.env.GAUNTLET_BACKEND ||
-    process.env.SQUIDLEY_LOCAL_BACKEND ||
+    process.env.PEH_LOCAL_BACKEND || process.env.SQUIDLEY_LOCAL_BACKEND ||
     "ollama",
 );
 const endpoint = normalizeEndpoint(
   process.env.GAUNTLET_ENDPOINT ||
-    process.env.SQUIDLEY_LOCAL_ENDPOINT ||
+    process.env.PEH_LOCAL_ENDPOINT || process.env.SQUIDLEY_LOCAL_ENDPOINT ||
     (backend === "openai-compatible" ? DEFAULT_OPENAI_ENDPOINT : DEFAULT_OLLAMA_ENDPOINT),
 );
 const modelOverride = (
   process.env.GAUNTLET_MODEL ||
-  process.env.SQUIDLEY_LOCAL_MODEL ||
+  process.env.PEH_LOCAL_MODEL || process.env.SQUIDLEY_LOCAL_MODEL ||
   ""
 ).trim();
 
@@ -319,7 +319,7 @@ function printLine(status, label, reason) {
 
 async function main() {
   const startedAt = new Date().toISOString();
-  console.log("Squidley local model gauntlet");
+  console.log("Peh local model gauntlet");
   console.log(`Backend: ${backend}`);
   console.log(`Endpoint: ${endpoint}`);
   console.log(`Model: ${modelOverride || "(discover from local model list)"}`);
@@ -421,7 +421,7 @@ async function main() {
       "These are rule-based smoke checks, not a benchmark and not proof of full model safety.",
       "PASS means the model satisfied this narrow prompt once.",
       "TRY_VERIFY means a beginner may try it locally, but a human should verify output.",
-      "NEEDS_CLOUD means this tiny check failed badly enough that Squidley should not advertise the capability for this model without stronger evidence.",
+      "NEEDS_CLOUD means this tiny check failed badly enough that Peh should not advertise the capability for this model without stronger evidence.",
       "BLOCKED means the task could not run or the model returned no usable text.",
     ],
     tasks: tasks.map((task) => ({ id: task.id, label: task.label, prompt: task.prompt })),

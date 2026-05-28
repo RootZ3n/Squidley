@@ -20,9 +20,9 @@ An agent can plan, use tools, and take real actions. It can read your files,
 write code, search the web, run commands, and execute multi-step workflows.
 The key difference: an agent's actions are real and verifiable, not just text.
 
-## Where Squidley Fits
+## Where Peh Fits
 
-Squidley is designed to be an agent that teaches you how agents work. In Local
+Peh is designed to be an agent that teaches you how agents work. In Local
 Mode, she currently acts like a chatbot (generating text only). As Cloud Mode
 and tools are built, she will gain agent capabilities — but she teaches you
 every concept along the way.
@@ -31,7 +31,7 @@ every concept along the way.
 
 When a chatbot says "I wrote the file," that is just text — no file was
 created. When an agent writes a file, there is a receipt proving what happened.
-Squidley's honesty system catches cases where the model claims to have done
+Peh's honesty system catches cases where the model claims to have done
 something it did not.
 
 ## Check Your Understanding

@@ -1,9 +1,9 @@
 /**
- * Public Squidley capability registry contracts.
+ * Peh capability registry contracts.
  *
  * A Capability is a per-action surface inside a public module. Each entry in a
  * module's `ratioActions` list maps to exactly one Capability. Capabilities are
- * the unit at which Squidley reasons about local readiness, cloud requirements,
+ * the unit at which Peh reasons about local readiness, cloud requirements,
  * and beginner-honest messaging.
  *
  * This file only defines contracts. The static registry lives in `registry.ts`.

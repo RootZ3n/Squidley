@@ -1,12 +1,12 @@
-# Public Squidley — Product Specification
+# Peh — Product Specification
 
 ## What this repo is
 
-This repository is the **public Squidley product**. It is a fresh,
+This repository is the **public Peh product**. It is a fresh,
 standalone codebase whose purpose is to ship a beginner-friendly,
 local-first AI companion to a wide audience.
 
-It is **not** Squidley V1. It is **not** Squidley V2. Squidley V2 exists
+It is **not** Peh V1. It is **not** Peh V2. Peh V2 exists
 only as a *lessons-learned* reference (see
 [`LESSONS_FROM_SQUIDLEY_V2.md`](LESSONS_FROM_SQUIDLEY_V2.md)). Private
 lab assumptions, machine names, hardcoded paths, debug panels,
@@ -15,13 +15,13 @@ in this codebase.
 
 ## Audience
 
-Public Squidley is built for users who:
+Peh is built for users who:
 
 - Are new to local AI tooling.
 - Want a calm, guided introduction rather than a power-user dashboard.
 - Care about keeping data on their device by default.
 
-Squidley itself is the teacher. The first run shows a Welcome screen
+Peh itself is the teacher. The first run shows a Welcome screen
 with the mascot and two options — **Start Tour** and **Skip Tour** — and
 the Companion Tour Mode walks new users through each module from
 *inside* the system, beginning with Colloquium.
@@ -29,7 +29,7 @@ the Companion Tour Mode walks new users through each module from
 ## Core principles
 
 1. **Beginner-friendly.** Plain language, no jargon, no hidden state.
-   Every interactive region of the screen is something Squidley can
+   Every interactive region of the screen is something Peh can
    explain on demand.
 2. **Local-first.** Core modules must work without a cloud account.
    The local-only badge in the header tells the user, at a glance, that
@@ -54,7 +54,7 @@ See [`MODULE_MATRIX.md`](MODULE_MATRIX.md) for the full table.
 
 ### Fabrica in public mode
 
-Fabrica is intentionally limited in public Squidley:
+Fabrica is intentionally limited in public Peh:
 
 - Single-file build/edit tasks only.
 - **Not** a full coding agent.
@@ -68,18 +68,18 @@ its own tour step.
 ## First-run experience
 
 1. User lands on `/` (Welcome).
-2. Sees the Squidley mascot and two buttons.
+2. Sees the Peh mascot and two buttons.
 3. Picks Start Tour or Skip Tour.
 4. The choice is persisted in `localStorage`:
-   - `squidley.firstRun.completed = "true"`
-   - `squidley.tourMode = "on" | "off"`
+   - `peh.firstRun.completed = "true"`
+   - `peh.tourMode = "on" | "off"`
 5. The user is routed to `/colloquium`. If tour mode is `on`, the
    Companion Tour Panel mounts and walks them through the Colloquium
    page step by step.
 
 The first tour step **must** establish the Latin meaning of
 "Colloquium." That is a hard product requirement — it sets the
-expectation that Squidley will teach the language of the system, not
+expectation that Peh will teach the language of the system, not
 just its buttons.
 
 ## Out of scope (for the foundation)

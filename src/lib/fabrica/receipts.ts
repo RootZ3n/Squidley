@@ -76,7 +76,7 @@ export function buildFabricaOutputExportedReceipt(): TabulariumReceiptInput {
     action: FABRICA_RECEIPT_ACTION.outputExported,
     status: "info",
     title: "Fabrica output exported",
-    summary: "The user exported a local Fabrica suggestion as a browser download. Squidley did not write directly to the file system.",
+    summary: "The user exported a local Fabrica suggestion as a browser download. Peh did not write directly to the file system.",
     modelUsed: false,
     metadata: { fileSystemWrites: false },
   };

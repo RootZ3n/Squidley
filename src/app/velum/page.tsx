@@ -148,7 +148,7 @@ export default function VelumPage() {
       <TourHighlight target="intro" active={activeTarget}>
         <header className="border-b border-ink-200 pb-5 dark:border-ink-700">
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-iris-600 dark:text-iris-300">
-            Squidley · Velum
+            Peh · Velum
           </p>
           <h1 className="mt-1 font-serif text-3xl font-semibold text-ink-900 dark:text-ink-50">
             What am I about to share?

@@ -2,7 +2,7 @@
 
 ## What is Local Mode?
 
-Local Mode is Squidley's default. Everything runs on your machine. Your text
+Local Mode is Peh's default. Everything runs on your machine. Your text
 never leaves your device. There is no cost and no API key needed.
 
 ## What Works in Local Mode
@@ -27,9 +27,9 @@ ceiling.
 
 ## The Egress Guard
 
-In Local Mode, Squidley's egress guard blocks all non-local network requests.
+In Local Mode, Peh's egress guard blocks all non-local network requests.
 Only localhost and private IP addresses are allowed. Cloud URLs are rejected.
-This is how Squidley guarantees nothing leaves your machine.
+This is how Peh guarantees nothing leaves your machine.
 
 ## API Keys Do Not Change Local Mode
 
@@ -38,6 +38,6 @@ The keys are ignored. Cloud Mode requires explicit opt-in.
 
 ## Check Your Understanding
 
-- What can Squidley do in Local Mode?
-- Why can't Squidley write files in Local Mode?
+- What can Peh do in Local Mode?
+- Why can't Peh write files in Local Mode?
 - What does the egress guard do?

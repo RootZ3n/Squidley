@@ -7,7 +7,7 @@ let tempRoot: string;
 let cwdSpy: { mockRestore(): void };
 
 beforeEach(async () => {
-  tempRoot = await mkdtemp(join(tmpdir(), "squidley-gauntlet-api-"));
+  tempRoot = await mkdtemp(join(tmpdir(), "peh-gauntlet-api-"));
   cwdSpy = vi.spyOn(process, "cwd").mockReturnValue(tempRoot);
   vi.resetModules();
 });

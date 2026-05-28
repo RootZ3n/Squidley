@@ -32,25 +32,25 @@ import { getModuleById } from "./registry";
 
 describe("module boundary constants", () => {
   it("preserves persisted storage key values", () => {
-    expect(COLLOQUIUM_STORAGE_KEY).toBe("squidley.colloquium.conversation.v1");
-    expect(COLLOQUIUM_SESSIONS_STORAGE_KEY).toBe("squidley.colloquium.sessions.v2");
-    expect(ARCHIVUM_STORAGE_KEY).toBe("squidley.archivum.entries.v1");
-    expect(TABULARIUM_STORAGE_KEY).toBe("squidley.tabularium.receipts.v1");
-    expect(NOUS_MODEL_PREFERENCES_KEY).toBe("squidley.nous.modelPreferences.v1");
+    expect(COLLOQUIUM_STORAGE_KEY).toBe("peh.colloquium.conversation.v1");
+    expect(COLLOQUIUM_SESSIONS_STORAGE_KEY).toBe("peh.colloquium.sessions.v2");
+    expect(ARCHIVUM_STORAGE_KEY).toBe("peh.archivum.entries.v1");
+    expect(TABULARIUM_STORAGE_KEY).toBe("peh.tabularium.receipts.v1");
+    expect(NOUS_MODEL_PREFERENCES_KEY).toBe("peh.nous.modelPreferences.v1");
   });
 
   it("preserves session handoff key values", () => {
-    expect(VELUM_HANDOFF_KEY).toBe("squidley.velum.redactedDraft.v1");
-    expect(COLLOQUIUM_TO_VELUM_HANDOFF_KEY).toBe("squidley.colloquium.velumDraft.v1");
-    expect(MORE_INPUT_TO_VELUM_HANDOFF_KEY).toBe("squidley.moreInput.velumDraft.v1");
-    expect(VELUM_TO_MORE_INPUT_HANDOFF_KEY).toBe("squidley.velum.moreInputRedacted.v1");
-    expect(OCULUS_TO_COLLOQUIUM_HANDOFF_KEY).toBe("squidley.oculus.colloquiumAnalysis.v1");
+    expect(VELUM_HANDOFF_KEY).toBe("peh.velum.redactedDraft.v1");
+    expect(COLLOQUIUM_TO_VELUM_HANDOFF_KEY).toBe("peh.colloquium.velumDraft.v1");
+    expect(MORE_INPUT_TO_VELUM_HANDOFF_KEY).toBe("peh.moreInput.velumDraft.v1");
+    expect(VELUM_TO_MORE_INPUT_HANDOFF_KEY).toBe("peh.velum.moreInputRedacted.v1");
+    expect(OCULUS_TO_COLLOQUIUM_HANDOFF_KEY).toBe("peh.oculus.colloquiumAnalysis.v1");
   });
 
   it("preserves export headers and source ids", () => {
-    expect(ARCHIVUM_EXPORT_HEADER).toBe("Squidley Public Archivum Export");
-    expect(ARCHIVUM_BUNDLE_NAME).toBe("Squidley Public Archivum Bundle");
-    expect(TABULARIUM_EXPORT_HEADER).toBe("Squidley Public Tabularium Export");
+    expect(ARCHIVUM_EXPORT_HEADER).toBe("Peh Public Archivum Export");
+    expect(ARCHIVUM_BUNDLE_NAME).toBe("Peh Public Archivum Bundle");
+    expect(TABULARIUM_EXPORT_HEADER).toBe("Peh Public Tabularium Export");
     expect(ARCHIVUM_ENTRY_SOURCES.manualPaste).toBe("manual-paste");
     expect(ARCHIVUM_ENTRY_SOURCES.oculusAnalysis).toBe("oculus-analysis");
     expect(FABRICA_ARCHIVUM_SOURCE).toBe("fabrica-suggestion");

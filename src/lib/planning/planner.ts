@@ -199,7 +199,7 @@ function buildBlockedPlan(args: {
       status: "failed",
       title: "Plan refused as blocked",
       summary:
-        "Squidley refused to produce a plan because the request was classified as blocked risk.",
+        "Peh refused to produce a plan because the request was classified as blocked risk.",
       now: args.now,
     }),
   ];
@@ -221,7 +221,7 @@ function buildBlockedPlan(args: {
         id: makeStepId(id, 0),
         title: "Ask the user before continuing",
         summary:
-          "This request looked risky. Squidley does not produce an executable plan for it. The user decides what to do next.",
+          "This request looked risky. Peh does not produce an executable plan for it. The user decides what to do next.",
         status: "blocked",
         requiredInputs: [],
         suggestedTools: [],
@@ -233,8 +233,8 @@ function buildBlockedPlan(args: {
     ],
     evidence: {},
     limitations: [
-      "Squidley does not act on blocked requests.",
-      "Squidley cannot bypass its own safety classification.",
+      "Peh does not act on blocked requests.",
+      "Peh cannot bypass its own safety classification.",
     ],
     suggestedNextInspections: [],
     receipts,
@@ -271,7 +271,7 @@ function buildSteps(args: {
     stepsRaw.push({
       title: "Inspect at least one relevant file",
       summary:
-        "Squidley has not inspected any file yet. Pick the most likely entry point and approve a read-only inspection.",
+        "Peh has not inspected any file yet. Pick the most likely entry point and approve a read-only inspection.",
       requiredInputs: ["A specific file path to inspect."],
       suggestedTools: ["inspect_one_file_safely"],
       relatedFiles: allHints,
@@ -281,8 +281,8 @@ function buildSteps(args: {
     });
   } else {
     stepsRaw.push({
-      title: "Review what Squidley already knows",
-      summary: `Squidley has packed contents of ${args.inspected.length} inspected file(s) to reason from.`,
+      title: "Review what Peh already knows",
+      summary: `Peh has packed contents of ${args.inspected.length} inspected file(s) to reason from.`,
       requiredInputs: [],
       suggestedTools: [],
       relatedFiles: [],
@@ -312,7 +312,7 @@ function buildSteps(args: {
     stepsRaw.push({
       title: `Describe the change you would make`,
       summary:
-        "Squidley will describe the change as text. This build does NOT apply edits — the user reviews the description and edits manually.",
+        "Peh will describe the change as text. This build does NOT apply edits — the user reviews the description and edits manually.",
       requiredInputs: ["The user's confirmation that the described change is what they want."],
       suggestedTools: [],
       relatedFiles: allHints,
@@ -324,7 +324,7 @@ function buildSteps(args: {
     stepsRaw.push({
       title: "Plan the removal (description only)",
       summary:
-        "Squidley will describe what to remove. It will not delete files itself. The user performs the removal.",
+        "Peh will describe what to remove. It will not delete files itself. The user performs the removal.",
       requiredInputs: ["User confirmation of which exact files / blocks to remove."],
       suggestedTools: [],
       relatedFiles: allHints,
@@ -337,7 +337,7 @@ function buildSteps(args: {
     stepsRaw.push({
       title: "Identify what to verify",
       summary:
-        "Describe the checks the user can run locally. Squidley will not run shell commands.",
+        "Describe the checks the user can run locally. Peh will not run shell commands.",
       requiredInputs: [],
       suggestedTools: [],
       relatedFiles: allHints,
@@ -349,7 +349,7 @@ function buildSteps(args: {
     stepsRaw.push({
       title: "Outline deploy steps (description only)",
       summary:
-        "Squidley does not deploy. It will outline steps the user can perform themselves.",
+        "Peh does not deploy. It will outline steps the user can perform themselves.",
       requiredInputs: ["Target environment from the user."],
       suggestedTools: [],
       relatedFiles: allHints,
@@ -361,7 +361,7 @@ function buildSteps(args: {
     stepsRaw.push({
       title: "Clarify the goal",
       summary:
-        "Squidley could not classify the intended action. Ask the user to rephrase or narrow the goal.",
+        "Peh could not classify the intended action. Ask the user to rephrase or narrow the goal.",
       requiredInputs: ["A more specific user goal."],
       suggestedTools: [],
       relatedFiles: [],
@@ -481,7 +481,7 @@ export function buildPlan(input: BuildPlanInput): ExecutionPlan {
       type: "model_inference",
       source: `intent:${signals.actionVerb}`,
       confidence: "low",
-      summary: `Squidley inferred the action verb '${signals.actionVerb}' from the user goal.`,
+      summary: `Peh inferred the action verb '${signals.actionVerb}' from the user goal.`,
     };
     hasModelInferenceEvidence = true;
   }
@@ -504,13 +504,13 @@ export function buildPlan(input: BuildPlanInput): ExecutionPlan {
   if (inspected.length === 0) {
     confidenceLevel = downgrade(confidenceLevel);
     confidenceLevel = downgrade(confidenceLevel);
-    missing.push("No file has been inspected yet — Squidley is reasoning only from your message.");
+    missing.push("No file has been inspected yet — Peh is reasoning only from your message.");
   } else if (inspected.length === 1) {
     confidenceLevel = downgrade(confidenceLevel);
   }
   if (signals.actionVerb === "unknown") {
     confidenceLevel = downgrade(confidenceLevel);
-    missing.push("Squidley could not classify what kind of change you want.");
+    missing.push("Peh could not classify what kind of change you want.");
   }
   if (signals.fileHints.length > inspected.length) {
     missing.push(
@@ -522,12 +522,12 @@ export function buildPlan(input: BuildPlanInput): ExecutionPlan {
     missing.push("No specific topic keywords were detected.");
   }
 
-  assumptions.push("Squidley assumes the goal applies to the local project only.");
+  assumptions.push("Peh assumes the goal applies to the local project only.");
   if (signals.actionVerb === "fix") {
-    assumptions.push("Squidley assumes the user wants a fix described, not applied.");
+    assumptions.push("Peh assumes the user wants a fix described, not applied.");
   }
   if (risk === "elevated") {
-    assumptions.push("Squidley treats elevated-risk requests as description-only.");
+    assumptions.push("Peh treats elevated-risk requests as description-only.");
   }
 
   const confidence: PlanConfidence = {
@@ -636,12 +636,12 @@ function buildConfidenceReasoning(args: {
   confidenceLevel: PlanConfidenceLevel;
 }): string {
   if (args.confidenceLevel === "high") {
-    return `Squidley has inspected ${args.inspected.length} relevant file(s) and detected a clear action verb. High confidence.`;
+    return `Peh has inspected ${args.inspected.length} relevant file(s) and detected a clear action verb. High confidence.`;
   }
   if (args.confidenceLevel === "medium") {
-    return `Squidley has some evidence but is missing pieces. Medium confidence.`;
+    return `Peh has some evidence but is missing pieces. Medium confidence.`;
   }
-  return `Squidley has very little evidence to plan from. Low confidence — treat the plan as suggestions.`;
+  return `Peh has very little evidence to plan from. Low confidence — treat the plan as suggestions.`;
 }
 
 function buildLimitations(
@@ -649,10 +649,10 @@ function buildLimitations(
   inspectedCount: number,
 ): string[] {
   const limits = [
-    "Squidley does not edit files in this build.",
-    "Squidley does not run shell commands.",
-    "Squidley does not call cloud models.",
-    "Squidley reads files only after explicit approval.",
+    "Peh does not edit files in this build.",
+    "Peh does not run shell commands.",
+    "Peh does not call cloud models.",
+    "Peh reads files only after explicit approval.",
   ];
   if (inspectedCount === 0) {
     limits.push("No file has been inspected — the plan is purely advisory.");

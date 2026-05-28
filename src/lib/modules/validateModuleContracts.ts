@@ -1,4 +1,4 @@
-import type { PublicSquidleyModuleDefinition } from "./contracts";
+import type { PublicPehModuleDefinition } from "./contracts";
 
 const VALID_CATEGORIES = new Set(["core-local", "cloud-unlock", "future"]);
 const VALID_STATUSES = new Set(["active", "limited", "prepared", "locked", "future"]);
@@ -8,7 +8,7 @@ export interface ModuleContractValidationOptions {
 }
 
 export function validateModuleContracts(
-  modules: readonly PublicSquidleyModuleDefinition[],
+  modules: readonly PublicPehModuleDefinition[],
   options: ModuleContractValidationOptions = {},
 ): string[] {
   const issues: string[] = [];
@@ -53,10 +53,10 @@ export function validateModuleContracts(
   return issues;
 }
 
-function usesStorage(module: PublicSquidleyModuleDefinition): boolean {
+function usesStorage(module: PublicPehModuleDefinition): boolean {
   return ["colloquium", "archivum", "tabularium", "nous", "settings"].includes(module.id);
 }
 
-function usesHandoffs(module: PublicSquidleyModuleDefinition): boolean {
+function usesHandoffs(module: PublicPehModuleDefinition): boolean {
   return ["colloquium", "velum", "archivum", "more-input", "oculus"].includes(module.id);
 }

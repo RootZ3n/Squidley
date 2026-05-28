@@ -1,8 +1,8 @@
-# Tool Matrix — Public Squidley
+# Tool Matrix — Peh
 
 This document is the truth matrix for every tool-like ability a user might
-expect Squidley to perform. The machine-readable form is
-[`docs/tool-matrix.public-squidley.json`](tool-matrix.public-squidley.json).
+expect Peh to perform. The machine-readable form is
+[`docs/tool-matrix.public-peh.json`](tool-matrix.public-peh.json).
 
 ## Core principle
 
@@ -10,7 +10,7 @@ expect Squidley to perform. The machine-readable form is
 
 A model can write text that says *"I wrote the file"*, *"I ran the
 command"*, *"I searched the web"*. Those sentences are LLM output; they
-are not evidence that anything actually happened. Public Squidley ships
+are not evidence that anything actually happened. Peh ships
 **zero action tools**, so any such claim from the model is a hallucination
 and must be corrected by the application, not by trusting the model.
 
@@ -76,7 +76,7 @@ Tests:
 | `model_health` | `/api/local/health` | system probe |
 | `receipts_view` (Tabularium) | `/tabularium` (browser-only) | tabularium.local-view |
 | `capability_discovery` (Nous) | `/nous` (browser-only) | n/a |
-| `diagnostics` | `scripts/public-squidley-diagnostic.mjs` | dev tool |
+| `diagnostics` | `scripts/peh-pub-diagnostic.mjs` | dev tool |
 
 These produce evidence of their action — a stored note, a returned model
 list, a probe response, a logged receipt, a static read of the registry,
@@ -98,7 +98,7 @@ or a printed JSON report.
 
 ## Tools that are NOT_IMPLEMENTED
 
-These are tools a user might naturally ask for, where Squidley's honesty
+These are tools a user might naturally ask for, where Peh's honesty
 annotator overrides any model claim:
 
 | Tool | What the user gets instead |
@@ -130,11 +130,11 @@ annotator overrides any model claim:
 | Question | Answer |
 |---|---|
 | Can a local model fs.write through this build? | **No.** No fs.write tool exists. |
-| If not, does Squidley say so? | **Yes.** Annotator emits `honestyMessage` when the model implies it. |
+| If not, does Peh say so? | **Yes.** Annotator emits `honestyMessage` when the model implies it. |
 | Can a local model run shell commands? | **No.** No shell tool exists. |
-| If not, does Squidley say so? | **Yes.** Annotator covers it. |
+| If not, does Peh say so? | **Yes.** Annotator covers it. |
 | Can a local model browse/search the web? | **No.** No browse/search tool. |
-| If not, does Squidley say so? | **Yes.** Annotator covers it. |
+| If not, does Peh say so? | **Yes.** Annotator covers it. |
 | Can a model hallucinate that it wrote/read/ran/searched something? | The model's *text* can. The application's response carries a clear honesty correction; the UI shows it; the receipt records it. The action did not happen. |
 | Can tool success be claimed without a tool receipt? | **No.** Every success-claiming surface (Tabularium receipt, UI provenance footer, response `responseMode`) is set by the application based on real evidence — not by the model's text. |
 | Can NOT_IMPLEMENTED tools appear ready? | **No.** The diagnostic verifies the tool matrix and capability matrix agree; UI footer says "no tool used"; module pages for locked features show locked-future copy. |

@@ -1,7 +1,7 @@
 /**
  * Mode-aware tool registry v2.
  *
- * Every tool-like action Squidley may perform is registered here with
+ * Every tool-like action Peh may perform is registered here with
  * its availability in each mode. This is the source of truth for what
  * tools exist, which modes they work in, and their implementation status.
  */
@@ -485,7 +485,7 @@ export const TOOL_REGISTRY: readonly ToolRegistryEntry[] = [
     enabledByDefaultLocal: true,
     enabledByDefaultCloud: true,
     proofReferences: [],
-    userFacingLocalMessage: "Explore what Squidley can and cannot do.",
+    userFacingLocalMessage: "Explore what Peh can and cannot do.",
     userFacingCloudMessage: "Explore capabilities across Local and Cloud modes.",
   },
 

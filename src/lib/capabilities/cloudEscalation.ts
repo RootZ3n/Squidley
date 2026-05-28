@@ -95,7 +95,7 @@ function defaultBeginnerExplanation(
 ): string {
   switch (decision.state) {
     case "CLOUD_REQUIRED":
-      return "This capability needs a cloud provider to run. Nothing has been sent yet. Squidley will ask for your explicit permission before sending anything.";
+      return "This capability needs a cloud provider to run. Nothing has been sent yet. Peh will ask for your explicit permission before sending anything.";
     case "CLOUD_OPTIONAL":
       return "A cloud provider could improve the result, but is not required. Nothing has been sent yet. You can choose to keep everything local.";
     case "LOCAL_LIMITED":

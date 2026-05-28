@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 /* ────────────────────────────────────────────────────────────────────────
-   Squidley Public — First-Run Setup Page
+   Peh Public — First-Run Setup Page
 
    Guides beginners through:
    1. Welcome / what is local-first
@@ -114,7 +114,7 @@ export default function SetupPage() {
         ollamaUp: false,
         models: [],
         checking: false,
-        error: "Could not reach Squidley server. Is it running?",
+        error: "Could not reach Peh server. Is it running?",
       });
     }
   }, []);
@@ -168,15 +168,15 @@ export default function SetupPage() {
               className="text-3xl font-bold"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              Welcome to Squidley
+              Welcome to Peh
             </h1>
             <p className="text-[var(--text-dim)] leading-relaxed">
-              Squidley is a <strong>local-first</strong> AI workspace. Your
+              Peh is a <strong>local-first</strong> AI workspace. Your
               conversations, notes, and data stay on your machine. Nothing is
               sent to the cloud unless you explicitly allow it.
             </p>
             <p className="text-[var(--text-dim)] leading-relaxed">
-              To get started, Squidley needs a local AI model running on your
+              To get started, Peh needs a local AI model running on your
               computer. We will guide you through setting that up.
             </p>
             <button
@@ -248,7 +248,7 @@ export default function SetupPage() {
                   <p className="text-red-400 text-sm">{health.error}</p>
                 )}
                 <p className="text-[var(--text-dim)]">
-                  Squidley needs Ollama to run AI models locally.
+                  Peh needs Ollama to run AI models locally.
                 </p>
                 <div className="flex gap-3">
                   <button
@@ -394,7 +394,7 @@ export default function SetupPage() {
               You&apos;re Ready!
             </h2>
             <p className="text-[var(--text-dim)] leading-relaxed">
-              Squidley is set up and connected to your local model. Everything
+              Peh is set up and connected to your local model. Everything
               runs on your machine — your conversations, notes, and data stay
               local.
             </p>
@@ -417,14 +417,14 @@ export default function SetupPage() {
                   Browser storage:
                 </strong>{" "}
                 Your data lives in this browser. Clearing browser data clears
-                Squidley data.
+                Peh data.
               </p>
             </div>
             <button
               className="sq-btn sq-btn-primary px-8 py-4 text-lg"
               onClick={markComplete}
             >
-              Open Squidley
+              Open Peh
             </button>
           </div>
         )}

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * scripts/public-squidley-diagnostic.mjs
+ * scripts/peh-pub-diagnostic.mjs
  *
- * Release-readiness diagnostic for Public Squidley.
+ * Release-readiness diagnostic for Peh.
  *
  * Exits non-zero on REAL failures:
  *   - cloud SDK dependency found
@@ -74,7 +74,7 @@ findings.push({ level: "info", label: "repoPath", detail: REPO_ROOT });
 
 const envExample = readSafe(".env.example");
 if (
-  envExample.includes("SQUIDLEY_LOCAL_ENDPOINT") &&
+  envExample.includes("PEH_LOCAL_ENDPOINT") &&
   envExample.includes("localhost") &&
   !envExample.includes("OPENAI_API_KEY") &&
   !envExample.includes("ANTHROPIC_API_KEY")
@@ -238,7 +238,7 @@ if (!existsSync(matrixJson) || !existsSync(matrixMd)) {
 // 8. Scripts presence
 const requiredScripts = [
   "scripts/prove-local-only.mjs",
-  "scripts/public-squidley-diagnostic.mjs",
+  "scripts/peh-pub-diagnostic.mjs",
   "scripts/smoke-llama-server.mjs",
   "scripts/gauntlet-local-model.mjs",
   "scripts/tool-honesty-gauntlet.mjs",
@@ -285,7 +285,7 @@ if (!existsSync(toolMatrixJson) || !existsSync(toolMatrixMd)) {
     for (const tool of parsed.tools || []) {
       // Any dangerous tool marked LOCAL_TOOL_READY must have an `implemented: true`
       // AND a real implementation file. We do not have any of these in
-      // Public Squidley, so the diagnostic FAILs if one appears claiming readiness.
+      // Peh, so the diagnostic FAILs if one appears claiming readiness.
       if (
         dangerousActionTools.includes(tool.toolId) &&
         tool.publicLocalStatus === "LOCAL_TOOL_READY"
@@ -422,7 +422,7 @@ if (overclaims.length === 0) {
 
 // 11. Live Ollama probe (informational)
 const ollamaEndpoint =
-  process.env.SQUIDLEY_LOCAL_ENDPOINT || "http://localhost:11434";
+  process.env.PEH_LOCAL_ENDPOINT || process.env.SQUIDLEY_LOCAL_ENDPOINT || "http://localhost:11434";
 let ollamaModelCount = null;
 try {
   const ctrl = new AbortController();
@@ -760,7 +760,7 @@ const localSubsystemReady = failures.length === 0;
 
 const summary = {
   schemaVersion: 4,
-  tool: "scripts/public-squidley-diagnostic.mjs",
+  tool: "scripts/peh-pub-diagnostic.mjs",
   completedAt: new Date().toISOString(),
   repoPath: REPO_ROOT,
   ollamaEndpoint,

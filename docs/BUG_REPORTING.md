@@ -1,7 +1,7 @@
-# Bug Reporting in Public Squidley
+# Bug Reporting in Peh
 
-Public Squidley uses a privacy-respecting bug report flow. When you click
-**Report issue**, Squidley opens a prefilled email in your mail app.
+Peh uses a privacy-respecting bug report flow. When you click
+**Report issue**, Peh opens a prefilled email in your mail app.
 
 ## Configuration
 
@@ -18,7 +18,7 @@ unavailable instead of sending anywhere.
 
 The prefilled email can include:
 
-- Product: Squidley Public
+- Product: Peh Public
 - version/build when available, otherwise `unknown`
 - page or module
 - local/cloud mode
@@ -33,7 +33,7 @@ Users choose what to send and can attach screenshots manually.
 
 ## What Is Not Included Automatically
 
-Squidley does not attach or upload:
+Peh does not attach or upload:
 
 - telemetry
 - logs

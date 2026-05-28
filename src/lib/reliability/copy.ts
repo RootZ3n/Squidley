@@ -13,26 +13,26 @@ import type { ReliabilityResult, ReliabilityStep } from "./types";
 export const RELIABILITY_HEADLINES = {
   introHeadline: "Local model reliability",
   whyDecompose:
-    "Why Squidley may break a big task into smaller steps",
+    "Why Peh may break a big task into smaller steps",
   whyAskBeforeCloud:
-    "Why Squidley sometimes asks before using cloud",
+    "Why Peh sometimes asks before using cloud",
   whySummarize:
-    "Why Squidley summarizes files instead of reading everything",
+    "Why Peh summarizes files instead of reading everything",
   whyValidate:
-    "Why Squidley double-checks her own answer before sending it",
+    "Why Peh double-checks her own answer before sending it",
 } as const;
 
 export const RELIABILITY_PLAIN_LANGUAGE = {
   introBody:
-    "Small local models are useful but need guardrails. Squidley uses compound tools, validation, retries, decomposition, and optional cloud escalation to stay honest. Local-first does not mean pretending local models can do everything.",
+    "Small local models are useful but need guardrails. Peh uses compound tools, validation, retries, decomposition, and optional cloud escalation to stay honest. Local-first does not mean pretending local models can do everything.",
   decomposeBody:
-    "When a big task keeps failing, Squidley stops retrying and suggests smaller, safer next steps. This is not the model giving up — it is the model being honest.",
+    "When a big task keeps failing, Peh stops retrying and suggests smaller, safer next steps. This is not the model giving up — it is the model being honest.",
   askBeforeCloudBody:
-    "Squidley never calls a cloud model on her own. If local is stuck, she offers to ask a cloud model and shows you exactly what would be sent (with secrets removed). You decide.",
+    "Peh never calls a cloud model on her own. If local is stuck, she offers to ask a cloud model and shows you exactly what would be sent (with secrets removed). You decide.",
   summarizeBody:
-    "Long files do not fit safely into a small model. Squidley reads the parts she needs, truncates the rest with a visible note, and never silently drops the middle of important code.",
+    "Long files do not fit safely into a small model. Peh reads the parts she needs, truncates the rest with a visible note, and never silently drops the middle of important code.",
   validateBody:
-    "Before saying 'done', Squidley checks that the file existed, the tool ran, and the answer is not empty. If a check fails, she retries once or escalates honestly.",
+    "Before saying 'done', Peh checks that the file existed, the tool ran, and the answer is not empty. If a check fails, she retries once or escalates honestly.",
 } as const;
 
 export interface ReliabilityCard {
@@ -66,14 +66,14 @@ export function summarizeReliabilityResultForBeginner(
   result: ReliabilityResult,
 ): string {
   if (result.ok) {
-    return "Squidley answered locally. The answer was checked for emptiness before it was shown.";
+    return "Peh answered locally. The answer was checked for emptiness before it was shown.";
   }
   if (result.cloudSuggested) {
-    return "Local could not finish this task. Squidley offered to ask a cloud model — nothing was sent.";
+    return "Local could not finish this task. Peh offered to ask a cloud model — nothing was sent.";
   }
   const decomposed = result.steps.some((s: ReliabilityStep) => s.kind === "decompose");
   if (decomposed) {
-    return "Local kept hitting the same problem. Instead of looping, Squidley suggested smaller steps to try.";
+    return "Local kept hitting the same problem. Instead of looping, Peh suggested smaller steps to try.";
   }
-  return "Local did not produce a complete answer. Squidley is being honest about that.";
+  return "Local did not produce a complete answer. Peh is being honest about that.";
 }

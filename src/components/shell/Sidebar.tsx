@@ -52,7 +52,7 @@ const PRIMARY: NavItem[] = [
     accent: "#bc8cff",
     accentDim: "rgba(188,140,255,0.18)",
     icon: <HomeIcon />,
-    hint: "Start here. Overview of what Squidley can do today.",
+    hint: "Start here. Overview of what Peh can do today.",
   },
   {
     href: "/colloquium",
@@ -406,7 +406,7 @@ export function DesktopSidebar() {
 
   return (
     <nav
-      aria-label="Squidley primary navigation"
+      aria-label="Peh primary navigation"
       onMouseEnter={() => setExpanded(true)}
       onMouseLeave={() => setExpanded(false)}
       onFocus={() => setExpanded(true)}
@@ -475,7 +475,7 @@ export function DesktopSidebar() {
             transition: "opacity 180ms 80ms, transform 220ms ease",
           }}
         >
-          SQUIDLEY
+          PEH
         </span>
       </Link>
 
@@ -575,7 +575,7 @@ export function DesktopSidebar() {
         </div>
         <BugReportLink
           pageModule="Shell"
-          issueSummary="Public Squidley issue"
+          issueSummary="Peh issue"
           className="mt-1 flex min-h-8 items-center px-[18px] text-xs font-medium text-ink-300 no-underline hover:text-squid-200"
           unavailableChildren={
             <span
@@ -745,7 +745,7 @@ export function MobileTabBar() {
       )}
 
       <nav
-        aria-label="Squidley mobile navigation"
+        aria-label="Peh mobile navigation"
         style={{
           position: "fixed",
           bottom: 0,

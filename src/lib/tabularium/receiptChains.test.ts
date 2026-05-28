@@ -140,7 +140,7 @@ function makeCapabilityReceipt(opts: {
     createdAt: opts.createdAt ?? 5000,
     action: "capability.decision",
     title: "Capability decision: test-cap",
-    summary: "Squidley evaluated this capability.",
+    summary: "Peh evaluated this capability.",
     metadata: {
       capabilityId: opts.capabilityId ?? "test-cap",
       capabilityState: "LOCAL_READY",
@@ -688,7 +688,7 @@ describe("summarizeReceiptChain", () => {
       cloudUsed: false,
     };
     expect(summarizeReceiptChain(chain)).toBe(
-      "Squidley evaluated this capability before acting.",
+      "Peh evaluated this capability before acting.",
     );
   });
 

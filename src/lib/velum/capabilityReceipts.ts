@@ -4,7 +4,7 @@
  * Bridges the Velum local-review flow into the capability decision receipt
  * pipeline. Pure functions only; no fetch, no provider calls, no cloud calls.
  *
- * Important: this receipt is about Squidley's *capability decision* (i.e.
+ * Important: this receipt is about Peh's *capability decision* (i.e.
  * "Velum's deterministic-review capability is LOCAL_READY") -- it is NOT a
  * record of the reviewed text. The reviewed text and per-finding previews
  * stay in memory inside the VelumReviewResult and are never copied here.
