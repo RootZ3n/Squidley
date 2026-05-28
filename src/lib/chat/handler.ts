@@ -124,7 +124,7 @@ export async function handleChatRequest(args: {
       "local_provider_unreachable",
       timedOut
         ? `Peh's local model call to ${args.config.endpoint} timed out. ${serverHint}`
-        : `Peh tried to reach your local model server at ${args.config.endpoint}, but couldn't connect. ${serverHint}`,
+        : `Awe nuts — Peh tried to reach your local model server at ${args.config.endpoint}, but couldn't connect. ${serverHint}`,
     );
   }
 

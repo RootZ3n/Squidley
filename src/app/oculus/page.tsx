@@ -425,7 +425,7 @@ export default function OculusPage() {
         {analysis ? (
           <p className="mt-3 whitespace-pre-wrap rounded-lg border border-ink-100 bg-ink-50/70 p-3 text-sm text-ink-700 dark:border-ink-700/60 dark:bg-ink-900 dark:text-ink-100">{analysis}</p>
         ) : (
-          <p className="mt-3 text-sm text-ink-500 dark:text-ink-300">No analysis yet.</p>
+          <p className="mt-3 text-sm text-ink-500 dark:text-ink-300">No analysis yet — pick an image and Peh will take a look, all on your machine.</p>
         )}
         <TourHighlight target="oculus-handoff" active={activeTarget}>
           <div className="mt-3 flex flex-wrap gap-2">

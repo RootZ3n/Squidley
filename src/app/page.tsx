@@ -67,8 +67,8 @@ export default function WelcomePage() {
   return (
     <AppPageShell
       eyebrow="Peh · welcome"
-      title="Hi, I'm Peh."
-      intro="A friendly companion that runs on your device. Take a 60-second guided tour, or jump straight into Colloquium."
+      title="Halito! I'm Peh."
+      intro="Full name Pehlichi, but Peh is fine. I'm a friendly guide that runs right here on your device — curious, a little eccentric, and honest about what I can and can't do. Take a 60-second guided tour, or jump straight into Colloquium."
       accent="#bc8cff"
       headerRight={
         <span

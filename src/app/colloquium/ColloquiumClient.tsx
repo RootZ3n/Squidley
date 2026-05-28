@@ -2025,8 +2025,8 @@ function ExampleHeader() {
       <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>
         Example conversation.
       </span>{" "}
-      This is what Colloquium looks like — it will be replaced with your own
-      chat once you send a message.
+      This is what Colloquium looks like. Say hi to Peh and it gets replaced
+      with your own chat — everything stays on your machine.
     </div>
   );
 }

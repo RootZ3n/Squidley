@@ -14,7 +14,7 @@ export const ONBOARDING_STAGES: readonly OnboardingStage[] = [
     objective: "Understand that Peh is a teacher that helps you learn how AI agents work.",
     requiredConcepts: [],
     userAction: "Read the welcome screen and click Continue.",
-    pehExplanation: "Hi, I'm Peh. I'm going to teach you how AI agents work — starting right here on your own machine, where everything stays private and free. I'll explain every step as we go.",
+    pehExplanation: "Halito! My full name is Pehlichi, but you can call me Peh. I'm going to teach you how AI agents actually work — starting right here on your own machine, where your words stay private by default and nothing costs you a thing. I'll explain every step as we go, and I promise to tell you the truth about what I can and can't do.",
     completionCriteria: "User has read the welcome message.",
     nextStage: "what-is-agent",
   },
