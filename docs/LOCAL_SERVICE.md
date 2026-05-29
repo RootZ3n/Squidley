@@ -13,13 +13,13 @@ the existing production Next.js app locally.
 The service file lives in:
 
 ```text
-ops/systemd/squidley-public.service
+ops/systemd/peh-public.service
 ```
 
 It is intended to be installed at:
 
 ```text
-~/.config/systemd/user/squidley-public.service
+~/.config/systemd/user/peh-public.service
 ```
 
 It runs:
@@ -58,7 +58,7 @@ The installer:
 - creates `~/.config/systemd/user` if needed
 - copies the service file
 - runs `systemctl --user daemon-reload`
-- enables `squidley-public.service`
+- enables `peh-public.service`
 
 It does not require root and does not use `sudo`.
 
@@ -66,7 +66,7 @@ Build and start the service:
 
 ```bash
 npm run build
-systemctl --user start squidley-public.service
+systemctl --user start peh-public.service
 ```
 
 Open:
@@ -78,10 +78,10 @@ http://localhost:3000
 ## Start, Stop, Restart, Status
 
 ```bash
-systemctl --user start squidley-public.service
-systemctl --user stop squidley-public.service
-systemctl --user restart squidley-public.service
-systemctl --user status squidley-public.service
+systemctl --user start peh-public.service
+systemctl --user stop peh-public.service
+systemctl --user restart peh-public.service
+systemctl --user status peh-public.service
 ```
 
 ## Logs
@@ -89,13 +89,13 @@ systemctl --user status squidley-public.service
 Follow logs:
 
 ```bash
-journalctl --user -u squidley-public.service -f
+journalctl --user -u peh-public.service -f
 ```
 
 Show recent logs:
 
 ```bash
-journalctl --user -u squidley-public.service --no-pager -n 80
+journalctl --user -u peh-public.service --no-pager -n 80
 ```
 
 ## Rebuild Flow
@@ -103,8 +103,8 @@ journalctl --user -u squidley-public.service --no-pager -n 80
 Use the rebuild helper after code changes:
 
 ```bash
-chmod +x ops/squidley-public-rebuild.sh
-./ops/squidley-public-rebuild.sh
+chmod +x ops/peh-public-rebuild.sh
+./ops/peh-public-rebuild.sh
 ```
 
 It runs:
@@ -113,8 +113,8 @@ It runs:
 npm run typecheck
 npm test
 npm run build
-systemctl --user restart squidley-public.service
-systemctl --user --no-pager status squidley-public.service
+systemctl --user restart peh-public.service
+systemctl --user --no-pager status peh-public.service
 ```
 
 If any check fails, the script stops before restarting the service.
@@ -124,7 +124,7 @@ If any check fails, the script stops before restarting the service.
 Source the alias file from your shell:
 
 ```bash
-source /mnt/ai/squidley/ops/squidley-public-aliases.sh
+source /mnt/ai/squidley/ops/peh-public-aliases.sh
 ```
 
 Available aliases:
@@ -143,7 +143,7 @@ sqpub-rebuild
 To load them automatically, add this to your shell profile:
 
 ```bash
-source /mnt/ai/squidley/ops/squidley-public-aliases.sh
+source /mnt/ai/squidley/ops/peh-public-aliases.sh
 ```
 
 ## Keeping the Service Running After Logout
@@ -196,7 +196,7 @@ Run:
 ```bash
 cd /mnt/ai/squidley
 npm run build
-systemctl --user restart squidley-public.service
+systemctl --user restart peh-public.service
 ```
 
 ### npm or node Is Not Found Under systemd
@@ -204,7 +204,7 @@ systemctl --user restart squidley-public.service
 User services may have a smaller `PATH` than your interactive shell. Check logs:
 
 ```bash
-journalctl --user -u squidley-public.service --no-pager -n 80
+journalctl --user -u peh-public.service --no-pager -n 80
 ```
 
 If `npm` is not found, update the service `ExecStart` to use the absolute path
@@ -218,7 +218,7 @@ Then reload and restart:
 
 ```bash
 systemctl --user daemon-reload
-systemctl --user restart squidley-public.service
+systemctl --user restart peh-public.service
 ```
 
 ### Ollama Is Not Running

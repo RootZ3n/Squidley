@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Filesystem path intentionally unchanged: the physical folder rename
+# (/mnt/ai/squidley -> /mnt/ai/peh-pub) is a deferred migration step.
 REPO_DIR="/mnt/ai/squidley"
-SERVICE_NAME="squidley-public.service"
+SERVICE_NAME="peh-public.service"
 SOURCE_SERVICE="$REPO_DIR/ops/systemd/$SERVICE_NAME"
 USER_SYSTEMD_DIR="$HOME/.config/systemd/user"
 TARGET_SERVICE="$USER_SYSTEMD_DIR/$SERVICE_NAME"
@@ -29,7 +31,7 @@ The service expects a production build to exist. To build and start:
 Useful commands:
   systemctl --user status $SERVICE_NAME
   journalctl --user -u $SERVICE_NAME -f
-  $REPO_DIR/ops/squidley-public-rebuild.sh
+  $REPO_DIR/ops/peh-public-rebuild.sh
 
 If you want this user service to keep running after logout:
   loginctl enable-linger "$USER"

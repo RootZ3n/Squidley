@@ -234,7 +234,7 @@ Plausible next steps, all out of scope for this PR:
 
 1. Plug in a real TS parser (`ts.SyntaxKind` walk) for higher fidelity.
 2. Build inter-file edges (imports ↔ exports) into a directed graph.
-3. Cache the graph in `~/.cache/squidley` rather than re-indexing per run.
+3. Cache the graph in `~/.cache/peh` rather than re-indexing per run.
 4. Wire `queryCodeGraph` into the reliability runner so a "which file
    matters?" step happens before the model is called.
 

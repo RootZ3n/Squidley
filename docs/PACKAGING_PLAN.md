@@ -149,7 +149,7 @@ This flow is implemented as a React page inside Peh itself
 
 - electron-builder AppImage (universal) + deb (Ubuntu/Debian)
 - AppImage: download, chmod +x, run. No install step.
-- .deb: `sudo dpkg -i squidley_0.1.0_amd64.deb`
+- .deb: `sudo dpkg -i peh-pub_0.1.0_amd64.deb`
 - Ollama detection: same localhost probe
 - Ollama install: `curl -fsSL https://ollama.com/install.sh | sh`
 - No system package conflicts (Electron bundles its own Node)
