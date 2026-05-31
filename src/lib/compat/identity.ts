@@ -2,22 +2,22 @@
  * Public identity + persona compatibility layer (peh-pub migration).
  *
  * Peh (full name Pehlichi) is the active public-facing guide identity.
- * Squidley is retired — kept only as a compatibility alias so older saved
+ * Peh is retired — kept only as a compatibility alias so older saved
  * preferences, links, or references still resolve.
  *
  * This is the single source of truth for the active public brand name. UI and
  * copy should read from here rather than hardcoding a literal, so a future
  * identity change is a one-line edit and the legacy alias keeps resolving.
  *
- * Persona resolution is Peh-first, Squidley-fallback: a stored persona id of
- * "squidley" (or "public-squidley") resolves to the active Peh persona.
+ * Persona resolution is Peh-first, Peh-fallback: a stored persona id of
+ * "peh" (or "public-peh") resolves to the active Peh persona.
  */
 
 /** The active public persona. */
 export const ACTIVE_PERSONA_ID = "peh" as const;
 
 /** Legacy persona ids that should resolve to the active persona. */
-export const LEGACY_PERSONA_IDS = ["squidley", "public-squidley", "public_squidley"] as const;
+export const LEGACY_PERSONA_IDS = ["peh", "public-peh", "public_peh"] as const;
 
 export interface PublicIdentity {
   /** Active persona id. */
@@ -38,12 +38,12 @@ export const PEH_IDENTITY: PublicIdentity = {
   name: "Peh",
   fullName: "Pehlichi",
   product: "Peh Pub",
-  legacyName: "Squidley",
+  legacyName: "Peh",
 } as const;
 
 /**
  * Resolve a persona id, preferring Peh and falling back through legacy
- * Squidley-era ids. An unknown id resolves to the active persona (fail-safe to
+ * Peh-era ids. An unknown id resolves to the active persona (fail-safe to
  * the live identity rather than a dead one).
  */
 export function resolvePersonaId(id: string | null | undefined): string {

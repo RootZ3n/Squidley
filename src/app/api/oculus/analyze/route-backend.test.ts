@@ -57,8 +57,8 @@ describe("/api/oculus/analyze backend honesty", () => {
   });
 
   it("blocks llama-cpp vision before contacting a model", async () => {
-    const previousBackend = process.env.SQUIDLEY_LOCAL_BACKEND;
-    process.env.SQUIDLEY_LOCAL_BACKEND = "llama-cpp";
+    const previousBackend = process.env.PEH_LOCAL_BACKEND;
+    process.env.PEH_LOCAL_BACKEND = "llama-cpp";
     const fetchImpl = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
       new Response(JSON.stringify({ message: { content: "should not be called" } }), { status: 200 }),
     );
@@ -74,9 +74,9 @@ describe("/api/oculus/analyze backend honesty", () => {
       expect(fetchImpl).not.toHaveBeenCalled();
     } finally {
       if (previousBackend === undefined) {
-        delete process.env.SQUIDLEY_LOCAL_BACKEND;
+        delete process.env.PEH_LOCAL_BACKEND;
       } else {
-        process.env.SQUIDLEY_LOCAL_BACKEND = previousBackend;
+        process.env.PEH_LOCAL_BACKEND = previousBackend;
       }
     }
   });

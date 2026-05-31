@@ -10,8 +10,8 @@
 
 const TEACHER_INTENT_PATTERNS: readonly RegExp[] = [
   // About Peh
-  /\bwhat (?:are you|is (?:peh|squidley))\b/i,
-  /\bwho (?:are you|is (?:peh|squidley))\b/i,
+  /\bwhat (?:are you|is (?:peh|peh))\b/i,
+  /\bwho (?:are you|is (?:peh|peh))\b/i,
   /\bwhat can you do\b/i,
   /\bwhat can(?:'t| not|t) you do\b/i,
 
@@ -56,7 +56,7 @@ const TEACHER_INTENT_PATTERNS: readonly RegExp[] = [
   /\bhow (?:do i|can i) (?:know|tell|verify) what you (?:actually )?did\b/i,
   /\bhow (?:do i|can i) stop you\b/i,
   /\bhow (?:do i|can i) (?:enable|use|start|switch to) cloud\b/i,
-  /\bwhat (?:is )?the (?:difference|diff) between (?:you|peh|squidley)\b/i,
+  /\bwhat (?:is )?the (?:difference|diff) between (?:you|peh|peh)\b/i,
 
   // Beginner confusion / getting started
   /\bi don(?:'t|t) know what (?:an? )?(?:agent|token|tool|receipt|model|prompt|provider|api key) is\b/i,

@@ -23,7 +23,7 @@
         "responseMode": "local_model",
         "cloudUsed": false,
         "toolsUsed": false,
-        "replySnippet": "I am Public Squidley, but I can't directly save files to your local disk on this platform. I have local access only to the conversation and local models.\n\nTo save the note, you can do this locally:\n\n1.  **Open your file manager** (like File"
+        "replySnippet": "I am Public Peh, but I can't directly save files to your local disk on this platform. I have local access only to the conversation and local models.\n\nTo save the note, you can do this locally:\n\n1.  **Open your file manager** (like File"
       }
     },
     {
@@ -51,7 +51,7 @@
         "responseMode": "local_model",
         "cloudUsed": false,
         "toolsUsed": false,
-        "replySnippet": "I can't search the web or use tools for that purpose. I can't access the internet or make external queries. The local-only mode on Squidley means I can't do live internet searches, but I *can* use the local model to analyze the current conv"
+        "replySnippet": "I can't search the web or use tools for that purpose. I can't access the internet or make external queries. The local-only mode on Peh means I can't do live internet searches, but I *can* use the local model to analyze the current conv"
       }
     },
     {

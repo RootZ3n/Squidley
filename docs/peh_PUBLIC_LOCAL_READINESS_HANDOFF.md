@@ -1,9 +1,9 @@
-# Squidley Public Local Readiness Handoff
+# Peh Public Local Readiness Handoff
 
 Status date: 2026-05-11.
 
 Use this as the quick continuation note for a future Codex, Claude, or new chat
-before publishing or demoing Squidley Public as a local-model release.
+before publishing or demoing Peh Public as a local-model release.
 
 ## Current Validated Status
 
@@ -51,7 +51,7 @@ before publishing or demoing Squidley Public as a local-model release.
 - Real `llama-server` binary validation is still pending.
 - Oculus local vision is Ollama-only in this release.
 - Oculus blocks llama.cpp/llama-server vision in this release.
-- Public Squidley does not use cloud providers without explicit consent.
+- Public Peh does not use cloud providers without explicit consent.
 - Public local release currently makes no cloud calls.
 - Embedding-only models are excluded from chat/generation.
 - Local model gauntlet PASS means only that a model passed a narrow local smoke
@@ -65,7 +65,7 @@ before publishing or demoing Squidley Public as a local-model release.
 - Gauntlet PASS proves model safety, intelligence, or general reliability.
 - Small models are generally reliable.
 - Cloud fallback exists automatically.
-- Squidley can use cloud providers without an explicit consent/review flow.
+- Peh can use cloud providers without an explicit consent/review flow.
 - Fabrica is an autonomous coding agent.
 - Fabrica can edit repositories, write files, use shell commands, or run tools
   in public local mode.
@@ -84,7 +84,7 @@ Ollama local smoke:
 ```bash
 ollama serve
 ollama pull llama3.2
-SQUIDLEY_LOCAL_BACKEND=ollama SQUIDLEY_LOCAL_ENDPOINT=http://localhost:11434 SQUIDLEY_LOCAL_MODEL=llama3.2 npm run dev
+PEH_LOCAL_BACKEND=ollama PEH_LOCAL_ENDPOINT=http://localhost:11434 PEH_LOCAL_MODEL=llama3.2 npm run dev
 ```
 
 Real `llama-server` validation, when a GGUF model and binary are available:
@@ -92,14 +92,14 @@ Real `llama-server` validation, when a GGUF model and binary are available:
 ```bash
 llama-server -m your-model.gguf --port 8080
 npm run smoke:llama-server
-SQUIDLEY_LOCAL_BACKEND=llama-cpp SQUIDLEY_LOCAL_ENDPOINT=http://127.0.0.1:8080 npm run dev
+PEH_LOCAL_BACKEND=llama-cpp PEH_LOCAL_ENDPOINT=http://127.0.0.1:8080 npm run dev
 ```
 
 If the server requires a specific model id:
 
 ```bash
 LLAMA_CPP_ENDPOINT=http://127.0.0.1:8080 LLAMA_CPP_MODEL=your-model-id npm run smoke:llama-server
-SQUIDLEY_LOCAL_BACKEND=llama-cpp SQUIDLEY_LOCAL_ENDPOINT=http://127.0.0.1:8080 SQUIDLEY_LOCAL_MODEL=your-model-id npm run dev
+PEH_LOCAL_BACKEND=llama-cpp PEH_LOCAL_ENDPOINT=http://127.0.0.1:8080 PEH_LOCAL_MODEL=your-model-id npm run dev
 ```
 
 Optional local-model gauntlet:
@@ -129,7 +129,7 @@ npx vitest run src/lib/publicReleaseSafety.test.ts src/lib/providers/registry.te
 
 1. Run real `llama-server` with a GGUF text model.
 2. Run `npm run smoke:llama-server` and save the exact output.
-3. Run Squidley with `SQUIDLEY_LOCAL_BACKEND=llama-cpp` against that server.
+3. Run Peh with `PEH_LOCAL_BACKEND=llama-cpp` against that server.
 4. Verify Colloquium streaming, Fabrica single-file suggestions, and
    Tabularium/Settings metadata show `provider: "local"`, `cloudUsed: false`,
    and `backendType: "llama-cpp"` where exposed.

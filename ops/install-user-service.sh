@@ -2,8 +2,8 @@
 set -euo pipefail
 
 # Filesystem path intentionally unchanged: the physical folder rename
-# (/mnt/ai/squidley -> /mnt/ai/peh-pub) is a deferred migration step.
-REPO_DIR="/mnt/ai/squidley"
+# (/mnt/ai/peh -> /mnt/ai/peh-pub) is a deferred migration step.
+REPO_DIR="/mnt/ai/peh"
 SERVICE_NAME="peh-public.service"
 SOURCE_SERVICE="$REPO_DIR/ops/systemd/$SERVICE_NAME"
 USER_SYSTEMD_DIR="$HOME/.config/systemd/user"

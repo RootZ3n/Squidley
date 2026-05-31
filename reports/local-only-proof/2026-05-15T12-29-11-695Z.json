@@ -10,7 +10,7 @@
   "dynamic": {
     "ok": true,
     "exitCode": 0,
-    "stdout": "RUN  v1.6.1 /mnt/ai/squidley\n\n ✓ src/lib/egressGuard.test.ts  (11 tests) 13ms\n\n Test Files  1 passed (1)\n      Tests  11 passed (11)\n   Start at  07:29:11\n   Duration  542ms (transform 67ms, setup 0ms, collect 82ms, tests 13ms, environment 0ms, prepare 29ms)",
+    "stdout": "RUN  v1.6.1 /mnt/ai/peh\n\n ✓ src/lib/egressGuard.test.ts  (11 tests) 13ms\n\n Test Files  1 passed (1)\n      Tests  11 passed (11)\n   Start at  07:29:11\n   Duration  542ms (transform 67ms, setup 0ms, collect 82ms, tests 13ms, environment 0ms, prepare 29ms)",
     "stderr": "\u001b[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.\u001b[39m"
   },
   "verdict": "PASS"

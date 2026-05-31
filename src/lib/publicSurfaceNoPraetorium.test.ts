@@ -161,7 +161,7 @@ describe("public surface — no Praetorium / Praertorium references", () => {
   it("the capability matrix JSON contains no Praetorium row", () => {
     const matrix = JSON.parse(
       readFileSync(
-        path.join(REPO_ROOT, "docs/capability-matrix.public-squidley.json"),
+        path.join(REPO_ROOT, "docs/capability-matrix.public-peh.json"),
         "utf8",
       ),
     ) as { rows: Array<{ capabilityId: string }> };
@@ -174,7 +174,7 @@ describe("public surface — no Praetorium / Praertorium references", () => {
   it("the tool matrix JSON contains no Praetorium tool", () => {
     const matrix = JSON.parse(
       readFileSync(
-        path.join(REPO_ROOT, "docs/tool-matrix.public-squidley.json"),
+        path.join(REPO_ROOT, "docs/tool-matrix.public-peh.json"),
         "utf8",
       ),
     ) as { tools: Array<{ toolId: string }> };

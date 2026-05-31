@@ -2,8 +2,8 @@
 /**
  * verify:capabilities — Peh capability/tool matrix validator.
  *
- * Validates that docs/capability-matrix.public-squidley.json and
- * docs/tool-matrix.public-squidley.json are internally consistent and
+ * Validates that docs/capability-matrix.public-peh.json and
+ * docs/tool-matrix.public-peh.json are internally consistent and
  * aligned with docs/CAPABILITY_TAXONOMY.md.
  *
  * Exit code 0 on success; non-zero on any failure. Prints JSON to stdout.
@@ -84,11 +84,11 @@ function fail(label, detail) {
 
 const capMatrixPath = path.join(
   REPO_ROOT,
-  "docs/capability-matrix.public-squidley.json",
+  "docs/capability-matrix.public-peh.json",
 );
 const toolMatrixPath = path.join(
   REPO_ROOT,
-  "docs/tool-matrix.public-squidley.json",
+  "docs/tool-matrix.public-peh.json",
 );
 
 if (!existsSync(capMatrixPath)) {

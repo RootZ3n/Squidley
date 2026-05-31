@@ -157,7 +157,7 @@ const PATTERNS: readonly Pattern[] = [
 const DISCLAIMER_PHRASES = [
   /\bi\s+(?:can(?:'t|not)?|cannot|could(?:n['']t)?|won['']t|will\s+not|am\s+unable|won't|don['']t)\b/i,
   /\bthis\s+(?:public\s+)?(?:local\s+)?(?:version|build|release|mode)\s+(?:does\s+not|doesn['']t|cannot|can['']t)\b/i,
-  /\b(?:peh|squidley)\s+(?:does\s+not|doesn['']t|cannot|can['']t)\b/i,
+  /\b(?:peh|peh)\s+(?:does\s+not|doesn['']t|cannot|can['']t)\b/i,
 ];
 
 function containsDisclaimerNearby(text: string, matchIndex: number, matchLen: number): boolean {

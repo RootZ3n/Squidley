@@ -1,4 +1,4 @@
-# Public Squidley Coherence Report — 2026-05-20
+# Public Peh Coherence Report — 2026-05-20
 
 > Generated after the reliability / planning / approval-gated inspection /
 > approval-gated tiny-edit commits (7f29267 → a44927d) shifted what the
@@ -22,7 +22,7 @@ prior product. The mismatch was an UNDERCLAIM, not an overclaim:
 
 The new tier `LOCAL_LIMITED` in
 [CAPABILITY_TAXONOMY.md](CAPABILITY_TAXONOMY.md) is what was missing.
-With it, the matrix can describe what is true: Squidley has narrow,
+With it, the matrix can describe what is true: Peh has narrow,
 approval-gated tool execution today, while shell / web / multi-file /
 autonomous loops remain `NOT_IMPLEMENTED`.
 
@@ -67,7 +67,7 @@ Findings below are bucketed per the requested categories.
 - `docs/MODE_CAPABILITY_MATRIX.md` predated the four new subsystems.
   It said "File Read/Write: NOT_IMPLEMENTED" when narrow approval-gated
   read and tiny-edit write existed. **Fixed in this pass.**
-- `docs/PUBLIC_SQUIDLEY_RELEASE_PLAN.md` Phase 4 read "NOT STARTED"
+- `docs/PUBLIC_PEH_RELEASE_PLAN.md` Phase 4 read "NOT STARTED"
   even though narrow approval-gated file inspection and tiny edits
   are shipped. **Updated to "PARTIAL — narrow approval-gated subset
   shipped" in this pass.**
@@ -75,7 +75,7 @@ Findings below are bucketed per the requested categories.
   aspirational; in reality there are working per-action approval gates
   for inspection and tiny edits, with token TTLs and hash binding.
   **Updated in this pass.**
-- `docs/teacher-kb/00-learning-path.md` did not mention what Squidley
+- `docs/teacher-kb/00-learning-path.md` did not mention what Peh
   can do TODAY beyond chat. **New module 15 added.**
 - README "What Is Built Today" did not include planning, reliability,
   inspection, or tiny edits. **Updated in this pass.**
@@ -144,7 +144,7 @@ Findings below are bucketed per the requested categories.
 | Concept | Variants found | Canonical (see TAXONOMY) |
 |---|---|---|
 | Honesty correction | honesty annotation / message / correction | "honesty correction" in UI; filenames unchanged |
-| Build identifier | this build / this public version / this public local build | "this public Squidley build" |
+| Build identifier | this build / this public version / this public local build | "this public Peh build" |
 | Provenance footer | "answered by local model only" / "Local Mode / X / no cloud" | both allowed; first is the short form, second the structured form |
 | Cloud unavailability | "not implemented" / "not yet implemented" / "planned / not implemented" | "Cloud Mode is not implemented yet." |
 | Approval phrase | mixed | "Approve and read once" (inspection); "Approve this edit" (tiny edit); "Decline" (both) |
@@ -164,7 +164,7 @@ Findings below are bucketed per the requested categories.
 ## UI Standards Found Mostly Consistent
 
 - Approval phrasing is uniform across inspection and edit panels.
-- Honesty correction language uses "Squidley did not …" everywhere it
+- Honesty correction language uses "Peh did not …" everywhere it
   appears — no false "I did" found.
 - Every blocked action explains WHY in beginner-readable language.
 - Every cloud-related UI surface says "not implemented" clearly.
@@ -178,10 +178,10 @@ Findings below are bucketed per the requested categories.
 3. README "What Is Built Today" expanded to include planning,
    reliability, inspection, and tiny edits (test-required phrases
    preserved).
-4. `docs/PUBLIC_SQUIDLEY_RELEASE_PLAN.md` Phase 4 status corrected to
+4. `docs/PUBLIC_PEH_RELEASE_PLAN.md` Phase 4 status corrected to
    "PARTIAL — narrow approval-gated subset shipped".
 5. New teacher lesson
-   [docs/teacher-kb/15-what-squidley-can-do-today.md](teacher-kb/15-what-squidley-can-do-today.md)
+   [docs/teacher-kb/15-what-peh-can-do-today.md](teacher-kb/15-what-peh-can-do-today.md)
    describing the actual current surface for beginners.
 6. `docs/teacher-kb/07-approvals-and-risk.md` updated to describe
    real (not aspirational) approval gates and to name the two flows
@@ -203,11 +203,11 @@ These are deliberate scope-cuts, not oversights. The user constraint
 was "Do NOT add major new capabilities" — these are catalogue work,
 not capability work.
 
-- `docs/capability-matrix.public-squidley.json` — add explicit rows
+- `docs/capability-matrix.public-peh.json` — add explicit rows
   for `planning`, `reliability`, `inspection`, `tiny-edit`. The
   diagnostic does NOT require these, but a future maintainer should
   add them so the JSON is the single source of truth.
-- `docs/tool-matrix.public-squidley.json` — same.
+- `docs/tool-matrix.public-peh.json` — same.
 - UI copy edits to add tooltips to "Velum" and "Tabularium" nav links.
   Recommended but not load-bearing; the in-page copy is fine.
 - `BEGINNER_ONBOARDING_DESIGN.md` — relabel the "First Autonomous
@@ -221,7 +221,7 @@ not capability work.
 Ordered by what reduces remaining risk fastest:
 
 1. **Beginner UX hardening** — tooltips for Latin names, "what does
-   Squidley do?" panel on the home page, friendlier first-run.
+   Peh do?" panel on the home page, friendlier first-run.
 2. **Cloud Mode prototype (Phase 3, narrow slice)** — pick one cloud
    provider (Anthropic or OpenAI), implement the adapter end-to-end,
    wire consent + receipts. This is the next coherence-critical work
@@ -242,7 +242,7 @@ Ordered by what reduces remaining risk fastest:
 - `npx tsc --noEmit` — passes (no source changes).
 - `npx vitest run` — passes; no doc-content changes broke the
   README / release-plan / capability-matrix grep tests.
-- `node scripts/public-squidley-diagnostic.mjs` — passes; matrix
+- `node scripts/public-peh-diagnostic.mjs` — passes; matrix
   still contains `localModeStatus` / `cloudModeStatus`, README still
   contains required phrases, no overclaims introduced.
 - `node scripts/prove-local-only.mjs` — passes; no runtime change.

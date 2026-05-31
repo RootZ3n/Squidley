@@ -38,7 +38,7 @@ describe("handleEditingChatRequest — propose then apply", () => {
       editProposal: {
         path: "src/a.ts",
         originalSnippet: "'hello world'",
-        proposedSnippet: "'hi squidley'",
+        proposedSnippet: "'hi peh'",
       },
       inspectedPaths: ["src/a.ts"],
       projectRoot: ROOT,
@@ -59,7 +59,7 @@ describe("handleEditingChatRequest — propose then apply", () => {
     const approval = buildEditApprovalToken({
       path: "src/a.ts",
       originalHash: await fakeHash("'hello world'"),
-      proposedHash: await fakeHash("'hi squidley'"),
+      proposedHash: await fakeHash("'hi peh'"),
       fileHash: await fakeHash(content),
     });
     const r = await handleEditingChatRequest({
@@ -67,7 +67,7 @@ describe("handleEditingChatRequest — propose then apply", () => {
       editProposal: {
         path: "src/a.ts",
         originalSnippet: "'hello world'",
-        proposedSnippet: "'hi squidley'",
+        proposedSnippet: "'hi peh'",
       },
       approval,
       inspectedPaths: ["src/a.ts"],
@@ -78,7 +78,7 @@ describe("handleEditingChatRequest — propose then apply", () => {
     expect(r.status).toBe("applied-verified");
     expect(r.applied).toBe(true);
     expect(r.rolledBack).toBe(false);
-    expect(contents["/repo/src/a.ts"]).toMatch(/hi squidley/);
+    expect(contents["/repo/src/a.ts"]).toMatch(/hi peh/);
   });
 
   it("Phase B denies wrong approval and does not write", async () => {

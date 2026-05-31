@@ -34,36 +34,36 @@ describe("Mode resolver", () => {
     expect(result.state).toEqual(LOCAL_MODE_STATE);
   });
 
-  it("resolves cloud mode from SQUIDLEY_MODE=cloud", () => {
-    const result = resolveMode({ env: { SQUIDLEY_MODE: "cloud" } });
+  it("resolves cloud mode from PEH_MODE=cloud", () => {
+    const result = resolveMode({ env: { PEH_MODE: "cloud" } });
     expect(result.state.mode).toBe("cloud");
     expect(result.state).toEqual(CLOUD_MODE_STATE);
     expect(result.source).toBe("env-var");
   });
 
-  it("resolves local mode from SQUIDLEY_MODE=local", () => {
-    const result = resolveMode({ env: { SQUIDLEY_MODE: "local" } });
+  it("resolves local mode from PEH_MODE=local", () => {
+    const result = resolveMode({ env: { PEH_MODE: "local" } });
     expect(result.state.mode).toBe("local");
     expect(result.source).toBe("env-var");
   });
 
-  it("falls back to local for invalid SQUIDLEY_MODE values", () => {
+  it("falls back to local for invalid PEH_MODE values", () => {
     for (const value of ["invalid", "hybrid", "both", "auto", ""]) {
-      const result = resolveMode({ env: { SQUIDLEY_MODE: value } });
+      const result = resolveMode({ env: { PEH_MODE: value } });
       expect(result.state.mode).toBe("local");
     }
   });
 
   it("accepts case-insensitive cloud value", () => {
     for (const value of ["CLOUD", "Cloud", "cLOUD"]) {
-      const result = resolveMode({ env: { SQUIDLEY_MODE: value } });
+      const result = resolveMode({ env: { PEH_MODE: value } });
       expect(result.state.mode).toBe("cloud");
     }
   });
 
   it("explicit config takes precedence over env var", () => {
     const result = resolveMode({
-      env: { SQUIDLEY_MODE: "local" },
+      env: { PEH_MODE: "local" },
       explicitMode: "cloud",
     });
     expect(result.state.mode).toBe("cloud");
@@ -96,7 +96,7 @@ describe("Local mode cloud lock", () => {
         OPENAI_API_KEY: "sk-hostile-key",
         ANTHROPIC_API_KEY: "sk-hostile-key",
         GOOGLE_API_KEY: "hostile-key",
-        // No SQUIDLEY_MODE set!
+        // No PEH_MODE set!
       },
     });
     expect(result.state.mode).toBe("local");
@@ -125,8 +125,8 @@ describe("Local mode cloud lock", () => {
 // ---------------------------------------------------------------------------
 
 describe("Cloud mode explicit unlock", () => {
-  it("SQUIDLEY_MODE=cloud enables cloud mode", () => {
-    const result = resolveMode({ env: { SQUIDLEY_MODE: "cloud" } });
+  it("PEH_MODE=cloud enables cloud mode", () => {
+    const result = resolveMode({ env: { PEH_MODE: "cloud" } });
     expect(result.state.mode).toBe("cloud");
     expect(result.state.cloudUnlocked).toBe(true);
   });
@@ -142,8 +142,8 @@ describe("Cloud mode explicit unlock", () => {
     expect(CLOUD_MODE_STATE.egressGuardEnabled).toBe(false);
   });
 
-  it("SQUIDLEY_MODE=cloud but no provider configured shows in reasons", () => {
-    const result = resolveMode({ env: { SQUIDLEY_MODE: "cloud" } });
+  it("PEH_MODE=cloud but no provider configured shows in reasons", () => {
+    const result = resolveMode({ env: { PEH_MODE: "cloud" } });
     expect(result.state.mode).toBe("cloud");
     expect(result.cloudApiKeysPresent).toBe(false);
     expect(result.reasons.some((r) => r.toLowerCase().includes("no cloud api key") || r.includes("cloud"))).toBe(true);
@@ -658,7 +658,7 @@ describe("Diagnostic release gate (structural)", () => {
   it("isLocalMode and isCloudMode helpers work correctly", () => {
     expect(isLocalMode({ env: {} })).toBe(true);
     expect(isCloudMode({ env: {} })).toBe(false);
-    expect(isLocalMode({ env: { SQUIDLEY_MODE: "cloud" } })).toBe(false);
-    expect(isCloudMode({ env: { SQUIDLEY_MODE: "cloud" } })).toBe(true);
+    expect(isLocalMode({ env: { PEH_MODE: "cloud" } })).toBe(false);
+    expect(isCloudMode({ env: { PEH_MODE: "cloud" } })).toBe(true);
   });
 });

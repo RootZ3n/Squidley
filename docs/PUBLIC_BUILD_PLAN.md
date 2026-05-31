@@ -199,7 +199,7 @@ works on a fresh machine, polish rough edges, and package for distribution."
 Fix public Peh Phase 1: local chat and model detection.
 
 Repo:
-/mnt/ai/squidley
+/mnt/ai/peh
 
 Context:
 Peh has a working Colloquium chat, Ollama provider, streaming

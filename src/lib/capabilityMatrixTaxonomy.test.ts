@@ -67,12 +67,12 @@ interface ToolMatrix {
 }
 
 function loadCapabilityMatrix(): CapabilityMatrix {
-  const path = join(REPO_ROOT, "docs/capability-matrix.public-squidley.json");
+  const path = join(REPO_ROOT, "docs/capability-matrix.public-peh.json");
   return JSON.parse(readFileSync(path, "utf8")) as CapabilityMatrix;
 }
 
 function loadToolMatrix(): ToolMatrix {
-  const path = join(REPO_ROOT, "docs/tool-matrix.public-squidley.json");
+  const path = join(REPO_ROOT, "docs/tool-matrix.public-peh.json");
   return JSON.parse(readFileSync(path, "utf8")) as ToolMatrix;
 }
 

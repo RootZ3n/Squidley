@@ -17,17 +17,17 @@ const STATUS = {
 
 const backend = normalizeBackend(
   process.env.GAUNTLET_BACKEND ||
-    process.env.PEH_LOCAL_BACKEND || process.env.SQUIDLEY_LOCAL_BACKEND ||
+    process.env.PEH_LOCAL_BACKEND || process.env.PEH_LOCAL_BACKEND ||
     "ollama",
 );
 const endpoint = normalizeEndpoint(
   process.env.GAUNTLET_ENDPOINT ||
-    process.env.PEH_LOCAL_ENDPOINT || process.env.SQUIDLEY_LOCAL_ENDPOINT ||
+    process.env.PEH_LOCAL_ENDPOINT || process.env.PEH_LOCAL_ENDPOINT ||
     (backend === "openai-compatible" ? DEFAULT_OPENAI_ENDPOINT : DEFAULT_OLLAMA_ENDPOINT),
 );
 const modelOverride = (
   process.env.GAUNTLET_MODEL ||
-  process.env.PEH_LOCAL_MODEL || process.env.SQUIDLEY_LOCAL_MODEL ||
+  process.env.PEH_LOCAL_MODEL || process.env.PEH_LOCAL_MODEL ||
   ""
 ).trim();
 

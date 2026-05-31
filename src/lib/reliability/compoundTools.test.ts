@@ -189,11 +189,11 @@ describe("compoundTools/makeSmallTextChangeAndVerify", () => {
     const result = await makeSmallTextChangeAndVerify(env, {
       path: "src/x.ts",
       find: "world",
-      replace: "squidley",
+      replace: "peh",
       verify: async () => ({ ok: true }),
     });
     expect(result.ok).toBe(true);
-    expect(sink.get("src/x.ts")).toBe("hello squidley");
+    expect(sink.get("src/x.ts")).toBe("hello peh");
   });
 
   it("rolls forward as failed if verifier returns false", async () => {
@@ -206,7 +206,7 @@ describe("compoundTools/makeSmallTextChangeAndVerify", () => {
     const result = await makeSmallTextChangeAndVerify(env, {
       path: "src/x.ts",
       find: "world",
-      replace: "squidley",
+      replace: "peh",
       verify: async () => ({ ok: false, detail: "tests fail" }),
     });
     expect(result.ok).toBe(false);

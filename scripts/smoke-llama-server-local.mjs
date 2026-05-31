@@ -6,10 +6,10 @@ const REQUEST_TIMEOUT_MS = 20_000;
 
 const endpoint = normalizeEndpoint(
   process.env.LLAMA_CPP_ENDPOINT ||
-    process.env.PEH_LOCAL_ENDPOINT || process.env.SQUIDLEY_LOCAL_ENDPOINT ||
+    process.env.PEH_LOCAL_ENDPOINT || process.env.PEH_LOCAL_ENDPOINT ||
     DEFAULT_ENDPOINT,
 );
-const modelOverride = (process.env.LLAMA_CPP_MODEL || process.env.PEH_LOCAL_MODEL || process.env.SQUIDLEY_LOCAL_MODEL || "").trim();
+const modelOverride = (process.env.LLAMA_CPP_MODEL || process.env.PEH_LOCAL_MODEL || process.env.PEH_LOCAL_MODEL || "").trim();
 
 const results = [];
 

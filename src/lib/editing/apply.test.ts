@@ -163,13 +163,13 @@ describe("applyTinyEdit — Phase B", () => {
     const approval = buildEditApprovalToken({
       path: "src/a.ts",
       originalHash: await hash("'hello world'"),
-      proposedHash: await hash("'hi squidley'"),
+      proposedHash: await hash("'hi peh'"),
       fileHash: await hash(content),
     });
     const result = await applyTinyEdit({
       path: "src/a.ts",
       originalSnippet: "'hello world'",
-      proposedSnippet: "'hi squidley'",
+      proposedSnippet: "'hi peh'",
       approval,
       projectRoot: ROOT,
       inspectedPaths: ["src/a.ts"],
@@ -180,7 +180,7 @@ describe("applyTinyEdit — Phase B", () => {
     expect(result.applied).toBe(true);
     expect(result.rolledBack).toBe(false);
     expect(editor.contents["/repo/src/a.ts"]).toBe(
-      "export const greeting = 'hi squidley';\n",
+      "export const greeting = 'hi peh';\n",
     );
     expect(result.receipts.map((r) => r.action)).toEqual(
       expect.arrayContaining(["editing.approved", "editing.applied", "editing.verified"]),
@@ -227,13 +227,13 @@ describe("applyTinyEdit — Phase B", () => {
     const approval = buildEditApprovalToken({
       path: "src/a.ts",
       originalHash: await hash("hello world"),
-      proposedHash: await hash("hi squidley"),
+      proposedHash: await hash("hi peh"),
       fileHash: await hash("changed already"),
     });
     const result = await applyTinyEdit({
       path: "src/a.ts",
       originalSnippet: "hello world",
-      proposedSnippet: "hi squidley",
+      proposedSnippet: "hi peh",
       approval,
       projectRoot: ROOT,
       inspectedPaths: ["src/a.ts"],
@@ -252,13 +252,13 @@ describe("applyTinyEdit — Phase B", () => {
     const approval = buildEditApprovalToken({
       path: "src/a.ts",
       originalHash: await hash("hello world"),
-      proposedHash: await hash("hi squidley"),
+      proposedHash: await hash("hi peh"),
       fileHash: await hash("hello world\nhello world\n"),
     });
     const result = await applyTinyEdit({
       path: "src/a.ts",
       originalSnippet: "hello world",
-      proposedSnippet: "hi squidley",
+      proposedSnippet: "hi peh",
       approval,
       projectRoot: ROOT,
       inspectedPaths: ["src/a.ts"],

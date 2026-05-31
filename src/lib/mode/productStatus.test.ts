@@ -114,7 +114,7 @@ describe("README does not claim product release-readiness", () => {
   });
 
   it("README references the release plan", () => {
-    expect(readme).toContain("PUBLIC_SQUIDLEY_RELEASE_PLAN.md");
+    expect(readme).toContain("PUBLIC_PEH_RELEASE_PLAN.md");
   });
 
   it("README references the teacher-first doctrine", () => {
@@ -169,7 +169,7 @@ describe("Local Mode docs do not imply final product", () => {
   });
 
   it("references the release plan", () => {
-    expect(localDoc).toContain("PUBLIC_SQUIDLEY_RELEASE_PLAN.md");
+    expect(localDoc).toContain("PUBLIC_PEH_RELEASE_PLAN.md");
   });
 
   it("mentions graduation to Cloud Mode", () => {
@@ -213,7 +213,7 @@ describe("Capability matrix does not overclaim Cloud Mode", () => {
 
 describe("Required product docs exist", () => {
   const requiredDocs = [
-    "docs/PUBLIC_SQUIDLEY_RELEASE_PLAN.md",
+    "docs/PUBLIC_PEH_RELEASE_PLAN.md",
     "docs/TEACHER_FIRST_DOCTRINE.md",
     "docs/BEGINNER_ONBOARDING_DESIGN.md",
     "docs/SELF_EXPLANATION_REQUIREMENTS.md",
@@ -226,7 +226,7 @@ describe("Required product docs exist", () => {
   }
 
   it("release plan contains all six phases", () => {
-    const plan = readDoc("docs/PUBLIC_SQUIDLEY_RELEASE_PLAN.md");
+    const plan = readDoc("docs/PUBLIC_PEH_RELEASE_PLAN.md");
     expect(plan).toContain("Phase 1");
     expect(plan).toContain("Phase 2");
     expect(plan).toContain("Phase 3");
@@ -236,7 +236,7 @@ describe("Required product docs exist", () => {
   });
 
   it("release plan says NOT RELEASE READY", () => {
-    const plan = readDoc("docs/PUBLIC_SQUIDLEY_RELEASE_PLAN.md");
+    const plan = readDoc("docs/PUBLIC_PEH_RELEASE_PLAN.md");
     expect(plan).toContain("NOT RELEASE READY");
   });
 

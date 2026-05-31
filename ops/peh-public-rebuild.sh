@@ -2,14 +2,14 @@
 set -euo pipefail
 
 # Filesystem path intentionally unchanged: the physical folder rename
-# (/mnt/ai/squidley -> /mnt/ai/peh-pub) is a deferred migration step.
-REPO_DIR="/mnt/ai/squidley"
+# (/mnt/ai/peh -> /mnt/ai/peh-pub) is a deferred migration step.
+REPO_DIR="/mnt/ai/peh"
 
 # Canonical unit is peh-public.service. During the migration the host may
-# still have only the legacy squidley-public.service installed, so fall back
+# still have only the legacy peh-public.service installed, so fall back
 # to it until the new unit is enabled (deferred ops task).
 SERVICE_NAME="peh-public.service"
-LEGACY_SERVICE_NAME="squidley-public.service"
+LEGACY_SERVICE_NAME="peh-public.service"
 
 cd "$REPO_DIR"
 

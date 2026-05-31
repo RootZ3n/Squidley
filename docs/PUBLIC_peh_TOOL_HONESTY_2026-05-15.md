@@ -1,9 +1,9 @@
-# Public Squidley — Tool-Call Honesty Audit (2026-05-15)
+# Public Peh — Tool-Call Honesty Audit (2026-05-15)
 
-Repo: `/mnt/ai/squidley`
+Repo: `/mnt/ai/peh`
 
 This pass follows the local-first audit and the release-hardening pass. Its
-purpose is to make Squidley's tool-ability reporting **brutally honest** so
+purpose is to make Peh's tool-ability reporting **brutally honest** so
 the user can always tell whether an action was actually performed by a
 local tool, answered by a local model only, blocked, not implemented,
 cloud-required, or failed.
@@ -80,8 +80,8 @@ The application now enforces this with three layered defenses:
 |---|---|
 | A model could claim "I wrote the file" with no override. | `honestyAnnotation.ts` detects 13 hallucinated-action patterns. The chat handler and stream both wire it. The Colloquium UI renders the correction banner. 21 unit + 8 integration tests cover the patterns. |
 | Tool success could be implied from model text. | `responseMode` is now set by the **application** at the handler boundary; the model cannot influence it. The Colloquium UI shows a permanent "no tool used · no cloud used" footer under every assistant message. |
-| No tool inventory existed. | New `docs/tool-matrix.public-squidley.json` (schema v1) + `docs/TOOL_MATRIX_PUBLIC_SQUIDLEY.md`. Per-tool status, implementation flags, proof references, and honest user-facing copy. |
-| Diagnostic did not enforce tool-matrix honesty. | New checks in `scripts/public-squidley-diagnostic.mjs`: tool-matrix presence; consistency (dangerous action tool cannot be LOCAL_TOOL_READY without implementation); annotator is wired into handler, stream, and Colloquium UI. |
+| No tool inventory existed. | New `docs/tool-matrix.public-peh.json` (schema v1) + `docs/TOOL_MATRIX_PUBLIC_PEH.md`. Per-tool status, implementation flags, proof references, and honest user-facing copy. |
+| Diagnostic did not enforce tool-matrix honesty. | New checks in `scripts/public-peh-diagnostic.mjs`: tool-matrix presence; consistency (dangerous action tool cannot be LOCAL_TOOL_READY without implementation); annotator is wired into handler, stream, and Colloquium UI. |
 | No live tool-honesty smoke. | New `scripts/tool-honesty-gauntlet.mjs` sends tool-intent prompts to the live chat endpoint, refuses non-local URLs up front, and reports PASS / PASS_NO_HALLUCINATION / FAIL / SKIP. Wired as `npm run gauntlet:tool-honesty`. Contract-tested by `src/lib/toolHonestyGauntletScript.test.ts`. |
 
 ## 4. What remains
@@ -105,9 +105,9 @@ The remaining honest caveats are deliberate and labeled:
 ## 5. Files changed
 
 ```
-A  docs/PUBLIC_SQUIDLEY_TOOL_HONESTY_2026-05-15.md         (this file)
-A  docs/TOOL_MATRIX_PUBLIC_SQUIDLEY.md                      (human matrix)
-A  docs/tool-matrix.public-squidley.json                    (machine matrix)
+A  docs/PUBLIC_PEH_TOOL_HONESTY_2026-05-15.md         (this file)
+A  docs/TOOL_MATRIX_PUBLIC_PEH.md                      (human matrix)
+A  docs/tool-matrix.public-peh.json                    (machine matrix)
 A  scripts/tool-honesty-gauntlet.mjs                        (live gauntlet)
 A  src/lib/chat/honestyAnnotation.ts                        (pure detector)
 A  src/lib/chat/honestyAnnotation.test.ts                   (21 unit tests)
@@ -115,7 +115,7 @@ A  src/lib/chat/responseMode.ts                             (provenance types)
 A  src/lib/toolHonesty.test.ts                              (8 integration tests)
 A  src/lib/toolHonestyGauntletScript.test.ts                (3 contract tests)
 M  package.json                                              (gauntlet:tool-honesty script)
-M  scripts/public-squidley-diagnostic.mjs                   (tool-matrix consistency, annotator wiring checks)
+M  scripts/public-peh-diagnostic.mjs                   (tool-matrix consistency, annotator wiring checks)
 M  src/app/api/chat/stream/route.ts                         (emits 'honesty' event; responseMode in meta)
 M  src/app/colloquium/ColloquiumClient.tsx                  (renders honesty banner + provenance footer)
 M  src/lib/chat/handler.ts                                  (runs annotator; sets responseMode)
@@ -147,12 +147,12 @@ Total: **+32 new tests**. Suite is now **92 files / 1293 tests, all pass**.
 |---|---|
 | `npx tsc --noEmit` | clean |
 | `npx vitest run` | 92 files / 1293 tests pass |
-| `node scripts/public-squidley-diagnostic.mjs` | releaseReady: true, failures: 0 |
+| `node scripts/public-peh-diagnostic.mjs` | releaseReady: true, failures: 0 |
 | `node scripts/prove-local-only.mjs` | static + dynamic clean (verdict: PASS) |
-| `SQUIDLEY_CHAT_BASE=https://api.openai.com node scripts/tool-honesty-gauntlet.mjs` | exit 1, "refusing to use non-local chat base" |
-| `SQUIDLEY_CHAT_BASE=http://127.0.0.1:65529 node scripts/tool-honesty-gauntlet.mjs` | exit 0, SKIP_LOCAL_SERVER_NOT_RUNNING |
-| `SQUIDLEY_CHAT_BASE=http://127.0.0.1:3007 node scripts/tool-honesty-gauntlet.mjs` (live dev server, `qwen3.5:0.8b`) | exit 0, summary: `{ PASS:1, PASS_NO_HALLUCINATION:4, FAIL:0 }`, `remoteAttempts: []` |
-| `SQUIDLEY_LOCAL_BACKEND=ollama node scripts/gauntlet-local-model.mjs` | exit 0; PASS=5 / TRY_VERIFY=1; "No cloud calls were made." |
+| `PEH_CHAT_BASE=https://api.openai.com node scripts/tool-honesty-gauntlet.mjs` | exit 1, "refusing to use non-local chat base" |
+| `PEH_CHAT_BASE=http://127.0.0.1:65529 node scripts/tool-honesty-gauntlet.mjs` | exit 0, SKIP_LOCAL_SERVER_NOT_RUNNING |
+| `PEH_CHAT_BASE=http://127.0.0.1:3007 node scripts/tool-honesty-gauntlet.mjs` (live dev server, `qwen3.5:0.8b`) | exit 0, summary: `{ PASS:1, PASS_NO_HALLUCINATION:4, FAIL:0 }`, `remoteAttempts: []` |
+| `PEH_LOCAL_BACKEND=ollama node scripts/gauntlet-local-model.mjs` | exit 0; PASS=5 / TRY_VERIFY=1; "No cloud calls were made." |
 | `npm run verify:release` | exit 0 |
 
 ## 8. Tool matrix summary
@@ -169,18 +169,18 @@ Total: **+32 new tests**. Suite is now **92 files / 1293 tests, all pass**.
 | MOCK_DEMO_ONLY | 0 |
 | UNKNOWN | 0 |
 
-(See `docs/TOOL_MATRIX_PUBLIC_SQUIDLEY.md` for per-tool detail.)
+(See `docs/TOOL_MATRIX_PUBLIC_PEH.md` for per-tool detail.)
 
 ## 9. Explicit answers
 
 | Question | Answer |
 |---|---|
 | Can local model fs.write? | **No.** There is no fs.write tool in this build. Tool matrix: NOT_IMPLEMENTED. |
-| If not, does Squidley say so? | **Yes.** When the model implies a write, the annotator emits `honestyMessage`: *"this public local build does not have a file-write tool, so I cannot save it to disk."* and the Colloquium UI renders it as a Honesty note. |
+| If not, does Peh say so? | **Yes.** When the model implies a write, the annotator emits `honestyMessage`: *"this public local build does not have a file-write tool, so I cannot save it to disk."* and the Colloquium UI renders it as a Honesty note. |
 | Can local model run shell commands? | **No.** No shell tool. NOT_IMPLEMENTED. |
-| If not, does Squidley say so? | **Yes.** Annotator fires on patterns like "I ran the tests" with: *"this public local build does not run shell commands or execute code. Nothing was run on your machine."* |
+| If not, does Peh say so? | **Yes.** Annotator fires on patterns like "I ran the tests" with: *"this public local build does not run shell commands or execute code. Nothing was run on your machine."* |
 | Can local model browse/search? | **No.** No web/search/browser tool. NOT_IMPLEMENTED. |
-| If not, does Squidley say so? | **Yes.** Annotator fires on "I searched the web", "I looked it up online", "I browsed to the URL" with: *"this public local build does not have a web/search/browser tool. No web request was made."* |
+| If not, does Peh say so? | **Yes.** Annotator fires on "I searched the web", "I looked it up online", "I browsed to the URL" with: *"this public local build does not have a web/search/browser tool. No web request was made."* |
 | Can a model hallucinate that it wrote/read/ran/searched something? | The model's **text** can. The application's **response** carries a clear honesty correction; the UI shows it; the receipt records it. The action did not happen. |
 | Can tool success be claimed without a tool receipt? | **No.** Every success-claiming surface — Tabularium receipt, UI provenance footer, `responseMode` — is set by the application based on real evidence, never by the model's text. |
 | Can NOT_IMPLEMENTED tools appear ready? | **No.** Diagnostic verifies tool-matrix consistency; UI footer says "no tool used"; module pages for locked future tools show locked-future copy. |

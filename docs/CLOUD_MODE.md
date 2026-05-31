@@ -91,5 +91,5 @@ Cloud Mode does not imply unlimited access:
 
 ## What Must Be Built
 
-See [PUBLIC_SQUIDLEY_RELEASE_PLAN.md](PUBLIC_SQUIDLEY_RELEASE_PLAN.md) for the
+See [PUBLIC_PEH_RELEASE_PLAN.md](PUBLIC_PEH_RELEASE_PLAN.md) for the
 complete phased plan. Cloud Mode spans Phases 3-5.

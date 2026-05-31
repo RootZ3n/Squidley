@@ -7,7 +7,7 @@ Peh has two operating modes: **Local Mode** and **Cloud Mode**.
 Local Mode is the audited foundation. Cloud Mode is the planned fully capable
 autonomous agent mode. Both are required for the product to ship publicly —
 Local Mode alone is not the product. See
-[PUBLIC_SQUIDLEY_RELEASE_PLAN.md](PUBLIC_SQUIDLEY_RELEASE_PLAN.md).
+[PUBLIC_PEH_RELEASE_PLAN.md](PUBLIC_PEH_RELEASE_PLAN.md).
 
 ## Mode Resolution
 

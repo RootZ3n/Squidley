@@ -2,9 +2,9 @@
   "schemaVersion": 3,
   "product": "Peh",
   "generatedAt": "2026-05-20",
-  "generatedBy": "docs/CAPABILITY_MATRIX_PUBLIC_SQUIDLEY.md author + capability-sync pass on top of docs/CAPABILITY_TAXONOMY.md",
+  "generatedBy": "docs/CAPABILITY_MATRIX_PUBLIC_PEH.md author + capability-sync pass on top of docs/CAPABILITY_TAXONOMY.md",
   "scope": "Every server route, every Capability in src/lib/capabilities/registry.ts, every public UI page. Classifications are based on actual code paths, not on aspirational copy.",
-  "machineReadableSourceOfTruth": "This JSON is the machine-readable source of truth for diagnostics, release verification, and the npm run verify:capabilities script. The markdown views (docs/MODE_CAPABILITY_MATRIX.md, docs/CAPABILITY_MATRIX_PUBLIC_SQUIDLEY.md) are human-readable projections of this file. When the two disagree, this JSON wins and the markdown should be updated.",
+  "machineReadableSourceOfTruth": "This JSON is the machine-readable source of truth for diagnostics, release verification, and the npm run verify:capabilities script. The markdown views (docs/MODE_CAPABILITY_MATRIX.md, docs/CAPABILITY_MATRIX_PUBLIC_PEH.md) are human-readable projections of this file. When the two disagree, this JSON wins and the markdown should be updated.",
   "classifications": {
     "LOCAL_READY": "Real local execution path exists, has tests, no cloud fallback. Requires at least one proofReference. Ollama-side LOCAL_READY rows include live-gauntlet evidence.",
     "LOCAL_PARTIAL": "Local path exists; quality, backend coverage, or interpretation is limited. May include deterministic-but-heuristic capabilities and capabilities not yet validated against the real llama-server binary.",

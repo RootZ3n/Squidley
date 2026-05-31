@@ -7,7 +7,7 @@
  *
  * Defaults are set up so a fresh checkout works against a stock Ollama
  * install with `llama3.2` pulled. They can be overridden per-process via
- * environment variables (canonical PEH_* names; legacy SQUIDLEY_* names are
+ * environment variables (canonical PEH_* names; legacy PEH_* names are
  * still honored as a fallback — see src/lib/compat/env.ts):
  *
  *   PEH_LOCAL_ENDPOINT   e.g. http://localhost:11434
@@ -34,9 +34,9 @@ export type LocalBackendType = "ollama" | "llama-cpp" | "auto";
  * fallback (peh-pub migration compatibility).
  */
 export const ENV_KEYS = {
-  endpoint: "SQUIDLEY_LOCAL_ENDPOINT",
-  model: "SQUIDLEY_LOCAL_MODEL",
-  backend: "SQUIDLEY_LOCAL_BACKEND",
+  endpoint: "PEH_LOCAL_ENDPOINT",
+  model: "PEH_LOCAL_MODEL",
+  backend: "PEH_LOCAL_BACKEND",
 } as const;
 
 export interface LocalProviderConfig {

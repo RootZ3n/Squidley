@@ -1,6 +1,6 @@
-# Public Squidley — Pre-Release Truth Audit (2026-05-15)
+# Public Peh — Pre-Release Truth Audit (2026-05-15)
 
-Repo: `/mnt/ai/squidley` (the prompt's suggested `/mnt/ai/squidley-public` does
+Repo: `/mnt/ai/peh` (the prompt's suggested `/mnt/ai/peh-public` does
 not exist; this is the correct path.)
 
 This is a truth audit, not a cosmetic pass.
@@ -9,7 +9,7 @@ This is a truth audit, not a cosmetic pass.
 
 **RELEASE READY WITH WARNINGS**
 
-Public Squidley is honestly local-first in the senses it claims to be. The
+Public Peh is honestly local-first in the senses it claims to be. The
 hardest claims — *"no cloud silently called"*, *"no cloud fallback on local
 failure"*, *"locked cloud providers cannot be activated in this build"* — are
 not just documented; they are enforced by the type system, the endpoint guard,
@@ -64,7 +64,7 @@ The warnings are honestly disclosed in the repo and are NOT silent gaps:
 ### What is not implemented
 
 - See NOT_IMPLEMENTED rows in
-  [`docs/CAPABILITY_MATRIX_PUBLIC_SQUIDLEY.md`](CAPABILITY_MATRIX_PUBLIC_SQUIDLEY.md).
+  [`docs/CAPABILITY_MATRIX_PUBLIC_PEH.md`](CAPABILITY_MATRIX_PUBLIC_PEH.md).
 
 ### What was broken
 
@@ -82,15 +82,15 @@ The warnings are honestly disclosed in the repo and are NOT silent gaps:
 
 - `docs/LOCAL_FIRST_CONTRACT.md` — explicit local-first contract with
   pointers to enforcement points.
-- `docs/capability-matrix.public-squidley.json` — machine-readable matrix.
-- `docs/CAPABILITY_MATRIX_PUBLIC_SQUIDLEY.md` — human-readable matrix.
-- `docs/PUBLIC_SQUIDLEY_AUDIT_2026-05-15.md` — this report.
+- `docs/capability-matrix.public-peh.json` — machine-readable matrix.
+- `docs/CAPABILITY_MATRIX_PUBLIC_PEH.md` — human-readable matrix.
+- `docs/PUBLIC_PEH_AUDIT_2026-05-15.md` — this report.
 - `src/lib/egressGuard.test.ts` — automated runtime egress assertion (11
   tests). Replaces global `fetch` with an interceptor that fails on any
   non-local URL, then exercises chat, stream, fabrica, oculus, health, models,
   and detection.
 - `scripts/prove-local-only.mjs` — egress proof script (static + dynamic).
-- `scripts/public-squidley-diagnostic.mjs` — release-readiness diagnostic.
+- `scripts/public-peh-diagnostic.mjs` — release-readiness diagnostic.
   Exits non-zero on cloud SDK deps, cloud URLs in source, missing matrix,
   missing guard, or weakened endpoint check.
 - `package.json` scripts: `diagnostic`, `prove:local-only`, `verify:release`.
@@ -103,7 +103,7 @@ Live proof captured on this host (2026-05-15):
 $ ollama running at http://localhost:11434 — 14 models
 $ npx vitest run                       — 1248 / 1248 tests pass
 $ npx tsc --noEmit                     — clean
-$ node scripts/public-squidley-diagnostic.mjs
+$ node scripts/public-peh-diagnostic.mjs
   releaseReady: true, failures: 0
   - deps.no-cloud-sdk: ok
   - src.no-cloud-urls: ok (0 hits outside locked metadata)
@@ -115,7 +115,7 @@ $ node scripts/public-squidley-diagnostic.mjs
   - live.ollama: reachable at http://localhost:11434 with 14 model(s)
 $ node scripts/prove-local-only.mjs
   static proof: 0 cloud URLs outside locked metadata
-$ SQUIDLEY_LOCAL_BACKEND=ollama node scripts/gauntlet-local-model.mjs
+$ PEH_LOCAL_BACKEND=ollama node scripts/gauntlet-local-model.mjs
   model: qwen3.5:0.8b (auto-discovered)
   PASS=5  TRY_VERIFY=1  NEEDS_CLOUD=0  BLOCKED=0
   "No cloud calls were made."
@@ -146,11 +146,11 @@ run. It:
 | MOCK_DEMO_ONLY | 0 |
 | UNKNOWN | 0 |
 
-(See `docs/CAPABILITY_MATRIX_PUBLIC_SQUIDLEY.md` for per-row detail.)
+(See `docs/CAPABILITY_MATRIX_PUBLIC_PEH.md` for per-row detail.)
 
 ## 5. Tool locality summary
 
-Public Squidley ships **no tool execution surface**:
+Public Peh ships **no tool execution surface**:
 
 | Locality | Count |
 |---|---|
@@ -187,7 +187,7 @@ were **missing artifacts**, not behavior bugs:
 | Severity | Location | Symptom | Root cause | Fix | Test added |
 |---|---|---|---|---|---|
 | low | repo | No automated runtime egress proof in CI. | Existing tests asserted invariants but did not generically intercept `fetch`. | Added `src/lib/egressGuard.test.ts` with 11 cases. | self |
-| low | docs/ | No machine-readable capability matrix. | Matrix existed only in prose. | Added `docs/capability-matrix.public-squidley.json` + markdown. | n/a |
+| low | docs/ | No machine-readable capability matrix. | Matrix existed only in prose. | Added `docs/capability-matrix.public-peh.json` + markdown. | n/a |
 | low | docs/ | No explicit `LOCAL_FIRST_CONTRACT.md` mapping each rule to its enforcement point. | Documentation distributed across several files. | Added `docs/LOCAL_FIRST_CONTRACT.md`. | n/a |
 | low | scripts/ | No `verify:release` aggregator. | Manual checklist only. | Added `diagnostic`, `prove:local-only`, `verify:release` scripts. | n/a |
 
@@ -195,11 +195,11 @@ were **missing artifacts**, not behavior bugs:
 
 ```
 A  docs/LOCAL_FIRST_CONTRACT.md
-A  docs/CAPABILITY_MATRIX_PUBLIC_SQUIDLEY.md
-A  docs/capability-matrix.public-squidley.json
-A  docs/PUBLIC_SQUIDLEY_AUDIT_2026-05-15.md
+A  docs/CAPABILITY_MATRIX_PUBLIC_PEH.md
+A  docs/capability-matrix.public-peh.json
+A  docs/PUBLIC_PEH_AUDIT_2026-05-15.md
 A  scripts/prove-local-only.mjs
-A  scripts/public-squidley-diagnostic.mjs
+A  scripts/public-peh-diagnostic.mjs
 A  src/lib/egressGuard.test.ts
 M  package.json   (added diagnostic, prove:local-only, verify:release)
 ```
@@ -229,9 +229,9 @@ codebase as-shipped is correct on every claim it makes.
 |---|---|
 | `npx vitest run` | 87 files / 1248 tests, all pass |
 | `npx tsc --noEmit` | clean |
-| `node scripts/public-squidley-diagnostic.mjs` | exit 0; releaseReady: true |
+| `node scripts/public-peh-diagnostic.mjs` | exit 0; releaseReady: true |
 | `node scripts/prove-local-only.mjs` | exit 0; static proof clean |
-| `SQUIDLEY_LOCAL_BACKEND=ollama node scripts/gauntlet-local-model.mjs` | PASS=5, TRY_VERIFY=1, no cloud calls |
+| `PEH_LOCAL_BACKEND=ollama node scripts/gauntlet-local-model.mjs` | PASS=5, TRY_VERIFY=1, no cloud calls |
 
 ## 11. Remaining risks
 
@@ -249,7 +249,7 @@ codebase as-shipped is correct on every claim it makes.
    pattern checks, not guaranteed defenses. Copy says so.
 4. **Gauntlet TRY_VERIFY on prompt-injection.** A small local model can echo
    injected text; the gauntlet flagged this as TRY_VERIFY rather than PASS.
-   This is a model-quality observation, not a Squidley behavior bug. The
+   This is a model-quality observation, not a Peh behavior bug. The
    prompt gateway in the actual route runs **before** the model and blocks
    injection patterns at the application layer regardless.
 5. **`scripts/prove-local-only.mjs` dynamic proof** falls back to static
@@ -261,7 +261,7 @@ codebase as-shipped is correct on every claim it makes.
 
 ## 12. Release recommendation
 
-**Ship.** Public Squidley meets a stricter bar than the sibling projects this
+**Ship.** Public Peh meets a stricter bar than the sibling projects this
 audit pattern was designed to catch:
 
 - No cloud SDK in deps.

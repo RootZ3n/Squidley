@@ -63,7 +63,7 @@ Peh's Cloud Mode will eventually support autonomous tool execution. This documen
 ## Implementation Roadmap
 
 Tool execution is Phase 4 of the product release plan. See
-[PUBLIC_SQUIDLEY_RELEASE_PLAN.md](PUBLIC_SQUIDLEY_RELEASE_PLAN.md) for the
+[PUBLIC_PEH_RELEASE_PLAN.md](PUBLIC_PEH_RELEASE_PLAN.md) for the
 full roadmap including the teaching layer (Phase 2) and Cloud Mode foundation
 (Phase 3) that must come first.
 

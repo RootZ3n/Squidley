@@ -182,8 +182,8 @@ if (
 }
 
 // 7. Capability matrix presence + per-row proof references
-const matrixJson = path.join(REPO_ROOT, "docs/capability-matrix.public-squidley.json");
-const matrixMd = path.join(REPO_ROOT, "docs/CAPABILITY_MATRIX_PUBLIC_SQUIDLEY.md");
+const matrixJson = path.join(REPO_ROOT, "docs/capability-matrix.public-peh.json");
+const matrixMd = path.join(REPO_ROOT, "docs/CAPABILITY_MATRIX_PUBLIC_PEH.md");
 if (!existsSync(matrixJson) || !existsSync(matrixMd)) {
   fail("matrix.present", "Capability matrix JSON and/or markdown missing in docs/.");
 } else {
@@ -268,8 +268,8 @@ for (const testFile of [
 }
 
 // 9b. Tool matrix presence + consistency
-const toolMatrixJson = path.join(REPO_ROOT, "docs/tool-matrix.public-squidley.json");
-const toolMatrixMd = path.join(REPO_ROOT, "docs/TOOL_MATRIX_PUBLIC_SQUIDLEY.md");
+const toolMatrixJson = path.join(REPO_ROOT, "docs/tool-matrix.public-peh.json");
+const toolMatrixMd = path.join(REPO_ROOT, "docs/TOOL_MATRIX_PUBLIC_PEH.md");
 if (!existsSync(toolMatrixJson) || !existsSync(toolMatrixMd)) {
   fail("tool-matrix.present", "Tool matrix JSON and/or markdown missing.");
 } else {
@@ -405,9 +405,9 @@ function scanForOverclaims(file) {
 const overclaims = [
   ...scanForOverclaims("README.md"),
   ...scanForOverclaims("docs/LOCAL_FIRST_CONTRACT.md"),
-  ...scanForOverclaims("docs/CAPABILITY_MATRIX_PUBLIC_SQUIDLEY.md"),
+  ...scanForOverclaims("docs/CAPABILITY_MATRIX_PUBLIC_PEH.md"),
   ...scanForOverclaims("docs/LOCAL_ONLY_PRINCIPLES.md"),
-  ...scanForOverclaims("docs/PUBLIC_SQUIDLEY_AUDIT_2026-05-15.md"),
+  ...scanForOverclaims("docs/PUBLIC_PEH_AUDIT_2026-05-15.md"),
   ...scanForOverclaims("docs/LOCAL_MODE.md"),
   ...scanForOverclaims("docs/CLOUD_MODE.md"),
   ...scanForOverclaims("docs/CLOUD_MODE_ARCHITECTURE.md"),
@@ -422,7 +422,7 @@ if (overclaims.length === 0) {
 
 // 11. Live Ollama probe (informational)
 const ollamaEndpoint =
-  process.env.PEH_LOCAL_ENDPOINT || process.env.SQUIDLEY_LOCAL_ENDPOINT || "http://localhost:11434";
+  process.env.PEH_LOCAL_ENDPOINT || process.env.PEH_LOCAL_ENDPOINT || "http://localhost:11434";
 let ollamaModelCount = null;
 try {
   const ctrl = new AbortController();
@@ -575,7 +575,7 @@ if (readmeSrc.includes("NOT RELEASE READY")) {
 
 // Required product docs
 const requiredProductDocs = [
-  "docs/PUBLIC_SQUIDLEY_RELEASE_PLAN.md",
+  "docs/PUBLIC_PEH_RELEASE_PLAN.md",
   "docs/TEACHER_FIRST_DOCTRINE.md",
   "docs/BEGINNER_ONBOARDING_DESIGN.md",
   "docs/SELF_EXPLANATION_REQUIREMENTS.md",

@@ -8,7 +8,7 @@ local-first AI companion to a wide audience.
 
 It is **not** Peh V1. It is **not** Peh V2. Peh V2 exists
 only as a *lessons-learned* reference (see
-[`LESSONS_FROM_SQUIDLEY_V2.md`](LESSONS_FROM_SQUIDLEY_V2.md)). Private
+[`LESSONS_FROM_PEH_V2.md`](LESSONS_FROM_PEH_V2.md)). Private
 lab assumptions, machine names, hardcoded paths, debug panels,
 experimental internals, and full autonomous lab systems do **not** belong
 in this codebase.

@@ -1,6 +1,6 @@
-# Lessons from Squidley V2
+# Lessons from Peh V2
 
-> **This repo is the fresh public Squidley product.** Squidley V2 is
+> **This repo is the fresh public Peh product.** Peh V2 is
 > only a *lessons-learned reference*. None of V2's private code,
 > machine names, paths, debug panels, or autonomous lab systems are
 > ported here.
@@ -12,10 +12,10 @@ V2 worked internally.
 ## What we are keeping in spirit
 
 - **A named, latinate module vocabulary.** Module names like Colloquium,
-  Fabrica, Velum carry meaning. Public Squidley keeps the naming style
+  Fabrica, Velum carry meaning. Public Peh keeps the naming style
   but reserves only the modules that make sense for a public,
   beginner-first product.
-- **A visible companion presence.** A persistent Squidley voice that
+- **A visible companion presence.** A persistent Peh voice that
   can explain the screen the user is on. In V2 this leaned advanced;
   in public it must be calm and beginner-first.
 - **Receipts and visible activity.** Users should always be able to see
@@ -29,7 +29,7 @@ V2 worked internally.
 - **Lab-specific modules** (e.g., Aedis, Crucible, Krakzen, Verum). They
   do not appear in the public registry, the public UI, or any public
   documentation.
-- **Hardcoded private paths and machine names.** Public Squidley
+- **Hardcoded private paths and machine names.** Public Peh
   contains no references to specific user machines, private repo
   layouts, or operator-only directories.
 - **Autonomous lab systems.** No background agents that act without an
@@ -57,4 +57,4 @@ V2 worked internally.
 
 If a feature in V2 was useful, ask: *would a brand-new user, on their
 first day, benefit from this — and could they understand it from the
-UI alone?* If not, it does not belong in public Squidley yet.
+UI alone?* If not, it does not belong in public Peh yet.

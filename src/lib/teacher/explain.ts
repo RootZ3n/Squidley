@@ -24,7 +24,7 @@ import { PUBLIC_RELEASE_READY } from "../mode/productStatus";
  * to concept IDs.
  */
 const QUESTION_PATTERNS: readonly { pattern: RegExp; conceptIds: string[] }[] = [
-  { pattern: /\bwhat (?:are you|is (?:peh|squidley))\b/i, conceptIds: ["agent", "local_mode"] },
+  { pattern: /\bwhat (?:are you|is (?:peh|peh))\b/i, conceptIds: ["agent", "local_mode"] },
   { pattern: /\bwhat (?:is|are) (?:a )?tool(?:s| call)?\b/i, conceptIds: ["tool_call", "tool_backed_action"] },
   { pattern: /\bwhat (?:is|are) (?:a )?token/i, conceptIds: ["token", "context_window", "cost"] },
   { pattern: /\bwhat (?:is )?local mode\b/i, conceptIds: ["local_mode", "local_model", "privacy"] },

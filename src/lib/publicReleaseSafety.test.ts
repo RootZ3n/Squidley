@@ -33,8 +33,8 @@ describe("public release safety contract", () => {
 
   it("keeps local mode on the configured local endpoint even when cloud keys exist", async () => {
     const env = {
-      SQUIDLEY_LOCAL_ENDPOINT: "http://ollama.local:11434/",
-      SQUIDLEY_LOCAL_MODEL: "qwen2.5:3b",
+      PEH_LOCAL_ENDPOINT: "http://ollama.local:11434/",
+      PEH_LOCAL_MODEL: "qwen2.5:3b",
       OPENAI_API_KEY: "sk-should-not-matter",
       ANTHROPIC_API_KEY: "also-ignored",
     };

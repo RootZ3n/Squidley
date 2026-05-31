@@ -40,7 +40,7 @@ import path from "node:path";
 
 const REPO_ROOT = path.resolve(new URL(".", import.meta.url).pathname, "..");
 const REPORT_DIR = path.join(REPO_ROOT, "reports", "tool-honesty-gauntlet");
-const ENDPOINT = process.env.PEH_CHAT_BASE || process.env.SQUIDLEY_CHAT_BASE || "http://127.0.0.1:3000";
+const ENDPOINT = process.env.PEH_CHAT_BASE || process.env.PEH_CHAT_BASE || "http://127.0.0.1:3000";
 const TIMEOUT_MS = 45_000;
 
 function isLocalUrl(value) {

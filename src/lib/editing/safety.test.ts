@@ -14,7 +14,7 @@ function defaults(over: Partial<Parameters<typeof checkEditSafety>[0]> = {}) {
     path: "src/a.ts",
     currentFileContent: "export const greeting = 'hello world';\n",
     originalSnippet: "'hello world'",
-    proposedSnippet: "'hi squidley'",
+    proposedSnippet: "'hi peh'",
     inspectedPaths: ["src/a.ts"],
     ...over,
   };

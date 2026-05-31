@@ -2,7 +2,7 @@
 
 > **Product status: NOT RELEASE READY.** Local Mode is an audited subsystem.
 > Cloud Mode is architecture only. See
-> [PUBLIC_SQUIDLEY_RELEASE_PLAN.md](PUBLIC_SQUIDLEY_RELEASE_PLAN.md).
+> [PUBLIC_PEH_RELEASE_PLAN.md](PUBLIC_PEH_RELEASE_PLAN.md).
 >
 > Tier vocabulary follows [docs/CAPABILITY_TAXONOMY.md](CAPABILITY_TAXONOMY.md).
 > The columns `localModeStatus` and `cloudModeStatus` are preserved for the

@@ -27,7 +27,7 @@ describe("tool-honesty-gauntlet script contract", () => {
   it("refuses a non-local chat base before any request", () => {
     const result = spawnSync("node", [SCRIPT], {
       cwd: REPO_ROOT,
-      env: { ...process.env, SQUIDLEY_CHAT_BASE: "https://api.openai.com" },
+      env: { ...process.env, PEH_CHAT_BASE: "https://api.openai.com" },
       encoding: "utf8",
       timeout: 5000,
     });
@@ -38,7 +38,7 @@ describe("tool-honesty-gauntlet script contract", () => {
   it("emits SKIP_LOCAL_SERVER_NOT_RUNNING when chat endpoint is unreachable", () => {
     const result = spawnSync("node", [SCRIPT], {
       cwd: REPO_ROOT,
-      env: { ...process.env, SQUIDLEY_CHAT_BASE: "http://127.0.0.1:65529" },
+      env: { ...process.env, PEH_CHAT_BASE: "http://127.0.0.1:65529" },
       encoding: "utf8",
       timeout: 60000,
     });

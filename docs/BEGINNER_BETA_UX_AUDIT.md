@@ -2,7 +2,7 @@
 
 > Generated after the terminology and trust-surface polish pass.
 > Companion to [UI_LANGUAGE_GUIDE.md](UI_LANGUAGE_GUIDE.md) and
-> [PUBLIC_SQUIDLEY_COHERENCE_REPORT_2026-05-20.md](PUBLIC_SQUIDLEY_COHERENCE_REPORT_2026-05-20.md).
+> [PUBLIC_PEH_COHERENCE_REPORT_2026-05-20.md](PUBLIC_PEH_COHERENCE_REPORT_2026-05-20.md).
 >
 > Audience: a non-technical first-time AI user. The question every
 > finding answers: *would this confuse a beginner in the first ten
@@ -10,7 +10,7 @@
 
 ## Headline
 
-Public Squidley's runtime is more honest and more capable than its
+Public Peh's runtime is more honest and more capable than its
 UI vocabulary lets on. The biggest gap was not technical safety — it
 was nomenclature. Six Latin module names with no inline explanation
 made the sidebar read like a "secret AI laboratory" rather than a
@@ -158,7 +158,7 @@ can't I do?". The teacher KB module 15 covers all three, but it is
 not surfaced on the home page or the first-run wizard prominently.
 
 **Recommendation:** On the home page, after the existing welcome,
-add a "What Squidley can do today" card sourced directly from the
+add a "What Peh can do today" card sourced directly from the
 canonical capability list. Three columns: Use freely, Use after
 approval, Planned but not running.
 
@@ -170,11 +170,11 @@ approval, Planned but not running.
 surface still lacks a tooltip. S3 risk now that the glossary is
 populated.
 
-### S3 · Home page eyebrow says "Public Squidley · welcome"
+### S3 · Home page eyebrow says "Public Peh · welcome"
 
 **Location:** `src/app/page.tsx:69-71`.
 
-**Recommendation:** Either drop the "Public Squidley ·" prefix on
+**Recommendation:** Either drop the "Public Peh ·" prefix on
 the home page or fold it into the page metadata. A first-time user
 does not need to know they are using the "public" build before they
 have used anything.
@@ -267,7 +267,7 @@ Must fix before shipping a beginner-targeted beta:
 
 - Page H1 friendly subtitle (optional).
 - "Receipt room" → "Activity log" on the Tabularium H1.
-- Drop the "Public Squidley ·" eyebrow on first-time visitors.
+- Drop the "Public Peh ·" eyebrow on first-time visitors.
 - Add an "Advanced mode" toggle in Settings that reveals the
   technical classifications and the Latin names in primary positions.
 
@@ -286,6 +286,6 @@ Must fix before shipping a beginner-targeted beta:
 - Language guide: [UI_LANGUAGE_GUIDE.md](UI_LANGUAGE_GUIDE.md)
 - Taxonomy: [CAPABILITY_TAXONOMY.md](CAPABILITY_TAXONOMY.md)
 - Prior coherence report:
-  [PUBLIC_SQUIDLEY_COHERENCE_REPORT_2026-05-20.md](PUBLIC_SQUIDLEY_COHERENCE_REPORT_2026-05-20.md)
+  [PUBLIC_PEH_COHERENCE_REPORT_2026-05-20.md](PUBLIC_PEH_COHERENCE_REPORT_2026-05-20.md)
 - Release readiness scorecard:
   [RELEASE_READINESS_SCORECARD_2026-05-20.md](RELEASE_READINESS_SCORECARD_2026-05-20.md)

@@ -31,7 +31,7 @@ npm run start
 from:
 
 ```text
-/mnt/ai/squidley
+/mnt/ai/peh
 ```
 
 with:
@@ -124,7 +124,7 @@ If any check fails, the script stops before restarting the service.
 Source the alias file from your shell:
 
 ```bash
-source /mnt/ai/squidley/ops/peh-public-aliases.sh
+source /mnt/ai/peh/ops/peh-public-aliases.sh
 ```
 
 Available aliases:
@@ -143,7 +143,7 @@ sqpub-rebuild
 To load them automatically, add this to your shell profile:
 
 ```bash
-source /mnt/ai/squidley/ops/peh-public-aliases.sh
+source /mnt/ai/peh/ops/peh-public-aliases.sh
 ```
 
 ## Keeping the Service Running After Logout
@@ -194,7 +194,7 @@ Stop the other process or change the service `PORT` value before starting.
 Run:
 
 ```bash
-cd /mnt/ai/squidley
+cd /mnt/ai/peh
 npm run build
 systemctl --user restart peh-public.service
 ```

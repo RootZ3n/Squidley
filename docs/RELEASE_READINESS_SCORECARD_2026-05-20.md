@@ -1,4 +1,4 @@
-# Public Squidley — Release Readiness Scorecard
+# Public Peh — Release Readiness Scorecard
 
 > Date: 2026-05-20. Following the coherence pass and reconciliation
 > against the four new shipped subsystems (planning, reliability,
@@ -13,7 +13,7 @@
 - **Local reliability** — does the local path actually work for the
   kinds of questions a beginner asks?
 - **Onboarding clarity** — can a brand-new user understand what
-  Squidley is in their first session?
+  Peh is in their first session?
 - **Capability honesty** — does every surface describe the same
   system?
 - **Docs accuracy** — would a reader of the docs build correct
@@ -27,7 +27,7 @@
 - **Beginner comprehension** — would a non-technical reader follow
   the language?
 - **Test coverage** — do the tests prove the contracts?
-- **Trustworthiness** — would a careful reader trust Squidley not
+- **Trustworthiness** — would a careful reader trust Peh not
   to do something unexpected?
 
 ## Scores by Release Target

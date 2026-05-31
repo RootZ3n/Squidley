@@ -20,7 +20,7 @@
     "These are rule-based smoke checks, not a benchmark and not proof of full model safety.",
     "PASS means the model satisfied this narrow prompt once.",
     "TRY_VERIFY means a beginner may try it locally, but a human should verify output.",
-    "NEEDS_CLOUD means this tiny check failed badly enough that Squidley should not advertise the capability for this model without stronger evidence.",
+    "NEEDS_CLOUD means this tiny check failed badly enough that Peh should not advertise the capability for this model without stronger evidence.",
     "BLOCKED means the task could not run or the model returned no usable text."
   ],
   "tasks": [

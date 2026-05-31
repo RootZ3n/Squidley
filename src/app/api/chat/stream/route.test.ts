@@ -258,7 +258,7 @@ describe("/api/chat/stream — answer-wrap (Phase 3)", () => {
     const response = await POST(
       new Request("http://test/api/chat/stream", {
         method: "POST",
-        body: JSON.stringify({ message: "hi squidley" }),
+        body: JSON.stringify({ message: "hi peh" }),
       }),
     );
     const events = await readAllEvents(response.body!);
@@ -515,7 +515,7 @@ describe("/api/chat/stream — structured planning", () => {
     const response = await POST(
       new Request("http://test/api/chat/stream", {
         method: "POST",
-        body: JSON.stringify({ message: "hi squidley" }),
+        body: JSON.stringify({ message: "hi peh" }),
       }),
     );
     const events = await readAllEvents(response.body!);

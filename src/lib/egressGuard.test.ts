@@ -153,7 +153,7 @@ describe("egress guard — every server-side fetch hits a local URL", () => {
   it("detection probe only touches local URLs in auto mode", async () => {
     const guard = installEgressGuard();
     try {
-      const autoConfig = getLocalProviderConfig({ SQUIDLEY_LOCAL_BACKEND: "auto" });
+      const autoConfig = getLocalProviderConfig({ PEH_LOCAL_BACKEND: "auto" });
       await detectLocalBackend({ config: autoConfig });
       for (const url of guard.attempts) expect(isLocalUrl(url)).toBe(true);
     } finally {
@@ -233,8 +233,8 @@ describe("egress guard — every server-side fetch hits a local URL", () => {
     process.env.OPENROUTER_API_KEY = "or-egress-test-should-not-matter";
     try {
       const cfg = getLocalProviderConfig({
-        SQUIDLEY_LOCAL_ENDPOINT: "http://localhost:11434",
-        SQUIDLEY_LOCAL_MODEL: "llama3.2",
+        PEH_LOCAL_ENDPOINT: "http://localhost:11434",
+        PEH_LOCAL_MODEL: "llama3.2",
         OPENAI_API_KEY: process.env.OPENAI_API_KEY,
         ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
       });

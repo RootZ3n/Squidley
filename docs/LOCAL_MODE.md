@@ -16,7 +16,7 @@ becomes a fully capable autonomous agent.
 
 This does not mean Peh is ready to ship. The product requires
 Cloud Mode, teaching flows, tool execution, and beginner onboarding before
-public release. See [PUBLIC_SQUIDLEY_RELEASE_PLAN.md](PUBLIC_SQUIDLEY_RELEASE_PLAN.md).
+public release. See [PUBLIC_PEH_RELEASE_PLAN.md](PUBLIC_PEH_RELEASE_PLAN.md).
 
 ## Key Properties
 

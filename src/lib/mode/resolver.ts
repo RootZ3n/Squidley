@@ -5,7 +5,7 @@
  * Cloud mode requires EXPLICIT activation — API keys alone do not enable it.
  *
  * Resolution order:
- *   1. Explicit PEH_MODE env var (legacy SQUIDLEY_MODE honored as fallback)
+ *   1. Explicit PEH_MODE env var (legacy PEH_MODE honored as fallback)
  *   2. Explicit config setting (future: UI-saved setting)
  *   3. Default: "local"
  *
@@ -21,10 +21,10 @@ import { ENV_ALIASES, resolveAliasedEnv } from "../compat/env";
 
 /**
  * Legacy mode env var name. Reads go through {@link ENV_ALIASES.mode} so the
- * canonical `PEH_MODE` is preferred with `SQUIDLEY_MODE` honored as a fallback
+ * canonical `PEH_MODE` is preferred with `PEH_MODE` honored as a fallback
  * (peh-pub migration compatibility).
  */
-export const ENV_KEY_MODE = "SQUIDLEY_MODE" as const;
+export const ENV_KEY_MODE = "PEH_MODE" as const;
 
 /**
  * Known cloud API key env vars. Their presence alone does NOT enable cloud mode.
@@ -107,7 +107,7 @@ export function resolveMode(input: ModeResolverInput = {}): ModeResolution {
     };
   }
 
-  // 2. Environment variable (PEH_MODE preferred, SQUIDLEY_MODE fallback)
+  // 2. Environment variable (PEH_MODE preferred, PEH_MODE fallback)
   const modeEnv = resolveAliasedEnv(env, ENV_ALIASES.mode);
   const modeRaw = modeEnv.value;
   const modeVarName = modeEnv.source === "legacy" ? ENV_ALIASES.mode.legacy : ENV_ALIASES.mode.current;

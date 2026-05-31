@@ -3,7 +3,7 @@
   "product": "Peh",
   "generatedAt": "2026-05-20",
   "principle": "A local model is not a tool by itself. This matrix enumerates every tool-like ability a user might EXPECT Peh to perform and records the truth about whether the build ships a real implementation. The application-layer honesty annotator (src/lib/chat/honestyAnnotation.ts) overrides the model's text whenever it implies a tool action that this build cannot perform.",
-  "machineReadableSourceOfTruth": "This JSON is the machine-readable source of truth for the tool surface. It is consumed by scripts/peh-pub-diagnostic.mjs and the npm run verify:capabilities script. The markdown view (docs/TOOL_MATRIX_PUBLIC_SQUIDLEY.md) is a human-readable projection. When the two disagree, this JSON wins.",
+  "machineReadableSourceOfTruth": "This JSON is the machine-readable source of truth for the tool surface. It is consumed by scripts/peh-pub-diagnostic.mjs and the npm run verify:capabilities script. The markdown view (docs/TOOL_MATRIX_PUBLIC_PEH.md) is a human-readable projection. When the two disagree, this JSON wins.",
   "statuses": {
     "LOCAL_TOOL_READY": "Real local tool is implemented, enabled, and tested. Produces a real tool receipt on success.",
     "LOCAL_MODEL_ONLY": "The capability is answered by the local model's TEXT alone, with no tool action. The model cannot claim a tool action; the honesty annotator overrides such claims.",

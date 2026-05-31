@@ -1,13 +1,13 @@
 /**
  * localStorage / sessionStorage compatibility layer (peh-pub migration).
  *
- * Peh is the active public identity; saved browser state from the Squidley era
- * must survive the rename. Every persisted key that used to be `squidley.*`
- * (or `squidley_*`) now has a canonical `peh.*` / `peh_*` name. This module
+ * Peh is the active public identity; saved browser state from the Peh era
+ * must survive the rename. Every persisted key that used to be `peh.*`
+ * (or `peh_*`) now has a canonical `peh.*` / `peh_*` name. This module
  * migrates a user's saved state ON READ:
  *
  *   1. read the canonical (peh) key — if present, use it,
- *   2. otherwise read the legacy (squidley) key,
+ *   2. otherwise read the legacy (peh) key,
  *   3. if the legacy key exists, copy its value to the canonical key and
  *      DELETE the legacy key (decision: copy-then-delete),
  *   4. return the value.
@@ -25,11 +25,11 @@ export interface StorageLike {
   removeItem(key: string): void;
 }
 
-/** A canonical storage key paired with its legacy Squidley-era name. */
+/** A canonical storage key paired with its legacy Peh-era name. */
 export interface StorageKeyAlias {
   /** Canonical Peh-era key. */
   readonly current: string;
-  /** Legacy Squidley-era key migrated on first read. */
+  /** Legacy Peh-era key migrated on first read. */
   readonly legacy: string;
 }
 
@@ -40,21 +40,21 @@ export interface StorageKeyAlias {
  * silently loses its saved state on rename.
  */
 export const STORAGE_KEY_ALIASES: readonly StorageKeyAlias[] = [
-  { current: "peh.colloquium.conversation.v1", legacy: "squidley.colloquium.conversation.v1" },
-  { current: "peh.colloquium.sessions.v2", legacy: "squidley.colloquium.sessions.v2" },
-  { current: "peh.colloquium.velumDraft.v1", legacy: "squidley.colloquium.velumDraft.v1" },
-  { current: "peh.archivum.entries.v1", legacy: "squidley.archivum.entries.v1" },
-  { current: "peh.tabularium.receipts.v1", legacy: "squidley.tabularium.receipts.v1" },
-  { current: "peh.nous.modelPreferences.v1", legacy: "squidley.nous.modelPreferences.v1" },
-  { current: "peh.oculus.colloquiumAnalysis.v1", legacy: "squidley.oculus.colloquiumAnalysis.v1" },
-  { current: "peh.velum.redactedDraft.v1", legacy: "squidley.velum.redactedDraft.v1" },
-  { current: "peh.velum.moreInputRedacted.v1", legacy: "squidley.velum.moreInputRedacted.v1" },
-  { current: "peh.moreInput.velumDraft.v1", legacy: "squidley.moreInput.velumDraft.v1" },
-  { current: "peh_teaching_settings", legacy: "squidley_teaching_settings" },
-  { current: "peh_onboarding_progress", legacy: "squidley_onboarding_progress" },
-  { current: "peh.firstRun.completed", legacy: "squidley.firstRun.completed" },
-  { current: "peh.tourMode", legacy: "squidley.tourMode" },
-  { current: "peh.tourCompleted", legacy: "squidley.tourCompleted" },
+  { current: "peh.colloquium.conversation.v1", legacy: "peh.colloquium.conversation.v1" },
+  { current: "peh.colloquium.sessions.v2", legacy: "peh.colloquium.sessions.v2" },
+  { current: "peh.colloquium.velumDraft.v1", legacy: "peh.colloquium.velumDraft.v1" },
+  { current: "peh.archivum.entries.v1", legacy: "peh.archivum.entries.v1" },
+  { current: "peh.tabularium.receipts.v1", legacy: "peh.tabularium.receipts.v1" },
+  { current: "peh.nous.modelPreferences.v1", legacy: "peh.nous.modelPreferences.v1" },
+  { current: "peh.oculus.colloquiumAnalysis.v1", legacy: "peh.oculus.colloquiumAnalysis.v1" },
+  { current: "peh.velum.redactedDraft.v1", legacy: "peh.velum.redactedDraft.v1" },
+  { current: "peh.velum.moreInputRedacted.v1", legacy: "peh.velum.moreInputRedacted.v1" },
+  { current: "peh.moreInput.velumDraft.v1", legacy: "peh.moreInput.velumDraft.v1" },
+  { current: "peh_teaching_settings", legacy: "peh_teaching_settings" },
+  { current: "peh_onboarding_progress", legacy: "peh_onboarding_progress" },
+  { current: "peh.firstRun.completed", legacy: "peh.firstRun.completed" },
+  { current: "peh.tourMode", legacy: "peh.tourMode" },
+  { current: "peh.tourCompleted", legacy: "peh.tourCompleted" },
 ] as const;
 
 /** Lookup of canonical key -> legacy key, built from {@link STORAGE_KEY_ALIASES}. */

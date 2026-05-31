@@ -148,8 +148,8 @@ of the taxonomy lives in two JSON files:
 
 Both files declare a `canonicalTiers` block at the top so consumers
 can validate the vocabulary at load time. The Markdown views
-(`docs/MODE_CAPABILITY_MATRIX.md`, `docs/CAPABILITY_MATRIX_PUBLIC_SQUIDLEY.md`,
-`docs/TOOL_MATRIX_PUBLIC_SQUIDLEY.md`) are projections of the JSON; when
+(`docs/MODE_CAPABILITY_MATRIX.md`, `docs/CAPABILITY_MATRIX_PUBLIC_PEH.md`,
+`docs/TOOL_MATRIX_PUBLIC_PEH.md`) are projections of the JSON; when
 the two disagree, **the JSON wins** and the Markdown should be updated.
 
 Validation:

@@ -1,9 +1,9 @@
-# Public Squidley — Final Release Hardening Pass (2026-05-15)
+# Public Peh — Final Release Hardening Pass (2026-05-15)
 
-Repo: `/mnt/ai/squidley`
+Repo: `/mnt/ai/peh`
 
 This is the no-loose-ends pass that follows
-[`docs/PUBLIC_SQUIDLEY_AUDIT_2026-05-15.md`](PUBLIC_SQUIDLEY_AUDIT_2026-05-15.md).
+[`docs/PUBLIC_PEH_AUDIT_2026-05-15.md`](PUBLIC_PEH_AUDIT_2026-05-15.md).
 Its purpose was to close or hard-gate every remaining warning so the final
 verdict can be **RELEASE READY** rather than "RELEASE READY WITH WARNINGS".
 
@@ -27,7 +27,7 @@ The gauntlet's overall recommendation is `TRY_VERIFY`, not `PASS`, because
 qwen3.5:0.8b (a 0.8B-parameter model) can repeat injected text in the
 prompt-injection task. That is honestly captured in the gauntlet report and
 in the capability matrix (`system:local.gauntlet` is `LOCAL_PARTIAL`). It is
-a **model** quality limitation, not a Squidley behavior bug — the
+a **model** quality limitation, not a Peh behavior bug — the
 application-layer prompt gateway and Velum review run regardless of model
 quality. The release does not claim "safety solved"; it claims "the local
 checks ran, no cloud calls were made, and the result is honestly labeled".
@@ -60,17 +60,17 @@ they are the honest truth of the product as shipped.
 
 ```
 A  docs/LOCAL_ONLY_TESTING.md
-A  docs/PUBLIC_SQUIDLEY_RELEASE_HARDENING_2026-05-15.md  (this file)
+A  docs/PUBLIC_PEH_RELEASE_HARDENING_2026-05-15.md  (this file)
 A  scripts/smoke-llama-server.mjs
 A  src/lib/heuristicHonesty.test.ts
 A  src/lib/smokeLlamaServer.test.ts
-M  docs/CAPABILITY_MATRIX_PUBLIC_SQUIDLEY.md             (per-backend status, proof refs)
+M  docs/CAPABILITY_MATRIX_PUBLIC_PEH.md             (per-backend status, proof refs)
 M  docs/LOCAL_FIRST_CONTRACT.md                         (proof procedures updated)
-M  docs/capability-matrix.public-squidley.json          (schema v2; per-backend status; proofReferences)
+M  docs/capability-matrix.public-peh.json          (schema v2; per-backend status; proofReferences)
 M  package.json                                          (smoke:llama-server → new script; verify:release runs gauntlet too)
 M  README.md                                             (release verification section)
 M  scripts/prove-local-only.mjs                          (dynamic proof via vitest; no tsx)
-M  scripts/public-squidley-diagnostic.mjs                (strict release gate: proof refs, PROOF.json, overclaim scan)
+M  scripts/public-peh-diagnostic.mjs                (strict release gate: proof refs, PROOF.json, overclaim scan)
 ```
 
 No production source file under `src/app/**` or `src/components/**` was
@@ -89,12 +89,12 @@ The pass added enforcement, tests, and honest matrix labels.
 |---|---|
 | `npx tsc --noEmit` | clean |
 | `npx vitest run` | 89 files / 1261 tests pass |
-| `node scripts/public-squidley-diagnostic.mjs` | releaseReady: true, failures: 0 |
+| `node scripts/public-peh-diagnostic.mjs` | releaseReady: true, failures: 0 |
 | `node scripts/prove-local-only.mjs` | static + dynamic clean (verdict: PASS) |
 | `LLAMA_SERVER_URL=https://api.openai.com node scripts/smoke-llama-server.mjs` | exit 1, `FAIL_REMOTE_URL` |
 | `LLAMA_SERVER_URL=http://127.0.0.1:65530 node scripts/smoke-llama-server.mjs` | exit 0, `SKIP_LOCAL_SERVER_NOT_RUNNING` |
 | `LLAMA_SERVER_URL=http://127.0.0.1:8080 node scripts/smoke-llama-server.mjs` | exit 1, `FAIL_INCOMPATIBLE` (a non-llama-server service answered on :8080 on this host) — script correctly classified the situation rather than claiming success |
-| `SQUIDLEY_LOCAL_BACKEND=ollama node scripts/gauntlet-local-model.mjs` | exit 0; PASS=5 / TRY_VERIFY=1 / NEEDS_CLOUD=0 / BLOCKED=0; "No cloud calls were made." |
+| `PEH_LOCAL_BACKEND=ollama node scripts/gauntlet-local-model.mjs` | exit 0; PASS=5 / TRY_VERIFY=1 / NEEDS_CLOUD=0 / BLOCKED=0; "No cloud calls were made." |
 | `npm run verify:release` | exit 0 |
 
 ## 7. Explicit answers

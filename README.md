@@ -5,7 +5,7 @@
 > execution (file inspection, tiny edits) plus structured planning. Cloud
 > Mode is architecture only — no adapters wired. Full teaching, broad tool
 > execution, and autonomous workflows are not yet implemented. See
-> [docs/PUBLIC_SQUIDLEY_RELEASE_PLAN.md](docs/PUBLIC_SQUIDLEY_RELEASE_PLAN.md)
+> [docs/PUBLIC_PEH_RELEASE_PLAN.md](docs/PUBLIC_PEH_RELEASE_PLAN.md)
 > and [docs/CAPABILITY_TAXONOMY.md](docs/CAPABILITY_TAXONOMY.md).
 
 Peh is a **local-first teaching + planning assistant**. She starts on
@@ -165,15 +165,15 @@ the full product is ready to ship.
 
 ## Release Plan
 
-See [docs/PUBLIC_SQUIDLEY_RELEASE_PLAN.md](docs/PUBLIC_SQUIDLEY_RELEASE_PLAN.md)
+See [docs/PUBLIC_PEH_RELEASE_PLAN.md](docs/PUBLIC_PEH_RELEASE_PLAN.md)
 for the six-phase plan from Local Foundation to Release Candidate.
 
 ## Documentation
 
 ### Product & Architecture
-- [docs/PUBLIC_SQUIDLEY_RELEASE_PLAN.md](docs/PUBLIC_SQUIDLEY_RELEASE_PLAN.md) — release phases and requirements
+- [docs/PUBLIC_PEH_RELEASE_PLAN.md](docs/PUBLIC_PEH_RELEASE_PLAN.md) — release phases and requirements
 - [docs/CAPABILITY_TAXONOMY.md](docs/CAPABILITY_TAXONOMY.md) — canonical capability tiers and standard phrases
-- [docs/PUBLIC_SQUIDLEY_COHERENCE_REPORT_2026-05-20.md](docs/PUBLIC_SQUIDLEY_COHERENCE_REPORT_2026-05-20.md) — most recent product coherence pass
+- [docs/PUBLIC_PEH_COHERENCE_REPORT_2026-05-20.md](docs/PUBLIC_PEH_COHERENCE_REPORT_2026-05-20.md) — most recent product coherence pass
 - [docs/RELEASE_READINESS_SCORECARD_2026-05-20.md](docs/RELEASE_READINESS_SCORECARD_2026-05-20.md) — release readiness rubric and scores
 - [docs/TEACHER_FIRST_DOCTRINE.md](docs/TEACHER_FIRST_DOCTRINE.md) — teaching principles
 - [docs/SELF_EXPLANATION_REQUIREMENTS.md](docs/SELF_EXPLANATION_REQUIREMENTS.md) — what Peh must be able to explain
@@ -193,8 +193,8 @@ for the six-phase plan from Local Foundation to Release Candidate.
 
 ### Local Foundation
 - [docs/LOCAL_FIRST_CONTRACT.md](docs/LOCAL_FIRST_CONTRACT.md) — local-first contract with enforcement points
-- [docs/CAPABILITY_MATRIX_PUBLIC_SQUIDLEY.md](docs/CAPABILITY_MATRIX_PUBLIC_SQUIDLEY.md) — capability truth matrix
-- [docs/TOOL_MATRIX_PUBLIC_SQUIDLEY.md](docs/TOOL_MATRIX_PUBLIC_SQUIDLEY.md) — tool truth matrix
+- [docs/CAPABILITY_MATRIX_PUBLIC_PEH.md](docs/CAPABILITY_MATRIX_PUBLIC_PEH.md) — capability truth matrix
+- [docs/TOOL_MATRIX_PUBLIC_PEH.md](docs/TOOL_MATRIX_PUBLIC_PEH.md) — tool truth matrix
 - [docs/LOCAL_ONLY_TESTING.md](docs/LOCAL_ONLY_TESTING.md) — local-only verification
 - [docs/LOCAL_MODEL_SETUP.md](docs/LOCAL_MODEL_SETUP.md) — Ollama and local model setup
 

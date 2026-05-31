@@ -38,7 +38,7 @@ const WRAP_PATTERNS: readonly RegExp[] = [
 
   // Local model troubleshooting (model itself, not health probe)
   /\bwhy (?:is |does )?(?:the )?model (?:so |always )?(?:slow|empty|stuck|repeating|wrong|hallucinating)\b/i,
-  /\bwhy (?:do |does )?(?:you|peh|squidley) (?:keep|always) (?:saying|returning|giving)\b/i,
+  /\bwhy (?:do |does )?(?:you|peh|peh) (?:keep|always) (?:saying|returning|giving)\b/i,
 ];
 
 const MAX_WRAP_LENGTH = 4000;

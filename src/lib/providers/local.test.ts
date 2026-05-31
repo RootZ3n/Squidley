@@ -21,7 +21,7 @@ describe("local provider config", () => {
     expect(cfg.toolsUsed).toBe(false);
   });
 
-  it("reads SQUIDLEY_LOCAL_ENDPOINT and SQUIDLEY_LOCAL_MODEL overrides", () => {
+  it("reads PEH_LOCAL_ENDPOINT and PEH_LOCAL_MODEL overrides", () => {
     const cfg = getLocalProviderConfig({
       [ENV_KEYS.endpoint]: "http://127.0.0.1:9000",
       [ENV_KEYS.model]: "qwen2.5:3b",
@@ -77,7 +77,7 @@ describe("local provider config", () => {
     expect(isAllowedLocalEndpoint("http://example.com:11434")).toBe(false);
   });
 
-  it("parses SQUIDLEY_LOCAL_BACKEND as backend type", () => {
+  it("parses PEH_LOCAL_BACKEND as backend type", () => {
     expect(getLocalProviderConfig({ [ENV_KEYS.backend]: "ollama" }).backendType).toBe("ollama");
     expect(getLocalProviderConfig({ [ENV_KEYS.backend]: "llama-cpp" }).backendType).toBe("llama-cpp");
     expect(getLocalProviderConfig({ [ENV_KEYS.backend]: "llamacpp" }).backendType).toBe("llama-cpp");
