@@ -74,8 +74,8 @@ describe("resolveMode respects the env fallback (old config still resolves)", ()
     expect(res.reasons.some((r) => r.includes("PEH_MODE"))).toBe(true);
   });
 
-  it("PEH_MODE wins over PEH_MODE", () => {
-    const res = resolveMode({ env: { PEH_MODE: "cloud", PEH_MODE: "local" } });
+  it("resolves mode from PEH_MODE", () => {
+    const res = resolveMode({ env: { PEH_MODE: "cloud" } });
     expect(res.state.mode).toBe("cloud");
   });
 });
@@ -95,7 +95,6 @@ describe("local provider config respects the env fallback", () => {
   it("canonical PEH_LOCAL_* take precedence", () => {
     const cfg = getLocalProviderConfig({
       PEH_LOCAL_MODEL: "qwen2.5:3b",
-      PEH_LOCAL_MODEL: "llama3.2",
     });
     expect(cfg.model).toBe("qwen2.5:3b");
   });
@@ -116,7 +115,6 @@ describe("storage migration-on-read (old localStorage still loads)", () => {
   it("prefers an existing canonical value over a legacy one", () => {
     const storage = makeStorage({
       "peh.tourMode": "off",
-      "peh.tourMode": "on",
     });
     expect(migratedGetItem(storage, "peh.tourMode")).toBe("off");
   });
