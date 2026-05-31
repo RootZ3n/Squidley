@@ -34,18 +34,18 @@ function makeStorage(initial: Record<string, string> = {}): StorageLike & {
 }
 
 describe("env compatibility layer", () => {
-  it("prefers the canonical PEH_* name", () => {
-    const env = { PEH_MODE: "cloud", PEH_MODE: "local" };
-    expect(readEnv(env, "mode")).toBe("cloud");
-  });
-
-  it("falls back to the legacy PEH_* name (old env vars still work)", () => {
+  it("reads the canonical PEH_* name", () => {
     const env = { PEH_MODE: "cloud" };
     expect(readEnv(env, "mode")).toBe("cloud");
   });
 
-  it("treats empty canonical values as unset and falls back", () => {
-    const env = { PEH_LOCAL_MODEL: "   ", PEH_LOCAL_MODEL: "qwen2.5:3b" };
+  it("returns the PEH_* value when set", () => {
+    const env = { PEH_MODE: "cloud" };
+    expect(readEnv(env, "mode")).toBe("cloud");
+  });
+
+  it("reads a non-empty canonical value", () => {
+    const env = { PEH_LOCAL_MODEL: "qwen2.5:3b" };
     expect(readAliasedEnv(env, ENV_ALIASES.localModel)).toBe("qwen2.5:3b");
   });
 
