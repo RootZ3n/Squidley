@@ -1,0 +1,299 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ────────────────────────────────────────────────────────────────────────
+   Peh deep-sea theme tokens.
+   Fonts: system font stacks only — no external font imports.
+   Previously used Google Fonts (Outfit, Syne, DM Mono); replaced with
+   local/system equivalents to eliminate browser-side egress.
+   ──────────────────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: dark;
+
+  --bg-void: #060810;
+  --bg-deep: #080b14;
+  --bg-surface: #0b0e1c;
+  --bg-raised: #111528;
+  --bg-hover: #161b32;
+
+  --border: rgba(167, 139, 250, 0.1);
+  --border-lit: rgba(167, 139, 250, 0.22);
+  --border-strong: rgba(132, 201, 255, 0.28);
+  --glass-stroke: rgba(132, 201, 255, 0.18);
+  --glass-highlight: rgba(186, 236, 255, 0.14);
+  --glass-fill-top: rgba(7, 16, 34, 0.9);
+  --glass-fill-bottom: rgba(3, 8, 20, 0.95);
+  --glass-shadow: rgba(0, 0, 0, 0.62);
+  --surface-current: linear-gradient(90deg, rgba(111, 217, 255, 0.66) 0%, rgba(77, 245, 200, 0.58) 30%, rgba(188, 140, 255, 0.54) 66%, rgba(245, 158, 11, 0.48) 100%);
+
+  --accent-chat: #4df5c8;
+  --accent-chat-dim: rgba(77, 245, 200, 0.08);
+  --accent-chat-glow: rgba(77, 245, 200, 0.2);
+  --accent-build: #fb923c;
+  --accent-build-dim: rgba(251, 146, 60, 0.08);
+  --accent-build-glow: rgba(251, 146, 60, 0.2);
+  --accent-planner: #f472b6;
+  --accent-planner-dim: rgba(244, 114, 182, 0.08);
+  --accent-planner-glow: rgba(244, 114, 182, 0.2);
+  --accent-diag: #60a5fa;
+  --accent-diag-dim: rgba(96, 165, 250, 0.08);
+  --accent-diag-glow: rgba(96, 165, 250, 0.2);
+  --accent-vision: #bc8cff;
+  --accent-vision-dim: rgba(188, 140, 255, 0.08);
+  --accent-vision-glow: rgba(188, 140, 255, 0.2);
+  --accent-receipts: #f59e0b;
+  --accent-receipts-dim: rgba(245, 158, 11, 0.08);
+  --accent-receipts-glow: rgba(245, 158, 11, 0.2);
+
+  --glow-chat: rgba(77, 245, 200, 0.4);
+  --glow-build: rgba(251, 146, 60, 0.4);
+  --glow-planner: rgba(244, 114, 182, 0.4);
+  --glow-diag: rgba(96, 165, 250, 0.4);
+  --glow-vision: rgba(188, 140, 255, 0.42);
+  --glow-receipts: rgba(245, 158, 11, 0.4);
+  --glow-pass: rgba(77, 245, 200, 0.55);
+  --glow-fail: rgba(248, 81, 73, 0.55);
+  --glow-warn: rgba(245, 158, 11, 0.45);
+  --glow-neutral: rgba(230, 237, 243, 0.18);
+  --glow-purple: rgba(188, 140, 255, 0.46);
+  --glow-amber: rgba(245, 158, 11, 0.42);
+
+  --text-primary: #eef0ff;
+  --text-secondary: #fb923c;
+  --text-muted: #f0a050;
+  --text-dim: rgba(203, 215, 234, 0.64);
+
+  --font-display: ui-serif, Georgia, 'Times New Roman', serif;
+  --font-body: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  --sidebar-w: 64px;
+  --sidebar-w-open: 240px;
+  --topbar-h: 60px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  /* Larger base font so the public app reads as a finished product, not a
+     scaffold. */
+  font-size: 17px;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 42%, transparent 24%, rgba(0, 0, 4, 0.82) 100%),
+    radial-gradient(circle at 8% 12%, rgba(111, 217, 255, 0.14), transparent 34%),
+    radial-gradient(circle at 92% 8%, rgba(77, 245, 200, 0.12), transparent 36%),
+    radial-gradient(circle at 6% 94%, rgba(188, 140, 255, 0.12), transparent 38%),
+    radial-gradient(circle at 94% 96%, rgba(245, 158, 11, 0.1), transparent 38%),
+    radial-gradient(circle at 50% 60%, rgba(30, 80, 140, 0.18), transparent 60%),
+    linear-gradient(180deg, #020617 0%, #01030d 46%, #060810 100%);
+  background-attachment: fixed;
+}
+
+::placeholder {
+  opacity: 0.6;
+  color: var(--text-muted);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-lit);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(132, 201, 255, 0.35); }
+
+::selection {
+  background: rgba(77, 245, 200, 0.2);
+  color: var(--text-primary);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-chat);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Ambient halo layers driven from <body>. Pointer-events: none so they
+   never block interaction with the shell. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 50% 12%, rgba(111, 217, 255, 0.10), transparent 38%),
+    radial-gradient(circle at 14% 32%, rgba(94, 234, 212, 0.07), transparent 32%),
+    radial-gradient(circle at 86% 32%, rgba(188, 140, 255, 0.09), transparent 32%),
+    radial-gradient(circle at 20% 70%, rgba(188, 140, 255, 0.07), transparent 36%),
+    radial-gradient(circle at 82% 70%, rgba(245, 158, 11, 0.07), transparent 36%);
+  filter: blur(2px);
+  animation: sq-breathe 12s ease-in-out infinite;
+}
+
+/* Glass-card system. Used by AppPageShell and module panels. */
+.sq-glass {
+  position: relative;
+  background:
+    radial-gradient(ellipse 80% 120% at 50% -10%, rgba(111, 217, 255, 0.08), transparent 60%),
+    radial-gradient(ellipse 80% 120% at 50% 110%, rgba(188, 140, 255, 0.06), transparent 60%),
+    linear-gradient(180deg, var(--glass-fill-top) 0%, var(--glass-fill-bottom) 100%);
+  border: 1px solid var(--glass-stroke);
+  border-radius: 22px;
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    inset 0 0 34px rgba(20, 50, 90, 0.32),
+    0 18px 60px var(--glass-shadow),
+    0 0 0 1px rgba(120, 200, 255, 0.06);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  overflow: hidden;
+}
+
+.sq-glass::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 8%;
+  right: 8%;
+  height: 1px;
+  background: var(--surface-current);
+  background-size: 200% 100%;
+  opacity: 0.85;
+  pointer-events: none;
+  filter: blur(0.3px);
+  animation: sq-flow 14s linear infinite;
+}
+
+.sq-glass::after {
+  content: "";
+  position: absolute;
+  inset: auto 12% 0 12%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(94, 234, 212, 0.55) 30%, rgba(188, 140, 255, 0.45) 70%, transparent 100%);
+  background-size: 200% 100%;
+  opacity: 0.55;
+  pointer-events: none;
+  animation: sq-flow 18s linear infinite reverse;
+}
+
+/* Subtle button hover used by the shell. */
+.sq-btn {
+  font-family: var(--font-body);
+  font-weight: 500;
+  border-radius: 12px;
+  border: 1px solid var(--border-lit);
+  background: linear-gradient(180deg, rgba(17, 21, 40, 0.7), rgba(11, 14, 28, 0.7));
+  color: var(--text-primary);
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+.sq-btn:hover { border-color: var(--border-strong); box-shadow: 0 0 0 1px rgba(111, 217, 255, 0.16), 0 0 18px rgba(111, 217, 255, 0.12); }
+.sq-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.sq-btn-primary {
+  background: linear-gradient(135deg, rgba(77, 245, 200, 0.22) 0%, rgba(96, 165, 250, 0.22) 60%, rgba(167, 139, 250, 0.22) 100%);
+  border-color: rgba(77, 245, 200, 0.45);
+  color: #d6fff0;
+  box-shadow: inset 0 1px 0 rgba(186, 236, 255, 0.18), 0 0 18px rgba(77, 245, 200, 0.18);
+}
+.sq-btn-primary:hover { box-shadow: inset 0 1px 0 rgba(186, 236, 255, 0.24), 0 0 26px rgba(77, 245, 200, 0.32); }
+
+.sq-btn-warn {
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.22), rgba(245, 158, 11, 0.08));
+  border-color: rgba(245, 158, 11, 0.45);
+  color: #ffd28a;
+}
+
+@keyframes sq-breathe {
+  0%, 100% { opacity: 0.65; }
+  50%      { opacity: 1; }
+}
+
+@keyframes sq-flow {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+@keyframes sq-dot-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50%      { transform: scale(1.2); opacity: 1; }
+}
+
+@keyframes sq-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.sq-fade-in { animation: sq-fade-in 200ms ease-out both; }
+
+/* Soft pastel backdrop kept for any page that wants the original aurora
+   feel. Currently unused by the new shell but preserved for safety. */
+.bg-welcome-aurora {
+  background:
+    radial-gradient(60% 50% at 18% 12%, rgba(255, 196, 220, 0.20) 0%, transparent 70%),
+    radial-gradient(55% 45% at 82% 18%, rgba(174, 235, 255, 0.20) 0%, transparent 70%),
+    radial-gradient(70% 60% at 50% 100%, rgba(230, 164, 255, 0.18) 0%, transparent 75%),
+    linear-gradient(180deg, #0b0f20 0%, #141a30 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  .sq-glass::before,
+  .sq-glass::after,
+  .animate-breathe,
+  .animate-tour-glow,
+  .animate-panel-in,
+  .sq-fade-in {
+    animation: none !important;
+  }
+}
+
+/* Colloquium receipts column — sits beside the chat on wide screens,
+   stacks below it on narrow. */
+.sq-receipts-column {
+  width: 320px;
+  max-width: 100%;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1024px) {
+  .sq-receipts-column { width: 100%; }
+}
+
+@media (max-width: 1024px) {
+  .sq-chat-body {
+    flex-direction: column !important;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    font-size: 16px;
+  }
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}

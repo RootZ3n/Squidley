@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "tool": "scripts/smoke-llama-server.mjs",
+  "completedAt": "2026-05-18T10:48:33.133Z",
+  "endpoint": "https://api.openai.com",
+  "model": null,
+  "status": "FAIL_REMOTE_URL",
+  "summary": "Refusing to contact non-local endpoint: https://api.openai.com.",
+  "details": {
+    "rejectedUrl": "https://api.openai.com"
+  },
+  "cloudUsed": false,
+  "localOnly": true
+}

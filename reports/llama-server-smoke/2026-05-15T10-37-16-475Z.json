@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "tool": "scripts/smoke-llama-server.mjs",
+  "completedAt": "2026-05-15T10:37:16.475Z",
+  "endpoint": "http://127.0.0.1:8080",
+  "model": null,
+  "status": "FAIL_INCOMPATIBLE",
+  "summary": "GET /v1/models returned HTTP 401. llama-server must expose the OpenAI-compatible endpoint.",
+  "details": {
+    "health": {
+      "ok": true,
+      "status": 200,
+      "body": {
+        "ok": true,
+        "service": "agent-proxy",
+        "port": 8080
+      }
+    },
+    "modelsStatus": 401
+  },
+  "cloudUsed": false,
+  "localOnly": true
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "tool": "scripts/prove-local-only.mjs",
+  "completedAt": "2026-05-20T22:38:43.998Z",
+  "allowStaticOnly": false,
+  "static": {
+    "ok": true,
+    "hits": []
+  },
+  "dynamic": {
+    "ok": true,
+    "exitCode": 0,
+    "stdout": "RUN  v1.6.1 /mnt/ai/peh\n\n ✓ src/lib/egressGuard.test.ts  (11 tests) 13ms\n\n Test Files  1 passed (1)\n      Tests  11 passed (11)\n   Start at  17:38:43\n   Duration  536ms (transform 60ms, setup 0ms, collect 76ms, tests 13ms, environment 0ms, prepare 39ms)",
+    "stderr": "\u001b[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.\u001b[39m"
+  },
+  "verdict": "PASS"
+}

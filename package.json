@@ -1,0 +1,114 @@
+{
+  "name": "pehlichi-pub",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pehlichi Public — feudal Japan world engine, agent runtime + teaching modules, local-first.",
+  "license": "Apache-2.0",
+  "main": "electron/main.js",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "build:core": "tsc -p tsconfig-core.json",
+    "typecheck": "tsc --noEmit",
+    "typecheck:core": "tsc -p tsconfig-core.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:core": "node --import tsx --test src/core/drivers/mimo.test.ts src/core/drivers/llamacpp.test.ts src/core/drivers/ollama.test.ts src/core/loop.test.ts src/core/memory-tools.test.ts src/core/gbrain-bridge.test.ts src/core/shadow.test.ts src/core/agent-tools/agent-tools.test.ts src/core/agent-tools/audit-fixes.test.ts src/core/agent-tools/memory-governance.test.ts src/core/agent-tools/tool-governor.test.ts src/core/agent-tools/budget-tier.test.ts src/core/agent-tools/unattended.test.ts src/core/agent-tools/ikbi-tools.test.ts src/profile.test.ts src/tools/bridge-tools.test.ts tui/src/server.test.ts tui/src/audit-fixes.test.ts tui/src/workspace-override.test.ts",
+    "electron:dev": "npm run build && electron .",
+    "electron:pack": "npm run build && electron-builder --dir",
+    "electron:dist": "npm run build && electron-builder",
+    "gauntlet:local-model": "node scripts/gauntlet-local-model.mjs",
+    "gauntlet:tool-honesty": "node scripts/tool-honesty-gauntlet.mjs",
+    "lint": "next lint",
+    "smoke:llama-server": "node scripts/smoke-llama-server.mjs",
+    "smoke:llama-server-legacy": "node scripts/smoke-llama-server-local.mjs",
+    "diagnostic": "node scripts/peh-pub-diagnostic.mjs",
+    "prove:local-only": "node scripts/prove-local-only.mjs",
+    "verify:capabilities": "node scripts/verify-capabilities.mjs",
+    "verify:release": "npm run typecheck && npm run test && npm run diagnostic && npm run prove:local-only && npm run verify:capabilities && npm run gauntlet:local-model",
+    "sanity:peh-coordinate": "node --import tsx src/sanity-peh.ts"
+  },
+  "dependencies": {
+    "next": "14.2.35",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "lab-memory": "file:../lab-memory",
+    "lab-store": "file:../lab-store",
+    "playwright": "^1.60.0"
+  },
+  "devDependencies": {
+    "@types/node": "20.12.12",
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
+    "autoprefixer": "10.4.19",
+    "eslint": "8.57.0",
+    "eslint-config-next": "14.2.35",
+    "postcss": "8.5.14",
+    "tailwindcss": "3.4.4",
+    "tsx": "^4.19.2",
+    "typescript": "5.4.5",
+    "vitest": "1.6.1"
+  },
+  "build": {
+    "appId": "com.pehlichi.public",
+    "productName": "Pehlichi",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron/**/*",
+      ".next/standalone/**/*",
+      ".next/static/**/*",
+      "public/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": ".next/static",
+        "to": ".next/static"
+      },
+      {
+        "from": "public",
+        "to": "public"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "public/peh/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerSidebar": null,
+      "shortcutName": "Pehlichi"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "category": "public.app-category.developer-tools",
+      "icon": "public/peh/icon.png"
+    },
+    "linux": {
+      "target": [
+        { "target": "AppImage", "arch": ["x64"] },
+        { "target": "deb", "arch": ["x64"] }
+      ],
+      "category": "Development",
+      "icon": "public/peh/icon.png"
+    }
+  }
+}

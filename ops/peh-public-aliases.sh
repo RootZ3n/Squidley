@@ -1,0 +1,8 @@
+alias sqpub-status='systemctl --user status peh-public.service'
+alias sqpub-start='systemctl --user start peh-public.service'
+alias sqpub-stop='systemctl --user stop peh-public.service'
+alias sqpub-restart='systemctl --user restart peh-public.service'
+alias sqpub-logs='journalctl --user -u peh-public.service -f'
+alias sqpub-build='cd /mnt/ai/peh && npm run build'
+alias sqpub-check='cd /mnt/ai/peh && npm run typecheck && npm test && npm run build && git diff --check'
+alias sqpub-rebuild='/mnt/ai/peh/ops/peh-public-rebuild.sh'

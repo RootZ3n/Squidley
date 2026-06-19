@@ -1,0 +1,121 @@
+# Peh TUI Skin — Feudal Japan
+# Deep crimson, gold accents, cherry blossoms, torii gates
+
+name: pehlichi-pub
+description: "Pehlichi Public — feudal Japan theme. Crimson, gold, cherry blossom."
+
+# ── Branding ──────────────────────────────────────────────────────────
+branding:
+  agent_name: "Pehlichi"
+  welcome: "Welcome to the village. I am Peh — your guide. Come, let me show you around."
+  goodbye: "Farewell. May the cherry blossoms fall gently on your path."
+  prompt_symbol: "⛩"
+  response_label: " ⛩ PEHLICHI SPEAKS "
+  help_header: "(⛩) What the Guide Knows"
+
+# ── Colors ────────────────────────────────────────────────────────────
+colors:
+  banner_border: "#8B7355"
+  banner_title: "#8B0000"
+  banner_accent: "#C8A951"
+  ui_accent: "#8B0000"
+  ui_ok: "#34d399"
+  ui_error: "#ef5350"
+  ui_warn: "#f59e0b"
+  response_border: "#8B7355"
+  status_bg: "#1a0f0a"
+  status_fg: "#C8A951"
+  status_good: "#34d399"
+  status_warn: "#f59e0b"
+  status_bad: "#ef5350"
+  text: "#F5E6C8"
+  muted: "#8B7355"
+  prompt: "#C8A951"
+  selection_bg: "#2f1a12"
+  completion_bg: "#1a0f0a"
+  completion_current_bg: "#2f1a12"
+
+# ── Banner Art ────────────────────────────────────────────────────────
+banner_logo: |
+  [bold #8B0000]
+       ██████╗  ███████╗██╗  ██╗
+       ██╔══██╗ ██╔════╝██║  ██║
+       ██████╔╝ █████╗  ███████║
+       ██╔═══╝  ██╔══╝  ██╔══██║
+       ██║      ███████╗██║  ██║
+       ╚═╝      ╚══════╝╚═╝  ╚═╝
+       [dim #8B7355]P E H L I C H I[/]
+  [/]
+
+banner_hero: |
+  [bold #8B0000]
+              ⌜─────────────────────⌝
+              │  [dim]Feudal Japan[/]        │
+              │  [dim]where Peh guides[/]    │
+              │                     │
+              │    ⛩ PEHLICHI ⛩    │
+              │                     │
+              │  [dim]The Dojo[/]            │
+              │  [dim]The Forge[/]           │
+              │  [dim]Tea House[/]           │
+              │  [dim]The Garden[/]          │
+              │  [dim]The Shrine[/]          │
+              │                     │
+              │  [italic #C8A951]"Welcome to the[/]    │
+              │  [italic #C8A951]village."[/]           │
+              ⌞─────────────────────⌟
+  [/]
+
+# ── Spinner / Thinking ───────────────────────────────────────────────
+spinner:
+  waiting_faces: ["🌸", "⛩", "🍵", "🎋", "🏯"]
+  thinking_faces: ["🌸", "💭", "⛩", "⚡"]
+  thinking_verbs:
+    - "contemplating"
+    - "meditating"
+    - "grinding the ink"
+    - "sharpening the blade"
+    - "brewing the tea"
+    - "reading the scroll"
+    - "tending the garden"
+    - "climbing the tower"
+    - "by the torii, pondering"
+    - "the guide deliberates"
+  wings: [["🌸▸", "◂🌸"], ["⛩▸", "◂⛩"]]
+
+# ── Tool prefix ───────────────────────────────────────────────────────
+tool_prefix: "🎋"
+
+# ── Tool emojis ───────────────────────────────────────────────────────
+tool_emojis:
+  terminal: "⚔"
+  web_search: "⛩"
+  read_file: "📜"
+  write_file: "🖊"
+  delegate_task: "🛡"
+
+# ── Theme colors (TUI Ink layer) ─────────────────────────────────────
+theme:
+  primary: "#8B0000"
+  accent: "#C8A951"
+  border: "#8B7355"
+  text: "#F5E6C8"
+  muted: "#8B7355"
+  ok: "#34d399"
+  error: "#ef5350"
+  warn: "#f59e0b"
+  prompt: "#C8A951"
+  session_label: "#8B7355"
+  session_border: "#8B7355"
+  status_bg: "#1a0f0a"
+  status_fg: "#C8A951"
+  status_good: "#34d399"
+  status_warn: "#f59e0b"
+  status_bad: "#ef5350"
+  status_critical: "#ff1744"
+  selection_bg: "#2f1a12"
+  diff_added: "#34d399"
+  diff_removed: "#ef5350"
+  diff_added_word: "#22c55e"
+  diff_removed_word: "#dc2626"
+  shell_dollar: "#C8A951"

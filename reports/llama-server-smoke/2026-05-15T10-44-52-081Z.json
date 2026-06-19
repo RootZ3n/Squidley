@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "tool": "scripts/smoke-llama-server.mjs",
+  "completedAt": "2026-05-15T10:44:52.081Z",
+  "endpoint": "http://127.0.0.1:65530",
+  "model": null,
+  "status": "SKIP_LOCAL_SERVER_NOT_RUNNING",
+  "summary": "Could not reach http://127.0.0.1:65530/health: fetch failed. Start llama-server first: llama-server -m model.gguf --port 8080.",
+  "details": {
+    "error": "fetch failed"
+  },
+  "cloudUsed": false,
+  "localOnly": true
+}
