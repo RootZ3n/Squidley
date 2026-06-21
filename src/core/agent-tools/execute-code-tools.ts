@@ -61,7 +61,7 @@ export function createExecuteCodeToolHandlers(): Map<string, ToolHandler> {
           HOME: tmpdir(),
           TMPDIR: tmpdir(),
           LANG: 'C.UTF-8',
-        },
+        } as unknown as NodeJS.ProcessEnv,
       });
 
       const stdout = capOutput(result.stdout ?? '');

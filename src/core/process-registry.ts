@@ -70,8 +70,10 @@ export function spawnBackground(command: string, opts: SpawnBackgroundOptions, n
   const child = spawn(command, {
     shell: true,
     cwd: opts.cwd,
-    env: opts.env,
-    stdio: ["pipe", "pipe", "pipe"],
+    // Next augments ProcessEnv to require NODE_ENV; our controlled env is a plain
+    // map, so assert through unknown (behavior unchanged — no NODE_ENV is injected).
+    env: opts.env as unknown as NodeJS.ProcessEnv,
+    stdio: ["pipe", "pipe", "pipe"] as const,
   });
   const sessionId = `bg-${++counter}-${child.pid ?? "nopid"}`;
   const proc: BackgroundProcess = {

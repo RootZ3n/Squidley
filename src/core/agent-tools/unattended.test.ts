@@ -108,11 +108,11 @@ describe("unattended network + secrets", () => {
 
 describe("unattended startup guard", () => {
   test("fails startup with AGENT_FS_UNRESTRICTED=true", () => {
-    throws(() => assertUnattendedStartup({ AGENT_FS_UNRESTRICTED: "true" } as NodeJS.ProcessEnv), /refuses to start/);
+    throws(() => assertUnattendedStartup({ AGENT_FS_UNRESTRICTED: "true" } as unknown as NodeJS.ProcessEnv), /refuses to start/);
   });
   test("starts cleanly otherwise", () => {
-    doesNotThrow(() => assertUnattendedStartup({} as NodeJS.ProcessEnv));
-    doesNotThrow(() => assertUnattendedStartup({ AGENT_FS_UNRESTRICTED: "false" } as NodeJS.ProcessEnv));
+    doesNotThrow(() => assertUnattendedStartup({} as unknown as NodeJS.ProcessEnv));
+    doesNotThrow(() => assertUnattendedStartup({ AGENT_FS_UNRESTRICTED: "false" } as unknown as NodeJS.ProcessEnv));
   });
 });
 
