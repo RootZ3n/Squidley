@@ -16,7 +16,7 @@ import {
 import { createCloudConsentDialogHandlers } from "@/lib/capabilities/cloudConsentOrchestration";
 import type { GuardedCloudPreflightResult } from "@/lib/capabilities/guardedCloudPreflight";
 import { runWorkshopMultiFileBuildCloudPreflight } from "@/lib/workshop/cloudPreflight";
-import { fabricaPreflightStatusCopy, fabricaConsentStatusCopy, type WorkshopCloudPreflightStatusCopy } from "@/lib/workshop/cloudPreflightStatus";
+import { workshopPreflightStatusCopy, workshopConsentStatusCopy, type WorkshopCloudPreflightStatusCopy } from "@/lib/workshop/cloudPreflightStatus";
 import { recordWorkshopVelumHandoffPreparedReceipt, recordWorkshopVelumReviewCompletedReceipt } from "@/lib/workshop/velumHandoff";
 import { markTourCompleted, readTourMode, restartTour as persistRestartTour } from "@/lib/firstRun";
 import { getTour } from "@/lib/tour";
@@ -65,7 +65,7 @@ export default function WorkshopPage() {
   const [velumHandoffPrepared, setVelumHandoffPrepared] = useState(false);
   const [velumReviewPassed, setVelumReviewPassed] = useState(false);
   const [velumReviewNotice, setVelumReviewNotice] = useState<string | null>(null);
-  const tour = useMemo(() => getTour("fabrica")!, []);
+  const tour = useMemo(() => getTour("workshop")!, []);
   const singleFileAssessment = useMemo(
     () => fabricaSingleFileSuggestionDecision(selectedModel),
     [selectedModel],
@@ -122,13 +122,13 @@ export default function WorkshopPage() {
     setSelectedModel(model);
     const next = setModuleModelPreference(
       loadModelPreferences(window.localStorage),
-      "fabrica",
+      "workshop",
       "buildModel",
       model,
     );
     saveModelPreferences(window.localStorage, next);
     logActivityReceipt(window.localStorage, buildInsightsModelPreferenceChangedReceipt({
-      moduleId: "fabrica",
+      moduleId: "workshop",
       role: "buildModel",
       model,
       title: "Workshop local model preference changed",
@@ -147,7 +147,7 @@ export default function WorkshopPage() {
     logActivityReceipt(window.localStorage, buildWorkshopSuggestionStartedReceipt({ model: selectedModel }));
 
     try {
-      const response = await fetch("/api/fabrica/suggest", {
+      const response = await fetch("/api/workshop/suggest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -162,7 +162,7 @@ export default function WorkshopPage() {
       if (body.promptGateway) {
         const gatewayReceiptId = logPromptGatewayReceipt(window.localStorage, {
           module: "workshop",
-          route: "/api/fabrica/suggest",
+          route: "/api/workshop/suggest",
           metadata: body.promptGateway,
           modelUsed: Boolean(response.ok && body.ok),
           dedupeKey: String(startedAt),
@@ -231,7 +231,7 @@ export default function WorkshopPage() {
       const entry = createNotebookEntryFromWorkshopSuggestion({
         title,
         text: suggestion,
-        tags: "fabrica, suggestion",
+        tags: "workshop, suggestion",
         type: "note",
       });
       const doc = loadNotebook(window.localStorage);
@@ -286,7 +286,7 @@ export default function WorkshopPage() {
     });
     setCloudPreflightResult(result);
 
-    const copy = fabricaPreflightStatusCopy(
+    const copy = workshopPreflightStatusCopy(
       result.blockedBy,
       result.allowedToOfferCloud,
     );
@@ -307,7 +307,7 @@ export default function WorkshopPage() {
     );
     handlers.handleGrant();
     setConsentDialogOpen(false);
-    setCloudStatusCopy(fabricaConsentStatusCopy("granted"));
+    setCloudStatusCopy(workshopConsentStatusCopy("granted"));
   }
 
   function handleConsentDeny() {
@@ -318,7 +318,7 @@ export default function WorkshopPage() {
     );
     handlers.handleDeny();
     setConsentDialogOpen(false);
-    setCloudStatusCopy(fabricaConsentStatusCopy("denied"));
+    setCloudStatusCopy(workshopConsentStatusCopy("denied"));
   }
 
   function handleConsentClose() {
@@ -329,7 +329,7 @@ export default function WorkshopPage() {
     );
     handlers.handleCancel();
     setConsentDialogOpen(false);
-    setCloudStatusCopy(fabricaConsentStatusCopy("cancelled"));
+    setCloudStatusCopy(workshopConsentStatusCopy("cancelled"));
   }
 
   const canGenerate = selectedModel.length > 0 && requestedChange.trim().length > 0 && !generating;
@@ -447,7 +447,7 @@ export default function WorkshopPage() {
               </p>
             )}
             <p className="mt-1 text-xs text-ink-500 dark:text-ink-400">
-              {cloudStatusCopy.tabulariumHint}{" "}
+              {cloudStatusCopy.activityLogHint}{" "}
               <Link href="/activity-log" className="font-medium text-iris-600 underline decoration-dotted underline-offset-4 dark:text-iris-300">
                 View in ActivityLog
               </Link>
@@ -468,7 +468,7 @@ export default function WorkshopPage() {
 
       <section className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-4">
-          <TourHighlight target="fabrica-inputs" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
+          <TourHighlight target="workshop-inputs" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
             <h2 className="font-serif text-xl font-semibold text-ink-900 dark:text-ink-50">One file</h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_180px]">
               <label className="text-sm font-medium text-ink-700 dark:text-ink-100">
@@ -488,7 +488,7 @@ export default function WorkshopPage() {
             </label>
           </TourHighlight>
 
-          <TourHighlight target="fabrica-change" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
+          <TourHighlight target="workshop-change" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
             <h2 className="font-serif text-xl font-semibold text-ink-900 dark:text-ink-50">Small change</h2>
             <textarea value={requestedChange} onChange={(e) => setRequestedChange(e.target.value)} rows={5} placeholder="Describe one small change or ask for a simple single-file draft." className="mt-3 w-full rounded-lg border border-ink-200 bg-ink-50/60 px-3 py-2 text-sm text-ink-900 outline-none focus:border-squid-300 focus:ring-2 focus:ring-squid-200 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-50" />
             <div className="mt-3 flex flex-wrap gap-2">
@@ -503,7 +503,7 @@ export default function WorkshopPage() {
         </div>
 
         <aside className="space-y-4">
-          <TourHighlight target="fabrica-model" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
+          <TourHighlight target="workshop-model" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
             <h2 className="font-serif text-lg font-semibold text-ink-900 dark:text-ink-50">Local model</h2>
             <p className="mt-2 text-sm text-ink-600 dark:text-ink-300">
               Workshop uses the Workshop model preference from Insights. If none is saved, it falls back to the Chat/local default model.
@@ -517,7 +517,7 @@ export default function WorkshopPage() {
             </Link>
           </TourHighlight>
 
-          <TourHighlight target="fabrica-limits" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
+          <TourHighlight target="workshop-limits" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
             <h2 className="font-serif text-lg font-semibold text-ink-900 dark:text-ink-50">Public limits</h2>
             <ul className="mt-3 space-y-2 text-xs text-ink-500 dark:text-ink-300">
               <li>Single-file suggestions only.</li>
@@ -530,7 +530,7 @@ export default function WorkshopPage() {
         </aside>
       </section>
 
-      <TourHighlight target="fabrica-output" active={activeTarget} className="mt-4 rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
+      <TourHighlight target="workshop-output" active={activeTarget} className="mt-4 rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="font-serif text-xl font-semibold text-ink-900 dark:text-ink-50">Suggested output</h2>
