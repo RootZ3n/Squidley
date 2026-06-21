@@ -18,41 +18,43 @@ ikbi is the lab's build engine. When Pehlichi needs to build, test, or deploy so
 
 ## ikbi CLI Commands
 
-ikbi runs from `/pehverse/repos/ecosystem/ikbi`. Always `cd /pehverse/repos/ecosystem/ikbi` first.
+Prefer the ikbi HTTP API (`IKBI_API_URL`, default `http://localhost:18796`). For CLI
+use, set `IKBI_DIR` to your ikbi checkout and `cd "$IKBI_DIR"` first. (Lab default:
+`IKBI_DIR=/pehverse/repos/ecosystem/ikbi`.)
 
 ### Health Check
 ```bash
-cd /pehverse/repos/ecosystem/ikbi && node dist/cli/index.js doctor
+cd "$IKBI_DIR" && node dist/cli/index.js doctor
 ```
 Reports: config, trust keys, providers, modules, connectivity.
 
 ### Build
 ```bash
-cd /pehverse/repos/ecosystem/ikbi && pnpm build
+cd "$IKBI_DIR" && pnpm build
 ```
 Compiles TypeScript. Always run before tests.
 
 ### Test
 ```bash
-cd /pehverse/repos/ecosystem/ikbi && pnpm test
+cd "$IKBI_DIR" && pnpm test
 ```
 Runs the full test suite (940+ tests).
 
 ### REPL (interactive)
 ```bash
-cd /pehverse/repos/ecosystem/ikbi && node dist/cli/index.js repl
+cd "$IKBI_DIR" && node dist/cli/index.js repl
 ```
 Interactive build session. Use for complex multi-step builds.
 
 ### Capabilities
 ```bash
-cd /pehverse/repos/ecosystem/ikbi && node dist/cli/index.js capabilities
+cd "$IKBI_DIR" && node dist/cli/index.js capabilities
 ```
 List available tools and their descriptions.
 
 ### Clean
 ```bash
-cd /pehverse/repos/ecosystem/ikbi && node dist/cli/index.js clean
+cd "$IKBI_DIR" && node dist/cli/index.js clean
 ```
 Clean orphaned files and artifacts.
 
@@ -70,8 +72,8 @@ GET  http://127.0.0.1:18796/capabilities   # Available capabilities
 When the user says "build X" or "test Y":
 
 1. **Check ikbi health** — `curl http://127.0.0.1:18796/health`
-2. **Build** — `cd /pehverse/repos/ecosystem/ikbi && pnpm build`
-3. **Test** — `cd /pehverse/repos/ecosystem/ikbi && pnpm test`
+2. **Build** — `cd "$IKBI_DIR" && pnpm build`
+3. **Test** — `cd "$IKBI_DIR" && pnpm test`
 4. **Report** — test count, pass/fail, any issues
 
 For specific repo builds:
