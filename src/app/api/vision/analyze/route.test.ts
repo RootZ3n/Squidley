@@ -10,7 +10,7 @@ function findModelCall(spy: { mock: { calls: unknown[][] } }): [string, RequestI
   return undefined;
 }
 
-describe("/api/oculus/analyze prompt gateway", () => {
+describe("/api/vision/analyze prompt gateway", () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -21,7 +21,7 @@ describe("/api/oculus/analyze prompt gateway", () => {
     );
 
     const response = await POST(
-      new Request("http://test/api/oculus/analyze", {
+      new Request("http://test/api/vision/analyze", {
         method: "POST",
         body: JSON.stringify({
           model: "qwen3-vl:4b",
@@ -43,7 +43,7 @@ describe("/api/oculus/analyze prompt gateway", () => {
   it("blocks prompt attempts to bypass public boundaries", async () => {
     const fetchImpl = vi.spyOn(globalThis, "fetch");
     const response = await POST(
-      new Request("http://test/api/oculus/analyze", {
+      new Request("http://test/api/vision/analyze", {
         method: "POST",
         body: JSON.stringify({
           model: "qwen3-vl:4b",

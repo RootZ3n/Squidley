@@ -32,8 +32,8 @@ export type {
 
 export const CAPABILITIES: readonly Capability[] = [
   {
-    id: "colloquium:chat.basic",
-    moduleId: "colloquium",
+    id: "chat:chat.basic",
+    moduleId: "chat",
     displayName: "Local chat",
     beginnerDescription:
       "Have a basic conversation with Peh using a local model. Stays on this machine.",
@@ -46,12 +46,12 @@ export const CAPABILITIES: readonly Capability[] = [
       localReady: "Local chat is ready when an Ollama chat model is installed, or when an OpenAI-compatible local text backend is configured. Real llama-server binary validation is still pending.",
       localLimited: "If only a small chat model is installed, replies may be brief or shallow.",
     },
-    receiptActions: ["colloquium.local-chat"],
+    receiptActions: ["chat.local-chat"],
     velumGated: true,
   },
   {
-    id: "colloquium:chat.advanced-planning",
-    moduleId: "colloquium",
+    id: "chat:chat.advanced-planning",
+    moduleId: "chat",
     displayName: "Local advanced planning chat",
     beginnerDescription:
       "Ask Peh to think through a multi-step plan locally. Quality depends on the local model.",
@@ -66,12 +66,12 @@ export const CAPABILITIES: readonly Capability[] = [
       cloudOptional:
         "Cloud planning is not enabled in public mode. A future cloud unlock could improve plan quality.",
     },
-    receiptActions: ["colloquium.local-chat"],
+    receiptActions: ["chat.local-chat"],
     velumGated: true,
   },
   {
-    id: "fabrica:fabrica.single-file-suggestion",
-    moduleId: "fabrica",
+    id: "workshop:workshop.single-file-suggestion",
+    moduleId: "workshop",
     displayName: "Local single-file suggestion",
     beginnerDescription:
       "Get a single-file edit or generation suggestion from a local model. Beginner workshop, not an autonomous coding agent.",
@@ -86,12 +86,12 @@ export const CAPABILITIES: readonly Capability[] = [
       localLimited:
         "Tiny code models can produce shallow or incorrect suggestions. Always review before applying.",
     },
-    receiptActions: ["fabrica.local-suggestion"],
+    receiptActions: ["workshop.local-suggestion"],
     velumGated: true,
   },
   {
-    id: "fabrica:fabrica.multi-file-build",
-    moduleId: "fabrica",
+    id: "workshop:workshop.multi-file-build",
+    moduleId: "workshop",
     displayName: "Multi-file build",
     beginnerDescription:
       "Multi-file autonomous build work. Reserved for a future Cloud Agent mode with explicit permissions; not available locally.",
@@ -108,8 +108,8 @@ export const CAPABILITIES: readonly Capability[] = [
     velumGated: true,
   },
   {
-    id: "archivum:archivum.local-storage",
-    moduleId: "archivum",
+    id: "notebook:notebook.local-storage",
+    moduleId: "notebook",
     displayName: "Local note storage",
     beginnerDescription:
       "Save and recall notes, snippets, and pasted text in this browser only. No model is used.",
@@ -124,8 +124,8 @@ export const CAPABILITIES: readonly Capability[] = [
     velumGated: false,
   },
   {
-    id: "archivum:archivum.summarize",
-    moduleId: "archivum",
+    id: "notebook:notebook.summarize",
+    moduleId: "notebook",
     displayName: "Local note summary",
     beginnerDescription:
       "Ask a local model to summarize a stored note. Quality depends on the local chat model.",
@@ -138,11 +138,11 @@ export const CAPABILITIES: readonly Capability[] = [
       localLimited:
         "Summaries run locally; small models may miss nuance or shorten too aggressively.",
     },
-    receiptActions: ["archivum.local-summary"],
+    receiptActions: ["notebook.local-summary"],
     velumGated: true,
   },
   {
-    id: "more-input:archivum.local-storage",
+    id: "more-input:notebook.local-storage",
     moduleId: "more-input",
     displayName: "More Input — local capture",
     beginnerDescription:
@@ -158,7 +158,7 @@ export const CAPABILITIES: readonly Capability[] = [
     velumGated: false,
   },
   {
-    id: "more-input:archivum.summarize",
+    id: "more-input:notebook.summarize",
     moduleId: "more-input",
     displayName: "More Input — local summary",
     beginnerDescription:
@@ -172,7 +172,7 @@ export const CAPABILITIES: readonly Capability[] = [
       localLimited:
         "Summaries of pasted text run on the local model. Small models may miss nuance.",
     },
-    receiptActions: ["archivum.local-summary"],
+    receiptActions: ["notebook.local-summary"],
     velumGated: true,
   },
   {
@@ -208,8 +208,8 @@ export const CAPABILITIES: readonly Capability[] = [
     velumGated: false,
   },
   {
-    id: "oculus:oculus.local-image-analysis",
-    moduleId: "oculus",
+    id: "vision:vision.local-image-analysis",
+    moduleId: "vision",
     displayName: "Local image review",
     beginnerDescription:
       "Pick an image manually and ask a local vision model to describe or review it. Nothing is watched in the background.",
@@ -226,8 +226,8 @@ export const CAPABILITIES: readonly Capability[] = [
     velumGated: true,
   },
   {
-    id: "tabularium:tabularium.local-receipts",
-    moduleId: "tabularium",
+    id: "activity-log:activity-log.local-receipts",
+    moduleId: "activity-log",
     displayName: "Local receipts ledger",
     beginnerDescription:
       "Browse what happened in Peh: which actions ran locally and which used a model, all from browser-local receipts.",
@@ -238,12 +238,12 @@ export const CAPABILITIES: readonly Capability[] = [
       localReady:
         "ActivityLog reads receipts from this browser only. No model and no upload are involved.",
     },
-    receiptActions: ["tabularium.local-view"],
+    receiptActions: ["activity-log.local-view"],
     velumGated: false,
   },
   {
-    id: "nous:nous.system-map",
-    moduleId: "nous",
+    id: "insights:insights.system-map",
+    moduleId: "insights",
     displayName: "System understanding map",
     beginnerDescription:
       "View Peh's modules, Assessment adaptive intelligence, and locked cloud providers. Read-only and local.",
@@ -254,7 +254,7 @@ export const CAPABILITIES: readonly Capability[] = [
       localReady:
         "The Insights system map is computed from local registries. It does not call any model or cloud provider.",
     },
-    receiptActions: ["nous.local-view"],
+    receiptActions: ["insights.local-view"],
     velumGated: false,
   },
   {
@@ -294,7 +294,7 @@ export const CAPABILITIES: readonly Capability[] = [
     velumGated: true,
   },
   {
-    id: "imperium:imperium.advanced-control",
+    id: "imperium:settings.advanced-control",
     moduleId: "imperium",
     displayName: "Advanced control",
     beginnerDescription:

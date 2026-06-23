@@ -25,7 +25,7 @@ export const dynamic = "force-dynamic";
  *   calling this endpoint.
  *
  * To add multi-file support: wire "workshop.multi-file-build" in modulePolicies.ts,
- * implement a /api/fabrica/build endpoint, and add the corresponding Assessment call site.
+ * implement a /api/workshop/build endpoint, and add the corresponding Assessment call site.
  */
 
 export async function POST(req: Request): Promise<Response> {
@@ -53,17 +53,17 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const gateway = buildGatewayDecision({
-    route: "/api/fabrica/suggest",
+    route: "/api/workshop/suggest",
     module: "workshop",
     fields: [
       {
-        label: "fabrica-request",
-        source: "fabrica-request",
+        label: "workshop-request",
+        source: "workshop-request",
         text: parsed.value.requestedChange,
       },
       {
-        label: "fabrica-source",
-        source: "fabrica-source-content",
+        label: "workshop-source",
+        source: "workshop-source-content",
         text: parsed.value.originalContent,
       },
     ],

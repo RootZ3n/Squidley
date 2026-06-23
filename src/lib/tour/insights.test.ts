@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { getTour } from "./index";
 import { insightsTour } from "./insights";
 
-describe("nous tour", () => {
+describe("insights tour", () => {
   it("is registered under the moduleId", () => {
-    expect(getTour("nous")).toBe(insightsTour);
+    expect(getTour("insights")).toBe(insightsTour);
   });
 
   it("covers the Insights map, model controls, and provider lock", () => {
@@ -12,11 +12,11 @@ describe("nous tour", () => {
     for (const required of [
       "intro",
       "local-only-indicator",
-      "nous-model-controls",
-      "nous-asi",
-      "nous-module-map",
-      "nous-provider-registry",
-      "nous-cloud-lock",
+      "insights-model-controls",
+      "insights-asi",
+      "insights-module-map",
+      "insights-provider-registry",
+      "insights-cloud-lock",
     ]) {
       expect(targets).toContain(required);
     }

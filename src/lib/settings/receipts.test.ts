@@ -32,15 +32,15 @@ describe("settings receipt helpers", () => {
 
   it("builds clear receipts without storing cleared local data", () => {
     const chat = createActivityReceipt(buildSettingsLocalChatsClearedReceipt());
-    const archivum = createActivityReceipt(buildSettingsNotebookClearedReceipt());
-    const serialized = JSON.stringify([chat, archivum]);
+    const notebook = createActivityReceipt(buildSettingsNotebookClearedReceipt());
+    const serialized = JSON.stringify([chat, notebook]);
 
     expect(chat.action).toBe(SETTINGS_RECEIPT_ACTION.localChatsCleared);
-    expect(archivum.action).toBe(SETTINGS_RECEIPT_ACTION.notebookCleared);
+    expect(notebook.action).toBe(SETTINGS_RECEIPT_ACTION.notebookCleared);
     expect(chat.changedLocalStorage).toBe(true);
-    expect(archivum.changedLocalStorage).toBe(true);
+    expect(notebook.changedLocalStorage).toBe(true);
     expect(serialized).not.toContain("secret chat message");
-    expect(serialized).not.toContain("full archivum entry");
+    expect(serialized).not.toContain("full notebook entry");
     expect(serialized).not.toContain("BEGIN PRIVATE KEY");
   });
 

@@ -6,7 +6,7 @@ import type { ModuleTour } from "./types";
  * Peh as a companion that explains the system.
  */
 export const chatTour: ModuleTour = {
-  moduleId: "colloquium",
+  moduleId: "chat",
   moduleName: "Chat",
   steps: [
     {

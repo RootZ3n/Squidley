@@ -24,7 +24,7 @@ const BASE_CONTEXT: Omit<CapabilityRuntimeInput, "capabilityId"> = {
 
 function cloudRequiredPacket(overrides?: Parameters<typeof createCloudEscalationPacket>[1]): CloudEscalationPacket {
   const decision = resolveCapabilityRuntimeForId(
-    "fabrica:fabrica.multi-file-build",
+    "workshop:workshop.multi-file-build",
     BASE_CONTEXT,
   );
   return createCloudEscalationPacket(decision, {
@@ -50,7 +50,7 @@ function blockedPacket(): CloudEscalationPacket {
 function velumGatedPacket(velumPassed: boolean): CloudEscalationPacket {
   const cap: Capability = {
     id: "synthetic:velum-gated",
-    moduleId: "colloquium",
+    moduleId: "chat",
     displayName: "Velum-gated test",
     beginnerDescription: "fixture",
     tier: "cloud-optional",
@@ -124,8 +124,8 @@ function assertNoForbiddenKeysDeep(value: unknown, path = "<root>"): void {
 describe("cloudEscalationPacketToDialogView", () => {
   it("renders capabilityId and title", () => {
     const view = cloudEscalationPacketToDialogView(cloudRequiredPacket());
-    expect(view.capabilityId).toBe("fabrica:fabrica.multi-file-build");
-    expect(view.title).toContain("fabrica:fabrica.multi-file-build");
+    expect(view.capabilityId).toBe("workshop:workshop.multi-file-build");
+    expect(view.title).toContain("workshop:workshop.multi-file-build");
   });
 
   it("renders beginnerExplanation and reason", () => {
@@ -171,7 +171,7 @@ describe("cloudEscalationPacketToDialogView", () => {
 
   it("renders no Velum line when not velum-gated", () => {
     const view = cloudEscalationPacketToDialogView(cloudRequiredPacket());
-    // fabrica:multi-file-build has velumGated=true in registry
+    // workshop:multi-file-build has velumGated=true in registry
     // but the non-velum-gated test would use a different fixture
     // At minimum, velumLine should be a string or null.
     expect(view.velumLine === null || typeof view.velumLine === "string").toBe(true);
@@ -184,7 +184,7 @@ describe("cloudEscalationPacketToDialogView", () => {
 
   it("grant is enabled for actionable packet without Velum gate", () => {
     const view = cloudEscalationPacketToDialogView(cloudRequiredPacket());
-    // fabrica:multi-file-build requires Velum, so canGrant depends on velumReviewPassed
+    // workshop:multi-file-build requires Velum, so canGrant depends on velumReviewPassed
     // With default velumReviewPassed=false, canGrant should be false
     // This is correct behavior — Velum review blocks granting
     expect(typeof view.canGrant).toBe("boolean");

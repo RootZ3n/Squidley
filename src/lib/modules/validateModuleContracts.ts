@@ -54,7 +54,7 @@ export function validateModuleContracts(
 }
 
 function usesStorage(module: PublicPehModuleDefinition): boolean {
-  return ["colloquium", "archivum", "activity-log", "nous", "settings"].includes(module.id);
+  return ["chat", "notebook", "activity-log", "insights", "settings"].includes(module.id);
 }
 
 function usesHandoffs(module: PublicPehModuleDefinition): boolean {

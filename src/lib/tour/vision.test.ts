@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { getTour } from "./index";
 import { visionTour } from "./vision";
 
-describe("oculus tour", () => {
+describe("vision tour", () => {
   it("is registered under the moduleId", () => {
-    expect(getTour("oculus")).toBe(visionTour);
+    expect(getTour("vision")).toBe(visionTour);
   });
 
   it("covers key Vision regions", () => {
@@ -12,11 +12,11 @@ describe("oculus tour", () => {
     for (const required of [
       "intro",
       "local-only-indicator",
-      "oculus-picker",
-      "oculus-preview",
-      "oculus-vision",
-      "oculus-result",
-      "oculus-handoff",
+      "vision-picker",
+      "vision-preview",
+      "vision-vision",
+      "vision-result",
+      "vision-handoff",
     ]) {
       expect(targets).toContain(required);
     }

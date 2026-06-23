@@ -57,7 +57,7 @@ function makeStorage() {
 describe("buildCloudEscalationDemoPacket", () => {
   it("produces a packet from a real registered capability", () => {
     const packet = buildCloudEscalationDemoPacket({ createdAt: 1000, id: "demo-1" });
-    expect(packet.capabilityId).toBe("fabrica:fabrica.multi-file-build");
+    expect(packet.capabilityId).toBe("workshop:workshop.multi-file-build");
     expect(packet.state).toBe("CLOUD_REQUIRED");
   });
 
@@ -93,7 +93,7 @@ describe("demo packet orchestration", () => {
   it("grant records offer + granted receipt without cloud calls", () => {
     const storage = makeStorage();
     const packet = buildCloudEscalationDemoPacket({ createdAt: 1 });
-    // fabrica:multi-file-build is velumGated=true, so grant would throw
+    // workshop:multi-file-build is velumGated=true, so grant would throw
     // unless velumReviewPassed. The demo packet has velumReviewPassed=false,
     // so grant should throw. Use denied instead for safe demo.
     const result = recordCloudEscalationOfferAndDecision(storage, packet, "denied");
@@ -204,7 +204,7 @@ describe("buildVelumReviewedDemoPacket", () => {
   });
 
   it("uses the same real capability", () => {
-    expect(buildVelumReviewedDemoPacket().capabilityId).toBe("fabrica:fabrica.multi-file-build");
+    expect(buildVelumReviewedDemoPacket().capabilityId).toBe("workshop:workshop.multi-file-build");
   });
 
   it("uses metadata-only data category", () => {
@@ -563,7 +563,7 @@ describe("runDemoGuardedPreflight — clean mode", () => {
     const result = runDemoGuardedPreflight("clean", { createdAt: 1 });
     expect(result.preflight.escalationPacket).not.toBeNull();
     expect(result.preflight.escalationPacket!.capabilityId).toBe(
-      "fabrica:fabrica.multi-file-build",
+      "workshop:workshop.multi-file-build",
     );
   });
 });

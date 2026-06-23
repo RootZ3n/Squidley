@@ -1,7 +1,7 @@
 import { INSIGHTS_RECEIPT_ACTION } from "./constants";
 import type { ActivityReceiptInput } from "@/lib/activity-log/receipts";
 
-export type InsightsModelPreferenceModuleId = "colloquium" | "fabrica" | "oculus";
+export type InsightsModelPreferenceModuleId = "chat" | "workshop" | "vision";
 export type InsightsModelPreferenceRole = "chatModel" | "buildModel" | "visionModel";
 
 export function buildInsightsModelPreferenceChangedReceipt(args: {
@@ -38,7 +38,7 @@ export function buildInsightsModelPreferencesResetReceipt(): ActivityReceiptInpu
 }
 
 function labelForModule(moduleId: InsightsModelPreferenceModuleId): string {
-  if (moduleId === "colloquium") return "Chat";
-  if (moduleId === "fabrica") return "Workshop";
+  if (moduleId === "chat") return "Chat";
+  if (moduleId === "workshop") return "Workshop";
   return "Vision";
 }

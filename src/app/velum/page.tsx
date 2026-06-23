@@ -47,7 +47,7 @@ export default function VelumPage() {
   const [activeTarget, setActiveTarget] = useState<string | null>(null);
   const [handoffError, setHandoffError] = useState<string | null>(null);
   const [sourceNote, setSourceNote] = useState<string | null>(null);
-  const [sourceTarget, setSourceTarget] = useState<"colloquium" | "more-input" | null>(null);
+  const [sourceTarget, setSourceTarget] = useState<"chat" | "more-input" | null>(null);
   const [sourceTitle, setSourceTitle] = useState("");
   const [sourceEntryType, setSourceEntryType] = useState("");
   const [sourceEntryId, setSourceEntryId] = useState("");
@@ -65,7 +65,7 @@ export default function VelumPage() {
     const handoff = consumeChatToVelumHandoff(window.sessionStorage);
     if (handoff) {
       setText(handoff.draftText);
-      setSourceTarget("colloquium");
+      setSourceTarget("chat");
       setSourceNote("This draft came from Chat for review. Click Review text when you are ready.");
       logActivityReceipt(window.localStorage, buildVelumHandoffFromChatReceipt());
       return;

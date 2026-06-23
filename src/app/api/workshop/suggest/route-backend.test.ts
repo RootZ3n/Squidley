@@ -14,7 +14,7 @@ function findModelCall(spy: { mock: { calls: unknown[][] } }): [string, RequestI
 }
 
 function fabricaRequest(overrides: Record<string, unknown> = {}): Request {
-  return new Request("http://test/api/fabrica/suggest", {
+  return new Request("http://test/api/workshop/suggest", {
     method: "POST",
     body: JSON.stringify({
       language: "typescript",
@@ -25,7 +25,7 @@ function fabricaRequest(overrides: Record<string, unknown> = {}): Request {
   });
 }
 
-describe("/api/fabrica/suggest backend routing", () => {
+describe("/api/workshop/suggest backend routing", () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });

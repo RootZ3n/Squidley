@@ -10,15 +10,15 @@ import {
 import { validateModuleContracts } from "./validateModuleContracts";
 
 const REQUIRED_CORE_LOCAL = [
-  "colloquium",
-  "fabrica",
-  "archivum",
+  "chat",
+  "workshop",
+  "notebook",
   "more-input",
   "velum",
   "archelon",
-  "oculus",
+  "vision",
   "activity-log",
-  "nous",
+  "insights",
 ];
 
 const REQUIRED_CLOUD_UNLOCK = [
@@ -63,7 +63,7 @@ describe("public module registry", () => {
   });
 
   it("getModuleById returns the matching module", () => {
-    const m = getModuleById("colloquium");
+    const m = getModuleById("chat");
     expect(m).toBeDefined();
     expect(m?.displayName).toBe("Chat");
     expect(m?.latinMeaning).toMatch(/conversation/i);
@@ -74,7 +74,7 @@ describe("public module registry", () => {
   });
 
   it("Chat has tourAvailable enabled", () => {
-    expect(getModuleById("colloquium")?.tourAvailable).toBe(true);
+    expect(getModuleById("chat")?.tourAvailable).toBe(true);
   });
 
   it("groups exactly into core-local and cloud-unlock with no leftovers", () => {
@@ -129,7 +129,7 @@ describe("public module registry", () => {
       expect(m.receiptActions, `${m.id} should declare receipt actions or none`).toBeDefined();
     }
 
-    for (const id of ["colloquium", "archivum", "more-input", "activity-log", "nous"]) {
+    for (const id of ["chat", "notebook", "more-input", "activity-log", "insights"]) {
       expect(getModuleById(id)?.storageKeys?.length, `${id} should declare storage keys`).toBeGreaterThan(0);
     }
     for (const id of ["chat", "velum", "notebook", "more-input", "vision"]) {
@@ -163,8 +163,8 @@ describe("public module registry", () => {
   });
 
   it("describes public route behavior without overpromising unsupported modules", () => {
-    expect(getModuleById("nous")?.beginnerDescription.toLowerCase()).toContain("cloud providers locked");
-    expect(getModuleById("oculus")?.beginnerDescription.toLowerCase()).toContain("not stored");
+    expect(getModuleById("insights")?.beginnerDescription.toLowerCase()).toContain("cloud providers locked");
+    expect(getModuleById("vision")?.beginnerDescription.toLowerCase()).toContain("not stored");
     expect(getModuleById("activity-log")?.beginnerDescription.toLowerCase()).toContain("browser-local");
     expect(getModuleById("velum")?.beginnerDescription.toLowerCase()).toContain("deterministic");
     expect(getModuleById("archelon")?.beginnerDescription.toLowerCase()).toContain("not wired");
@@ -172,30 +172,30 @@ describe("public module registry", () => {
 });
 
 describe("Workshop public-mode constraints", () => {
-  const fabrica = getModuleById("fabrica");
+  const workshop = getModuleById("workshop");
 
   it("exists in the registry", () => {
-    expect(fabrica).toBeDefined();
+    expect(workshop).toBeDefined();
   });
 
   it("is core-local and not cloud-unlock", () => {
-    expect(fabrica?.category).toBe("core-local");
-    expect(fabrica?.cloudUnlockRequired).toBe(false);
-    expect(fabrica?.localOnlySupported).toBe(true);
+    expect(workshop?.category).toBe("core-local");
+    expect(workshop?.cloudUnlockRequired).toBe(false);
+    expect(workshop?.localOnlySupported).toBe(true);
   });
 
   it("declares its single-file limitation in metadata", () => {
-    expect(fabrica?.limitations).toBeDefined();
-    expect(fabrica!.limitations!.length).toBeGreaterThan(0);
-    const all = fabrica!.limitations!.join(" ").toLowerCase();
+    expect(workshop?.limitations).toBeDefined();
+    expect(workshop!.limitations!.length).toBeGreaterThan(0);
+    const all = workshop!.limitations!.join(" ").toLowerCase();
     expect(all).toContain("single-file");
     expect(all).toMatch(/not a full.*coding agent|not a full coding agent/);
   });
 
   it("description mentions it is not a full coding agent", () => {
-    expect(fabrica?.beginnerDescription.toLowerCase()).toContain(
+    expect(workshop?.beginnerDescription.toLowerCase()).toContain(
       "single-file",
     );
-    expect(fabrica?.limitations?.join(" ").toLowerCase()).toContain("not a full coding agent");
+    expect(workshop?.limitations?.join(" ").toLowerCase()).toContain("not a full coding agent");
   });
 });

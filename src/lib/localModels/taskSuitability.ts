@@ -12,9 +12,9 @@ export type LocalTaskId =
   | "chat.basic"
   | "chat.summarize"
   | "chat.advanced-planning"
-  | "fabrica.single-file-code"
+  | "workshop.single-file-code"
   | "workshop.multi-file-build"
-  | "oculus.image-analysis"
+  | "vision.image-analysis"
   | "notebook.local-storage"
   | "velum.deterministic-review"
   | "activity-log.local-receipts"
@@ -47,9 +47,9 @@ export const LOCAL_TASKS: readonly LocalTaskId[] = [
   "chat.basic",
   "chat.summarize",
   "chat.advanced-planning",
-  "fabrica.single-file-code",
+  "workshop.single-file-code",
   "workshop.multi-file-build",
-  "oculus.image-analysis",
+  "vision.image-analysis",
   "notebook.local-storage",
   "velum.deterministic-review",
   "activity-log.local-receipts",
@@ -86,7 +86,7 @@ export function evaluateLocalModelForTask(args: {
   const code = isLikelyCodeModel(model);
   const vision = isLikelyVisionModel(model);
 
-  if (taskId === "oculus.image-analysis") {
+  if (taskId === "vision.image-analysis") {
     if (backend === "llama-cpp") {
       return decision(taskId, "blocked", "high", "llama.cpp vision not validated", "Peh blocks llama.cpp vision until real local vision support is validated. Use an Ollama vision model such as LLaVA, Moondream, MiniCPM-V, or Qwen-VL.");
     }
@@ -96,7 +96,7 @@ export function evaluateLocalModelForTask(args: {
     return decision(taskId, "blocked", "high", "Not a vision model", "Choose a local vision model before using Vision.");
   }
 
-  if (taskId === "fabrica.single-file-code") {
+  if (taskId === "workshop.single-file-code") {
     if (!code) {
       return decision(taskId, "needs-stronger-local-model", "medium", "Use a code model", "This model does not look code-specialized. Try a local code model before trusting code suggestions.", "7B+ code model; 30B+ preferred");
     }

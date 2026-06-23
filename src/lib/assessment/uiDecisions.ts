@@ -19,31 +19,31 @@ const PUBLIC_LOCAL_DEFAULTS = {
 };
 
 export function chatBasicDecision(modelId?: string): AssessmentDecision {
-  return publicDecision("colloquium", "chat.basic", modelId, "low");
+  return publicDecision("chat", "chat.basic", modelId, "low");
 }
 
 export function chatAdvancedPlanningDecision(modelId?: string): AssessmentDecision {
-  return publicDecision("colloquium", "chat.advanced-planning", modelId, "medium");
+  return publicDecision("chat", "chat.advanced-planning", modelId, "medium");
 }
 
 export function fabricaSingleFileSuggestionDecision(modelId?: string): AssessmentDecision {
-  return publicDecision("fabrica", "workshop.single-file-suggestion", modelId, "medium");
+  return publicDecision("workshop", "workshop.single-file-suggestion", modelId, "medium");
 }
 
 export function fabricaMultiFileBuildDecision(modelId?: string): AssessmentDecision {
-  return publicDecision("fabrica", "workshop.multi-file-build", modelId, "high");
+  return publicDecision("workshop", "workshop.multi-file-build", modelId, "high");
 }
 
 export function oculusLocalImageAnalysisDecision(modelId?: string): AssessmentDecision {
-  return publicDecision("oculus", "vision.local-image-analysis", modelId, "medium");
+  return publicDecision("vision", "vision.local-image-analysis", modelId, "medium");
 }
 
 export function archivumLocalStorageDecision(): AssessmentDecision {
-  return publicDecision("archivum", "notebook.local-storage", undefined, "low");
+  return publicDecision("notebook", "notebook.local-storage", undefined, "low");
 }
 
 export function archivumFutureSummarizeDecision(modelId?: string): AssessmentDecision {
-  return publicDecision("archivum", "notebook.summarize", modelId, "medium");
+  return publicDecision("notebook", "notebook.summarize", modelId, "medium");
 }
 
 export function velumDeterministicReviewDecision(): AssessmentDecision {
@@ -64,21 +64,21 @@ export function imperiumAdvancedControlDecision(modelId?: string): AssessmentDec
 
 export function ratioDecisionForPublicModule(moduleId: string, modelId?: string): AssessmentDecision {
   switch (moduleId) {
-    case "colloquium":
+    case "chat":
       return chatBasicDecision(modelId);
-    case "fabrica":
+    case "workshop":
       return fabricaSingleFileSuggestionDecision(modelId);
-    case "archivum":
+    case "notebook":
     case "more-input":
       return archivumLocalStorageDecision();
     case "velum":
       return velumDeterministicReviewDecision();
-    case "oculus":
+    case "vision":
       return oculusLocalImageAnalysisDecision(modelId);
     case "tabularium":
       return tabulariumLocalReceiptsDecision();
-    case "nous":
-      return publicDecision("nous", "insights.system-map", undefined, "low");
+    case "insights":
+      return publicDecision("insights", "insights.system-map", undefined, "low");
     case "settings":
       return publicDecision("settings", "settings.local-control", undefined, "low");
     case "modules":

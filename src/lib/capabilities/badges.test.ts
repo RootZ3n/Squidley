@@ -36,7 +36,7 @@ const baseContext: Omit<CapabilityRuntimeInput, "capabilityId"> = {
 
 function localReadyDecision() {
   return resolveCapabilityRuntime({
-    capabilityId: "colloquium:chat.basic",
+    capabilityId: "chat:chat.basic",
     ...baseContext,
     availableLocalProfiles: [
       { providerId: "ollama", capabilityProfile: "chat" },
@@ -46,7 +46,7 @@ function localReadyDecision() {
 
 function localLimitedDecision() {
   return resolveCapabilityRuntime({
-    capabilityId: "colloquium:chat.advanced-planning",
+    capabilityId: "chat:chat.advanced-planning",
     ...baseContext,
     availableLocalProfiles: [
       { providerId: "ollama", capabilityProfile: "chat", paramsB: 8 },
@@ -56,13 +56,13 @@ function localLimitedDecision() {
 
 function cloudRequiredPendingDecision() {
   return resolveCapabilityRuntimeForId(
-    "fabrica:fabrica.multi-file-build",
+    "workshop:workshop.multi-file-build",
     baseContext,
   );
 }
 
 function cloudRequiredAllowedDecision() {
-  return resolveCapabilityRuntimeForId("fabrica:fabrica.multi-file-build", {
+  return resolveCapabilityRuntimeForId("workshop:workshop.multi-file-build", {
     ...baseContext,
     cloudUnlocked: true,
     cloudConsentGranted: true,
@@ -83,7 +83,7 @@ function blockedDecision() {
 function syntheticCloudOptional(localOk: boolean) {
   const synthetic: Capability = {
     id: "synthetic:cloud.optional.badge",
-    moduleId: "colloquium",
+    moduleId: "chat",
     displayName: "Synthetic cloud-optional",
     beginnerDescription: "fixture only",
     tier: "cloud-optional",
@@ -356,7 +356,7 @@ describe("isCapabilityDecisionReceipt", () => {
     expect(
       isCapabilityDecisionReceipt({
         action: "other",
-        metadata: { capabilityId: "colloquium:chat.basic", capabilityState: "LOCAL_READY" },
+        metadata: { capabilityId: "chat:chat.basic", capabilityState: "LOCAL_READY" },
       }),
     ).toBe(true);
   });
@@ -377,7 +377,7 @@ describe("receiptToCapabilityBadgeView", () => {
     const receipt = {
       action: "capability.decision",
       metadata: {
-        capabilityId: "colloquium:chat.basic",
+        capabilityId: "chat:chat.basic",
         capabilityState: "LOCAL_READY",
         localAttemptAllowed: true,
         cloudAllowed: false,
@@ -442,7 +442,7 @@ describe("receiptToCapabilityBadgeView", () => {
       action: "capability.decision",
       metadata: {
         capabilityState: "LOCAL_READY",
-        capabilityId: "colloquium:chat.basic",
+        capabilityId: "chat:chat.basic",
         localAttemptAllowed: true,
         cloudAllowed: false,
       } as Record<string, string | number | boolean>,
@@ -490,8 +490,8 @@ function makeEscalationReceipt(overrides: Record<string, string | number | boole
     action: "cloud-escalation.offer" as const,
     metadata: {
       escalationPacketId: "esc-1",
-      capabilityId: "fabrica:fabrica.multi-file-build",
-      moduleId: "fabrica",
+      capabilityId: "workshop:workshop.multi-file-build",
+      moduleId: "workshop",
       capabilityTier: "cloud-required",
       capabilityState: "CLOUD_REQUIRED",
       consentState: "required",
@@ -650,8 +650,8 @@ function makeConsentReceipt(decision: string, overrides: Record<string, string |
     action: `cloud-consent.${decision}` as string,
     metadata: {
       escalationPacketId: "esc-1",
-      capabilityId: "fabrica:fabrica.multi-file-build",
-      moduleId: "fabrica",
+      capabilityId: "workshop:workshop.multi-file-build",
+      moduleId: "workshop",
       capabilityTier: "cloud-required",
       capabilityState: "CLOUD_REQUIRED",
       decision,

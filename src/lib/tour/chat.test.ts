@@ -2,9 +2,9 @@ import { describe, it, expect } from "vitest";
 import { chatTour } from "./chat";
 import { getTour } from "./index";
 
-describe("colloquium tour", () => {
+describe("chat tour", () => {
   it("is registered under the moduleId", () => {
-    expect(getTour("colloquium")).toBe(chatTour);
+    expect(getTour("chat")).toBe(chatTour);
   });
 
   it("has unique step ids", () => {

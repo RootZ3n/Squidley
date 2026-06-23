@@ -110,12 +110,12 @@ const PRIMARY: NavItem[] = [
   },
   {
     href: "/activity-log",
-    label: MODULE_TERMINOLOGY.activityLog.friendlyLabel,
-    subtitle: MODULE_TERMINOLOGY.activityLog.latinName,
+    label: MODULE_TERMINOLOGY["activity-log"].friendlyLabel,
+    subtitle: MODULE_TERMINOLOGY["activity-log"].latinName,
     accent: "#f59e0b",
     accentDim: "rgba(245,158,11,0.18)",
     icon: <ActivityLogIcon />,
-    hint: termHint("activityLog"),
+    hint: termHint("activity-log"),
   },
   {
     href: "/insights",
@@ -183,13 +183,13 @@ const LOCKED: NavItem[] = [
   },
   {
     href: "/modules",
-    label: MODULE_TERMINOLOGY.advancedSettings.friendlyLabel,
-    subtitle: MODULE_TERMINOLOGY.advancedSettings.latinName,
+    label: MODULE_TERMINOLOGY.imperium.friendlyLabel,
+    subtitle: MODULE_TERMINOLOGY.imperium.latinName,
     accent: "#a78bfa",
     accentDim: "rgba(167,139,250,0.12)",
     icon: <ControlPanelIcon />,
     status: "locked",
-    hint: termHint("advancedSettings"),
+    hint: termHint("imperium"),
   },
   {
     href: "/modules",

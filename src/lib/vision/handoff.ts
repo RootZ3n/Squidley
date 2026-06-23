@@ -7,8 +7,8 @@ export const OCULUS_HANDOFF_MAX_CHARS = 12000;
 export interface VisionToChatHandoffPayload {
   version: typeof OCULUS_HANDOFF_VERSION;
   createdAt: number;
-  source: "oculus";
-  target: "colloquium";
+  source: "vision";
+  target: "chat";
   localOnly: true;
   cloudUsed: false;
   imageIncluded: false;
@@ -24,8 +24,8 @@ export function createVisionToChatPayload(
   return {
     version: OCULUS_HANDOFF_VERSION,
     createdAt: now,
-    source: "oculus",
-    target: "colloquium",
+    source: "vision",
+    target: "chat",
     localOnly: true,
     cloudUsed: false,
     imageIncluded: false,
@@ -48,8 +48,8 @@ export function parseVisionToChatPayload(
   if (
     !payload ||
     payload.version !== OCULUS_HANDOFF_VERSION ||
-    payload.source !== "oculus" ||
-    payload.target !== "colloquium" ||
+    payload.source !== "vision" ||
+    payload.target !== "chat" ||
     payload.localOnly !== true ||
     payload.cloudUsed !== false ||
     payload.imageIncluded !== false ||
@@ -64,8 +64,8 @@ export function parseVisionToChatPayload(
   return {
     version: OCULUS_HANDOFF_VERSION,
     createdAt: payload.createdAt,
-    source: "oculus",
-    target: "colloquium",
+    source: "vision",
+    target: "chat",
     localOnly: true,
     cloudUsed: false,
     imageIncluded: false,

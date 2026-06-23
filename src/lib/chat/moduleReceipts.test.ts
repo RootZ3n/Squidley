@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { CHAT_RECEIPT_ACTION } from "./constants";
+import { CHAT_RECEIPT_ACTION } from "./moduleConstants";
 import {
   buildChatCompletedReceipt,
   buildChatFailedReceipt,
   buildChatSentReceipt,
   buildChatVelumHandoffReceivedReceipt,
-} from "./receipts";
+} from "./moduleReceipts";
 
 describe("Chat receipt builders", () => {
   it("builds chat lifecycle receipts without message text", () => {

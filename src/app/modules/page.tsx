@@ -302,7 +302,7 @@ function ModuleCard({
 }
 
 function representativeModelForModule(moduleId: string): string | undefined {
-  if (moduleId === "colloquium" || moduleId === "fabrica") return "llama3.2:3b";
-  if (moduleId === "oculus") return "qwen3-vl:4b";
+  if (moduleId === "chat" || moduleId === "workshop") return "llama3.2:3b";
+  if (moduleId === "vision") return "qwen3-vl:4b";
   return undefined;
 }

@@ -56,7 +56,7 @@ describe("gateway receipts", () => {
   it("maps caution metadata to modelUsed true when the model still ran", () => {
     const receipt = createPromptGatewayReceipt({
       module: "workshop",
-      route: "/api/fabrica/suggest",
+      route: "/api/workshop/suggest",
       dedupeKey: "job1",
       modelUsed: true,
       metadata: {
@@ -90,7 +90,7 @@ describe("gateway receipts", () => {
     const s = storage();
     const args = {
       module: "vision" as const,
-      route: "/api/oculus/analyze",
+      route: "/api/vision/analyze",
       dedupeKey: "same",
       modelUsed: true,
       metadata: {
@@ -108,7 +108,7 @@ describe("gateway receipts", () => {
   });
 
   it("builds safe ActivityLog receipt URLs without raw prompt text", () => {
-    const url = activityReceiptUrl("gateway-colloquium-r:1-prompt-gateway-blocked");
+    const url = activityReceiptUrl("gateway-chat-r:1-prompt-gateway-blocked");
 
     expect(url).toContain("/tabularium?receipt=");
     expect(url).not.toContain(" ");
@@ -120,11 +120,11 @@ describe("gateway receipts", () => {
 
   it("finds a receipt from a query id safely", () => {
     const receipts = [
-      { id: "gateway-colloquium-safe-id-prompt-gateway-blocked" },
+      { id: "gateway-chat-safe-id-prompt-gateway-blocked" },
       { id: "other" },
     ];
 
-    expect(findReceiptByQueryId(receipts, "gateway-colloquium-safe-id-prompt-gateway-blocked")?.id).toBe(receipts[0].id);
+    expect(findReceiptByQueryId(receipts, "gateway-chat-safe-id-prompt-gateway-blocked")?.id).toBe(receipts[0].id);
     expect(findReceiptByQueryId(receipts, "missing")).toBeNull();
   });
 

@@ -5,8 +5,8 @@ export const VISION_RECEIPT_ACTION = {
   analysisStarted: "vision.analysis.started",
   analysisSucceeded: "vision.analysis.succeeded",
   analysisFailed: "vision.analysis.failed",
-  handoffToChat: "vision.handoff.to-colloquium",
-  saveAnalysisToNotebook: "vision.save-analysis-to-archivum",
+  handoffToChat: "vision.handoff.to-chat",
+  saveAnalysisToNotebook: "vision.save-analysis-to-notebook",
 } as const;
 
 export const VISION_RECEIPT_ACTIONS = Object.values(VISION_RECEIPT_ACTION);

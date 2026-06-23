@@ -86,9 +86,9 @@ describe("buildWorkshopVelumHandoffPreview", () => {
     expect(preview.velumReviewPassed).toBe(false);
   });
 
-  it("sourceModule is fabrica", () => {
+  it("sourceModule is workshop", () => {
     const preview = buildWorkshopVelumHandoffPreview();
-    expect(preview.sourceModule).toBe("fabrica");
+    expect(preview.sourceModule).toBe("workshop");
   });
 
   it("dataCategories includes metadata-only", () => {
@@ -117,7 +117,7 @@ describe("buildWorkshopVelumHandoffPreview", () => {
 describe("buildWorkshopVelumHandoffPreparedReceiptInput", () => {
   it("returns a ActivityLog-compatible input with correct module and action", () => {
     const input = buildWorkshopVelumHandoffPreparedReceiptInput();
-    expect(input.module).toBe("fabrica");
+    expect(input.module).toBe("workshop");
     expect(input.action).toBe(FABRICA_VELUM_HANDOFF_ACTION);
     expect(input.action).toBe("velum-handoff.preparation");
     expect(input.modelUsed).toBe(false);
@@ -178,7 +178,7 @@ describe("recordWorkshopVelumHandoffPreparedReceipt", () => {
     expect(receipt).not.toBeNull();
     expect(storage.setItem).toHaveBeenCalledTimes(1);
     expect(storage.setItem.mock.calls[0][0]).toContain("activity-log");
-    expect(receipt!.module).toBe("fabrica");
+    expect(receipt!.module).toBe("workshop");
     expect(receipt!.localOnly).toBe(true);
     expect(receipt!.cloudUsed).toBe(false);
     expect(receipt!.modelUsed).toBe(false);
@@ -199,7 +199,7 @@ describe("recordWorkshopVelumHandoffPreparedReceipt", () => {
     // Receipt is still returned (built in memory) even if storage failed
     const result = recordWorkshopVelumHandoffPreparedReceipt(storage);
     expect(result).not.toBeNull();
-    expect(result!.module).toBe("fabrica");
+    expect(result!.module).toBe("workshop");
     expect(result!.localOnly).toBe(true);
     expect(result!.cloudUsed).toBe(false);
   });
@@ -305,14 +305,14 @@ describe("buildWorkshopVelumReviewCompletedPreview", () => {
     expect(preview.cloudUsed).toBe(false);
   });
 
-  it("includes the fabrica capability id", () => {
+  it("includes the workshop capability id", () => {
     const preview = buildWorkshopVelumReviewCompletedPreview();
     expect(preview.capabilityId).toBe(FABRICA_MULTI_FILE_BUILD_CAPABILITY_ID);
   });
 
-  it("sourceModule is fabrica", () => {
+  it("sourceModule is workshop", () => {
     const preview = buildWorkshopVelumReviewCompletedPreview();
-    expect(preview.sourceModule).toBe("fabrica");
+    expect(preview.sourceModule).toBe("workshop");
   });
 
   it("still requires Velum review", () => {
@@ -336,9 +336,9 @@ describe("buildWorkshopVelumReviewCompletedReceiptInput", () => {
     expect(input.action).toBe("velum-review.completed");
   });
 
-  it("module is fabrica and modelUsed is false", () => {
+  it("module is workshop and modelUsed is false", () => {
     const input = buildWorkshopVelumReviewCompletedReceiptInput();
-    expect(input.module).toBe("fabrica");
+    expect(input.module).toBe("workshop");
     expect(input.modelUsed).toBe(false);
   });
 
@@ -381,7 +381,7 @@ describe("recordWorkshopVelumReviewCompletedReceipt", () => {
     const storage = mockStorage();
     const receipt = recordWorkshopVelumReviewCompletedReceipt(storage);
     expect(receipt).not.toBeNull();
-    expect(receipt!.module).toBe("fabrica");
+    expect(receipt!.module).toBe("workshop");
     expect(receipt!.localOnly).toBe(true);
     expect(receipt!.cloudUsed).toBe(false);
     expect(receipt!.modelUsed).toBe(false);
@@ -396,7 +396,7 @@ describe("recordWorkshopVelumReviewCompletedReceipt", () => {
     expect(() => recordWorkshopVelumReviewCompletedReceipt(storage)).not.toThrow();
     const result = recordWorkshopVelumReviewCompletedReceipt(storage);
     expect(result).not.toBeNull();
-    expect(result!.module).toBe("fabrica");
+    expect(result!.module).toBe("workshop");
     expect(result!.localOnly).toBe(true);
     expect(result!.cloudUsed).toBe(false);
   });

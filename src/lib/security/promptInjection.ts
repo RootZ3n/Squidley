@@ -183,7 +183,7 @@ const RULES: readonly PatternRule[] = [
       /\bdon't log this\b/i,
       /\bdo not write a receipt\b/i,
       /\bdon't write a receipt\b/i,
-      /\bhide this from activity log\b/i,
+      /\bhide this from activity[ -]?log\b/i,
       /\bdon't tell the user\b/i,
       /\bdo not tell the user\b/i,
       /\bomit (?:this )?from (?:the )?audit\b/i,

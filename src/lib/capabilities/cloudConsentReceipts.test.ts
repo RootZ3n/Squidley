@@ -37,7 +37,7 @@ function actionablePacket(): CloudEscalationPacket {
   // cloud-optional with local requirements unmet -> CLOUD_OPTIONAL, actionable
   const cap: Capability = {
     id: "synthetic:consent-test",
-    moduleId: "fabrica",
+    moduleId: "workshop",
     displayName: "Consent test",
     beginnerDescription: "fixture",
     tier: "cloud-optional",
@@ -62,7 +62,7 @@ function actionablePacket(): CloudEscalationPacket {
 function velumGatedActionablePacket(velumPassed: boolean): CloudEscalationPacket {
   const cap: Capability = {
     id: "synthetic:velum-consent-test",
-    moduleId: "fabrica",
+    moduleId: "workshop",
     displayName: "Velum consent test",
     beginnerDescription: "fixture",
     tier: "cloud-optional",
@@ -99,7 +99,7 @@ function blockedPacket(): CloudEscalationPacket {
 function deniedPacket(): CloudEscalationPacket {
   const cap: Capability = {
     id: "synthetic:denied-test",
-    moduleId: "fabrica",
+    moduleId: "workshop",
     displayName: "Denied test",
     beginnerDescription: "fixture",
     tier: "cloud-optional",
@@ -382,7 +382,7 @@ describe("recordCloudConsentReceipt", () => {
     const receipt = recordCloudConsentReceipt(storage, actionablePacket(), "granted");
     expect(receipt).not.toBeNull();
     expect(storage.setItem).toHaveBeenCalledTimes(1);
-    expect(storage.setItem.mock.calls[0][0]).toContain("tabularium");
+    expect(storage.setItem.mock.calls[0][0]).toContain("activity-log");
     expect(receipt!.localOnly).toBe(true);
     expect(receipt!.cloudUsed).toBe(false);
   });

@@ -6,7 +6,7 @@ import { INSIGHTS_MODEL_PREFERENCES_KEY } from "@/lib/insights/constants";
 export const NOUS_MODEL_PREFERENCES_VERSION = 1;
 
 export type InsightsModelRole = "chatModel" | "visionModel" | "buildModel";
-export type InsightsPreferenceModuleId = "colloquium" | "oculus" | "fabrica";
+export type InsightsPreferenceModuleId = "chat" | "vision" | "workshop";
 export type ModelSourceKind =
   | "fromInsightsPreference"
   | "fromPageSelection"
@@ -152,7 +152,7 @@ export function resolveVisionVisionModel(args: {
 }): string {
   const preferred = resolveModelFromCandidates({
     models: args.models,
-    candidates: [args.preferences.modules.oculus?.visionModel],
+    candidates: [args.preferences.modules.vision?.visionModel],
   });
   if (preferred.length > 0) return preferred;
 
@@ -175,7 +175,7 @@ export function resolveWorkshopBuildModel(args: {
   return resolveModelFromCandidates({
     models: args.models,
     candidates: [
-      args.preferences.modules.fabrica?.buildModel,
+      args.preferences.modules.workshop?.buildModel,
       args.preferences.modules.chat?.chatModel,
       configuredFallback,
     ],
@@ -255,7 +255,7 @@ function sanitizeModules(
   modules: Partial<Record<InsightsPreferenceModuleId, InsightsModuleModelPreferences>>,
 ): Partial<Record<InsightsPreferenceModuleId, InsightsModuleModelPreferences>> {
   const next: Partial<Record<InsightsPreferenceModuleId, InsightsModuleModelPreferences>> = {};
-  for (const moduleId of ["colloquium", "oculus", "fabrica"] as const) {
+  for (const moduleId of ["chat", "vision", "workshop"] as const) {
     const modulePrefs = modules[moduleId];
     if (!modulePrefs || typeof modulePrefs !== "object") continue;
     const cleaned: InsightsModuleModelPreferences = {};

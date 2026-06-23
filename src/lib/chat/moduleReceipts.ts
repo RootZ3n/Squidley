@@ -1,4 +1,4 @@
-import { CHAT_RECEIPT_ACTION } from "./constants";
+import { CHAT_RECEIPT_ACTION } from "./moduleConstants";
 import type { ActivityReceiptInput } from "@/lib/activity-log/receipts";
 
 export function buildChatVelumHandoffReceivedReceipt(): ActivityReceiptInput {

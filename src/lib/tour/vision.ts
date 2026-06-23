@@ -1,7 +1,7 @@
 import type { ModuleTour } from "./types";
 
 export const visionTour: ModuleTour = {
-  moduleId: "oculus",
+  moduleId: "vision",
   moduleName: "Vision",
   steps: [
     {
@@ -18,31 +18,31 @@ export const visionTour: ModuleTour = {
     },
     {
       id: "picker",
-      target: "oculus-picker",
+      target: "vision-picker",
       title: "Choose an image",
       body: "Pick a PNG, JPG, or WebP file yourself. The preview stays in your browser.",
     },
     {
       id: "preview",
-      target: "oculus-preview",
+      target: "vision-preview",
       title: "Preview before analysis",
       body: "Review the image and file details before asking a local model to analyze it.",
     },
     {
       id: "vision",
-      target: "oculus-vision",
+      target: "vision-vision",
       title: "Local vision model",
       body: "Vision uses a simple model-name hint to check whether the selected local model may support images.",
     },
     {
       id: "result",
-      target: "oculus-result",
+      target: "vision-result",
       title: "Analysis result",
       body: "If analysis runs, the result appears here and ActivityLog records a local receipt.",
     },
     {
       id: "handoff",
-      target: "oculus-handoff",
+      target: "vision-handoff",
       title: "Send text to Chat",
       body: "Only the analysis text can be handed to Chat. The image itself is not sent in the handoff.",
     },

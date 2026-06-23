@@ -107,7 +107,7 @@ export default function NotebookPage() {
     () => doc.entries.find((entry) => entry.id === editingId) ?? null,
     [doc.entries, editingId],
   );
-  const tour = useMemo(() => getTour("archivum")!, []);
+  const tour = useMemo(() => getTour("notebook")!, []);
   const localStorageAssessment = useMemo(() => archivumLocalStorageDecision(), []);
   const futureSummarizeAssessment = useMemo(() => archivumFutureSummarizeDecision(), []);
 
@@ -291,7 +291,7 @@ export default function NotebookPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `peh-archivum-${entry.id}.txt`;
+    a.download = `peh-notebook-${entry.id}.txt`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -304,7 +304,7 @@ export default function NotebookPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `peh-archivum-bundle-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `peh-notebook-bundle-${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -461,7 +461,7 @@ export default function NotebookPage() {
             placeholder="Paste a note, snippet, log, article, or code sample."
           />
           <div className="mt-3 flex flex-wrap gap-2">
-            <TourHighlight target="archivum-save" active={activeTarget}>
+            <TourHighlight target="notebook-save" active={activeTarget}>
               <button
                 type="button"
                 onClick={handleSave}
@@ -471,7 +471,7 @@ export default function NotebookPage() {
                 Save to Notebook
               </button>
             </TourHighlight>
-            <TourHighlight target="archivum-velum-review" active={activeTarget}>
+            <TourHighlight target="notebook-velum-review" active={activeTarget}>
               <button
                 type="button"
                 onClick={handleReviewInVelum}
@@ -497,7 +497,7 @@ export default function NotebookPage() {
         </TourHighlight>
 
         <TourHighlight
-          target="archivum-list"
+          target="notebook-list"
           active={activeTarget}
           className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800"
         >
@@ -604,7 +604,7 @@ export default function NotebookPage() {
                   <h3 className="truncate font-medium text-ink-800 dark:text-ink-100" title={entry.title}>
                     {entry.title}
                   </h3>
-                  <TourHighlight target="archivum-badges" active={activeTarget}>
+                  <TourHighlight target="notebook-badges" active={activeTarget}>
                     <div className="mt-1 flex flex-wrap gap-1.5 text-[10px] uppercase tracking-wide text-ink-400">
                       <span>{entry.type}</span>
                       <span>{entrySourceLabel(entry.source)}</span>
@@ -627,7 +627,7 @@ export default function NotebookPage() {
                   <p className="mt-2 text-[11px] text-ink-400">
                     Updated {new Date(entry.updatedAt).toLocaleString()}
                   </p>
-                  <TourHighlight target="archivum-entry-actions" active={activeTarget}>
+                  <TourHighlight target="notebook-entry-actions" active={activeTarget}>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button type="button" onClick={() => setSelectedId(entry.id)} className="text-xs font-medium text-iris-600 hover:text-iris-700 dark:text-iris-300">
                       View details
@@ -746,7 +746,7 @@ export default function NotebookPage() {
 
       {selected && (
         <TourHighlight
-          target="archivum-entry-detail"
+          target="notebook-entry-detail"
           active={activeTarget}
           className="mt-4 rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800"
         >
@@ -755,7 +755,7 @@ export default function NotebookPage() {
               <h2 className="font-serif text-xl font-semibold text-ink-900 dark:text-ink-50">
                 {selected.title}
               </h2>
-              <TourHighlight target="archivum-badges" active={activeTarget}>
+              <TourHighlight target="notebook-badges" active={activeTarget}>
                 <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
                 <span className="rounded-full border border-ink-200 px-2 py-0.5 text-ink-500 dark:border-ink-700 dark:text-ink-300">
                   {selected.type}
@@ -796,7 +796,7 @@ export default function NotebookPage() {
           <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded-lg border border-ink-100 bg-ink-50/70 p-3 text-sm text-ink-800 dark:border-ink-700/60 dark:bg-ink-900 dark:text-ink-100">
             {selected.text}
           </pre>
-          <TourHighlight target="archivum-entry-actions" active={activeTarget}>
+          <TourHighlight target="notebook-entry-actions" active={activeTarget}>
           <div className="mt-3 flex flex-wrap gap-2">
             <button type="button" onClick={() => startEdit(selected)} className="rounded-lg border border-squid-200 bg-white px-3 py-1.5 text-xs font-medium text-squid-700 hover:bg-squid-50 dark:border-squid-700/60 dark:bg-ink-900 dark:text-squid-100">
               Edit

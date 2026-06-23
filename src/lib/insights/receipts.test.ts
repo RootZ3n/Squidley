@@ -9,7 +9,7 @@ import { createActivityReceipt } from "@/lib/activity-log/receipts";
 describe("Insights receipt helpers", () => {
   it("builds a safe model preference changed receipt", () => {
     const receipt = createActivityReceipt(buildInsightsModelPreferenceChangedReceipt({
-      moduleId: "colloquium",
+      moduleId: "chat",
       role: "chatModel",
       model: "llama3.2",
     }));
@@ -25,14 +25,14 @@ describe("Insights receipt helpers", () => {
       modelUsed: false,
       toolsUsed: false,
       changedLocalStorage: true,
-      metadata: { moduleId: "colloquium", role: "chatModel" },
+      metadata: { moduleId: "chat", role: "chatModel" },
     });
     expect(receipt.summary).toContain("browser localStorage");
   });
 
   it("preserves page-specific copy without storing secrets or prompts", () => {
     const receipt = createActivityReceipt(buildInsightsModelPreferenceChangedReceipt({
-      moduleId: "fabrica",
+      moduleId: "workshop",
       role: "buildModel",
       model: "safe-local-model",
       title: "Workshop local model preference changed",

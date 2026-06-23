@@ -33,14 +33,14 @@ const CANONICAL_TIERS = [
 describe("module terminology", () => {
   it("covers every nav module used by the Sidebar", () => {
     const required: ModuleKey[] = [
-      "colloquium",
-      "fabrica",
-      "archivum",
+      "chat",
+      "workshop",
+      "notebook",
       "moreInput",
       "velum",
-      "oculus",
+      "vision",
       "activity-log",
-      "nous",
+      "insights",
       "modules",
       "settings",
       "archelon",
@@ -64,7 +64,7 @@ describe("module terminology", () => {
       "archivum",
       "velum",
       "oculus",
-      "activity-log",
+      "tabularium",
       "nous",
       "archelon",
       "legatus",

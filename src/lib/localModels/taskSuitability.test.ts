@@ -43,7 +43,7 @@ describe("local model task suitability", () => {
 
   it("recognizes strong local code models for reviewed single-file suggestions", () => {
     const decision = evaluateLocalModelForTask({
-      taskId: "fabrica.single-file-code",
+      taskId: "workshop.single-file-code",
       model: { name: "qwen3-coder:30b" },
     });
     expect(decision.status).toBe("can-do-locally");
@@ -57,7 +57,7 @@ describe("local model task suitability", () => {
 
   it("blocks llama.cpp vision until real support is validated", () => {
     const decision = evaluateLocalModelForTask({
-      taskId: "oculus.image-analysis",
+      taskId: "vision.image-analysis",
       model: { name: "llava-v1.6-7b-q4_k_m.gguf" },
       backend: "llama-cpp",
     });

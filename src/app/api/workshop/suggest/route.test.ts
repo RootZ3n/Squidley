@@ -10,7 +10,7 @@ function findModelCall(spy: { mock: { calls: unknown[][] } }): [string, RequestI
   return undefined;
 }
 
-describe("/api/fabrica/suggest prompt gateway", () => {
+describe("/api/workshop/suggest prompt gateway", () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -18,7 +18,7 @@ describe("/api/fabrica/suggest prompt gateway", () => {
   it("blocks requests that try to turn Workshop into a shell agent", async () => {
     const fetchImpl = vi.spyOn(globalThis, "fetch");
     const response = await POST(
-      new Request("http://test/api/fabrica/suggest", {
+      new Request("http://test/api/workshop/suggest", {
         method: "POST",
         body: JSON.stringify({
           language: "text",
@@ -46,7 +46,7 @@ describe("/api/fabrica/suggest prompt gateway", () => {
     );
 
     const response = await POST(
-      new Request("http://test/api/fabrica/suggest", {
+      new Request("http://test/api/workshop/suggest", {
         method: "POST",
         body: JSON.stringify({
           language: "typescript",

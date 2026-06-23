@@ -66,28 +66,28 @@ function assertNoForbiddenKeysDeep(value: unknown, path = "<root>"): void {
 // ---------------------------------------------------------------------------
 
 describe("Notebook / More Input capability ids are registered", () => {
-  it("archivum:archivum.local-storage is registered with moduleId=archivum, tier=local-core", () => {
+  it("notebook:notebook.local-storage is registered with moduleId=notebook, tier=local-core", () => {
     const cap = getCapabilityById(ARCHIVUM_LOCAL_STORAGE_CAPABILITY_ID);
     expect(cap).toBeDefined();
-    expect(cap!.moduleId).toBe("archivum");
+    expect(cap!.moduleId).toBe("notebook");
     expect(cap!.tier).toBe("local-core");
   });
 
-  it("archivum:archivum.summarize is registered with moduleId=archivum, tier=local-limited", () => {
+  it("notebook:notebook.summarize is registered with moduleId=notebook, tier=local-limited", () => {
     const cap = getCapabilityById(ARCHIVUM_SUMMARIZE_CAPABILITY_ID);
     expect(cap).toBeDefined();
-    expect(cap!.moduleId).toBe("archivum");
+    expect(cap!.moduleId).toBe("notebook");
     expect(cap!.tier).toBe("local-limited");
   });
 
-  it("more-input:archivum.local-storage is registered with moduleId=more-input, tier=local-core", () => {
+  it("more-input:notebook.local-storage is registered with moduleId=more-input, tier=local-core", () => {
     const cap = getCapabilityById(MORE_INPUT_LOCAL_STORAGE_CAPABILITY_ID);
     expect(cap).toBeDefined();
     expect(cap!.moduleId).toBe("more-input");
     expect(cap!.tier).toBe("local-core");
   });
 
-  it("more-input:archivum.summarize is registered with moduleId=more-input, tier=local-limited", () => {
+  it("more-input:notebook.summarize is registered with moduleId=more-input, tier=local-limited", () => {
     const cap = getCapabilityById(MORE_INPUT_SUMMARIZE_CAPABILITY_ID);
     expect(cap).toBeDefined();
     expect(cap!.moduleId).toBe("more-input");
@@ -103,12 +103,12 @@ describe("buildNotebookLocalStorageCapabilityReceiptInput", () => {
   it("returns a ActivityLog-compatible capability.decision receipt input", () => {
     const input = buildNotebookLocalStorageCapabilityReceiptInput({ createdAt: 100 });
     expect(input.action).toBe("capability.decision");
-    expect(input.module).toBe("archivum");
+    expect(input.module).toBe("notebook");
     expect(input.modelUsed).toBe(false);
 
     const meta = input.metadata!;
     expect(meta.capabilityId).toBe(ARCHIVUM_LOCAL_STORAGE_CAPABILITY_ID);
-    expect(meta.moduleId).toBe("archivum");
+    expect(meta.moduleId).toBe("notebook");
     expect(meta.capabilityTier).toBe("local-core");
     expect(meta.capabilityState).toBe("LOCAL_READY");
     expect(meta.providerMode).toBe("local");
@@ -131,10 +131,10 @@ describe("buildNotebookLocalStorageCapabilityReceiptInput", () => {
 });
 
 describe("buildMoreInputLocalStorageCapabilityReceiptInput", () => {
-  it("returns capability.decision for more-input module mapped to archivum ActivityLog module", () => {
+  it("returns capability.decision for more-input module mapped to notebook ActivityLog module", () => {
     const input = buildMoreInputLocalStorageCapabilityReceiptInput({ createdAt: 200 });
     expect(input.action).toBe("capability.decision");
-    expect(input.module).toBe("archivum");
+    expect(input.module).toBe("notebook");
 
     const meta = input.metadata!;
     expect(meta.capabilityId).toBe(MORE_INPUT_LOCAL_STORAGE_CAPABILITY_ID);
@@ -316,7 +316,7 @@ describe("recordNotebookLocalStorageCapabilityReceipt", () => {
     });
     expect(receipt).not.toBeNull();
     expect(storage.setItem).toHaveBeenCalledTimes(1);
-    expect(storage.setItem.mock.calls[0][0]).toContain("tabularium");
+    expect(storage.setItem.mock.calls[0][0]).toContain("activity-log");
     expect(receipt!.metadata!.capabilityId).toBe(ARCHIVUM_LOCAL_STORAGE_CAPABILITY_ID);
     expect(receipt!.localOnly).toBe(true);
     expect(receipt!.cloudUsed).toBe(false);
@@ -411,14 +411,14 @@ describe("existing Notebook receipt builders still work", () => {
       now: 1,
     });
     const receipt = buildNotebookEntryCreatedReceipt(entry);
-    expect(receipt.module).toBe("archivum");
+    expect(receipt.module).toBe("notebook");
     expect(receipt.action).toBe("entry.created");
     expect(receipt.changedLocalStorage).toBe(true);
   });
 
   it("buildNotebookEntryDeletedReceipt still works", () => {
     const receipt = buildNotebookEntryDeletedReceipt("e-1");
-    expect(receipt.module).toBe("archivum");
+    expect(receipt.module).toBe("notebook");
     expect(receipt.action).toBe("entry.deleted");
   });
 });
@@ -434,7 +434,7 @@ describe("Notebook capability receipts — no fetch / no cloud", () => {
   beforeEach(() => {
     originalFetch = globalThis.fetch;
     fetchSpy = vi.fn<unknown[], unknown>(() => {
-      throw new Error("archivum capability receipt attempted a network call");
+      throw new Error("notebook capability receipt attempted a network call");
     });
     (globalThis as unknown as { fetch: typeof globalThis.fetch }).fetch =
       fetchSpy as unknown as typeof globalThis.fetch;

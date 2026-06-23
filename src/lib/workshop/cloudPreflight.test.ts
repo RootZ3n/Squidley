@@ -235,7 +235,7 @@ describe("runWorkshopMultiFileBuildCloudPreflight — receipt deduplication", ()
 // ---------------------------------------------------------------------------
 
 describe("runWorkshopMultiFileBuildCloudPreflight — receipt chain grouping", () => {
-  it("all preflight receipts share the fabrica module", () => {
+  it("all preflight receipts share the workshop module", () => {
     const storage = mockStorage();
     const result = runWorkshopMultiFileBuildCloudPreflight({
       velumReviewPassed: true,

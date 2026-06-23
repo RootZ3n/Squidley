@@ -10,14 +10,14 @@ const models = [
 describe("Insights module map", () => {
   it("describes public modules and model roles", () => {
     const prefs = setModuleModelPreference(
-      setModuleModelPreference(createModelPreferencesDocument(), "colloquium", "chatModel", "llama3.2"),
-      "oculus",
+      setModuleModelPreference(createModelPreferencesDocument(), "chat", "chatModel", "llama3.2"),
+      "vision",
       "visionModel",
       "llava:latest",
     );
     const map = buildInsightsModuleMap({ preferences: prefs, models, configuredModel: "llama3.2" });
 
-    expect(map.find((item) => item.moduleId === "colloquium")).toMatchObject({
+    expect(map.find((item) => item.moduleId === "chat")).toMatchObject({
       usesModel: true,
       modelRole: "chat",
       selectedProvider: "ollama",
@@ -25,7 +25,7 @@ describe("Insights module map", () => {
       currentStatus: "active",
       cloudUnlockRequired: false,
     });
-    expect(map.find((item) => item.moduleId === "oculus")).toMatchObject({
+    expect(map.find((item) => item.moduleId === "vision")).toMatchObject({
       usesModel: true,
       modelRole: "vision",
       selectedModel: "llava:latest",
@@ -38,20 +38,20 @@ describe("Insights module map", () => {
   });
 
   it("marks Workshop as an active single-file workshop without agent behavior", () => {
-    const fabrica = buildInsightsModuleMap({
+    const workshop = buildInsightsModuleMap({
       preferences: createModelPreferencesDocument(),
       models,
       configuredModel: "llama3.2",
-    }).find((item) => item.moduleId === "fabrica");
+    }).find((item) => item.moduleId === "workshop");
 
-    expect(fabrica).toMatchObject({
+    expect(workshop).toMatchObject({
       usesModel: true,
       modelRole: "build",
       currentStatus: "active",
       selectedProvider: "ollama",
     });
-    expect(fabrica?.explanation.toLowerCase()).toContain("single-file");
-    expect(fabrica?.explanation.toLowerCase()).toContain("does not write files");
+    expect(workshop?.explanation.toLowerCase()).toContain("single-file");
+    expect(workshop?.explanation.toLowerCase()).toContain("does not write files");
   });
 
   it("does not mark any public map entry as currently using cloud", () => {

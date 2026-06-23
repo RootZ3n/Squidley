@@ -86,10 +86,10 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const stored = loadStoredSessions(window.localStorage);
-    const archivum = loadNotebook(window.localStorage);
+    const notebook = loadNotebook(window.localStorage);
     const tabularium = loadActivity(window.localStorage);
     setSessionsDoc(stored);
-    setNotebookDoc(archivum);
+    setNotebookDoc(notebook);
     setActivityLogDoc(tabularium);
     const active = stored.sessions.find((s) => s.id === stored.activeSessionId) ?? stored.sessions[0];
     const selectedModel =

@@ -65,7 +65,7 @@ export default function VisionPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [saveTitle, setSaveTitle] = useState("Vision analysis");
   const [saveType, setSaveType] = useState<NotebookEntryType>("note");
-  const [saveTags, setSaveTags] = useState("oculus");
+  const [saveTags, setSaveTags] = useState("vision");
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
   const [safetyReceipt, setSafetyReceipt] = useState<{ message: string; href: string } | null>(null);
   const [models, setModels] = useState<ModelState>({ models: [], configuredModel: "", selectedModel: "" });
@@ -73,7 +73,7 @@ export default function VisionPage() {
   const [tourActive, setTourActive] = useState(false);
   const [tourRunId, setTourRunId] = useState(0);
   const [activeTarget, setActiveTarget] = useState<string | null>(null);
-  const tour = useMemo(() => getTour("oculus")!, []);
+  const tour = useMemo(() => getTour("vision")!, []);
   const selectedModel = useMemo(
     () => models.selectedModel || chooseVisionModel({
       configuredModel: models.configuredModel,
@@ -113,7 +113,7 @@ export default function VisionPage() {
       setModelSource(explainSelectedModelSource({
         selectedModel: selected,
         models: discovered,
-        preferenceModel: preferences.modules.oculus?.visionModel,
+        preferenceModel: preferences.modules.vision?.visionModel,
         configuredModel,
         moduleLabel: "Vision vision",
       }));
@@ -176,13 +176,13 @@ export default function VisionPage() {
     }));
     const next = setModuleModelPreference(
       loadModelPreferences(window.localStorage),
-      "oculus",
+      "vision",
       "visionModel",
       model,
     );
     saveModelPreferences(window.localStorage, next);
     logActivityReceipt(window.localStorage, buildInsightsModelPreferenceChangedReceipt({
-      moduleId: "oculus",
+      moduleId: "vision",
       role: "visionModel",
       model,
       title: "Vision local model preference changed",
@@ -199,7 +199,7 @@ export default function VisionPage() {
     const startedAt = Date.now();
       logActivityReceipt(window.localStorage, buildVisionAnalysisStartedReceipt({ model: selectedModel }));
     try {
-      const response = await fetch("/api/oculus/analyze", {
+      const response = await fetch("/api/vision/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -211,7 +211,7 @@ export default function VisionPage() {
       if (body.promptGateway) {
         const gatewayReceiptId = logPromptGatewayReceipt(window.localStorage, {
           module: "vision",
-          route: "/api/oculus/analyze",
+          route: "/api/vision/analyze",
           metadata: body.promptGateway,
           modelUsed: Boolean(response.ok && body.ok),
           dedupeKey: String(startedAt),
@@ -254,7 +254,7 @@ export default function VisionPage() {
       return;
     }
       logActivityReceipt(window.localStorage, buildVisionHandoffToChatReceipt());
-    router.push("/chat?from=oculus");
+    router.push("/chat?from=vision");
   }
 
   function saveAnalysisToNotebook() {
@@ -330,7 +330,7 @@ export default function VisionPage() {
 
       <section className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-4">
-          <TourHighlight target="oculus-picker" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
+          <TourHighlight target="vision-picker" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
             <h2 className="font-serif text-xl font-semibold text-ink-900 dark:text-ink-50">Choose an image</h2>
             <p className="mt-1 text-sm text-ink-500 dark:text-ink-300">Only choose images you are comfortable reviewing.</p>
             <label className="mt-4 flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-ink-300 bg-ink-50/70 px-4 py-8 text-center text-sm text-ink-500 hover:bg-ink-50 dark:border-ink-700 dark:bg-ink-900/40 dark:text-ink-300">
@@ -340,7 +340,7 @@ export default function VisionPage() {
             </label>
           </TourHighlight>
 
-          <TourHighlight target="oculus-preview" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
+          <TourHighlight target="vision-preview" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <h2 className="font-serif text-xl font-semibold text-ink-900 dark:text-ink-50">Preview</h2>
               {image && <button type="button" onClick={clearImage} className="text-xs font-medium text-amber-700 hover:text-amber-800 dark:text-amber-300">Remove image</button>}
@@ -362,7 +362,7 @@ export default function VisionPage() {
         </div>
 
         <aside className="space-y-4">
-          <TourHighlight target="oculus-vision" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
+          <TourHighlight target="vision-vision" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
             <h2 className="font-serif text-lg font-semibold text-ink-900 dark:text-ink-50">Local vision readiness</h2>
             <p className="mt-2 text-sm text-ink-600 dark:text-ink-300">Image analysis, if available, uses your local model server.</p>
             <label className="mt-3 block text-xs font-medium text-ink-600 dark:text-ink-200">
@@ -420,14 +420,14 @@ export default function VisionPage() {
         </aside>
       </section>
 
-      <TourHighlight target="oculus-result" active={activeTarget} className="mt-4 rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
+      <TourHighlight target="vision-result" active={activeTarget} className="mt-4 rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
         <h2 className="font-serif text-xl font-semibold text-ink-900 dark:text-ink-50">Analysis</h2>
         {analysis ? (
           <p className="mt-3 whitespace-pre-wrap rounded-lg border border-ink-100 bg-ink-50/70 p-3 text-sm text-ink-700 dark:border-ink-700/60 dark:bg-ink-900 dark:text-ink-100">{analysis}</p>
         ) : (
           <p className="mt-3 text-sm text-ink-500 dark:text-ink-300">No analysis yet — pick an image and Peh will take a look, all on your machine.</p>
         )}
-        <TourHighlight target="oculus-handoff" active={activeTarget}>
+        <TourHighlight target="vision-handoff" active={activeTarget}>
           <div className="mt-3 flex flex-wrap gap-2">
             <button type="button" onClick={sendAnalysisToChat} disabled={!analysis} className="rounded-lg border border-iris-200 bg-white px-4 py-2 text-sm font-medium text-iris-700 hover:bg-iris-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-iris-700/60 dark:bg-ink-900 dark:text-iris-100">
               Send analysis to Chat
@@ -480,7 +480,7 @@ export default function VisionPage() {
               value={saveTags}
               onChange={(e) => setSaveTags(e.target.value)}
               className="mt-1 w-full rounded-lg border border-ink-200 bg-ink-50/60 px-3 py-2 text-sm text-ink-900 outline-none focus:border-squid-300 focus:ring-2 focus:ring-squid-200 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-50"
-              placeholder="oculus, screenshot, notes"
+              placeholder="vision, screenshot, notes"
             />
           </label>
           <p className="mt-3 max-h-44 overflow-auto whitespace-pre-wrap rounded-lg border border-ink-100 bg-ink-50/70 p-3 text-sm text-ink-700 dark:border-ink-700/60 dark:bg-ink-900 dark:text-ink-100">

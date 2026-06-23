@@ -10,7 +10,7 @@ import { PROVIDER_REGISTRY, cloudProvidersAreLockedByDefault, getActiveProviders
 import { buildGatewayDecision } from "@/lib/security/promptGateway";
 import { createActivityReceipt, filterActivityReceipts } from "@/lib/activity-log/receipts";
 import { createVelumRedactedPreview, reviewVelumText } from "@/lib/velum/review";
-import { POST as oculusAnalyze } from "@/app/api/oculus/analyze/route";
+import { POST as oculusAnalyze } from "@/app/api/vision/analyze/route";
 import { GET as localModels } from "@/app/api/local/models/route";
 
 const config: LocalProviderConfig = {
@@ -189,7 +189,7 @@ describe("public release safety contract", () => {
     const fetchImpl = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
       jsonResponse({ message: { content: "A local screenshot analysis." } }),
     );
-    const rejected = await oculusAnalyze(new Request("http://test/api/oculus/analyze", {
+    const rejected = await oculusAnalyze(new Request("http://test/api/vision/analyze", {
       method: "POST",
       body: JSON.stringify({ imageBase64: "iVBORw0KGgo=", model: "llama3.2" }),
     }));
@@ -201,7 +201,7 @@ describe("public release safety contract", () => {
     expect(rejectedBody.error.message).toMatch(/vision-capable local model/i);
     expect(rejectedBody.cloudUsed).toBe(false);
 
-    const accepted = await oculusAnalyze(new Request("http://test/api/oculus/analyze", {
+    const accepted = await oculusAnalyze(new Request("http://test/api/vision/analyze", {
       method: "POST",
       body: JSON.stringify({ imageBase64: "iVBORw0KGgo=", model: "qwen3-vl:4b" }),
     }));
@@ -233,21 +233,21 @@ describe("public release safety contract", () => {
   it("keeps main public routes present with mobile-reachable navigation and visible states", () => {
     const routes = [
       "src/app/page.tsx",
-      "src/app/colloquium/page.tsx",
+      "src/app/chat/page.tsx",
       "src/app/velum/page.tsx",
-      "src/app/archivum/page.tsx",
-      "src/app/oculus/page.tsx",
-      "src/app/tabularium/page.tsx",
-      "src/app/nous/page.tsx",
-      "src/app/fabrica/page.tsx",
+      "src/app/notebook/page.tsx",
+      "src/app/vision/page.tsx",
+      "src/app/activity-log/page.tsx",
+      "src/app/insights/page.tsx",
+      "src/app/workshop/page.tsx",
       "src/app/modules/page.tsx",
       "src/app/settings/page.tsx",
     ];
 
     const sourceForRoute = (route: string): string => {
       const source = readFileSync(join(process.cwd(), route), "utf8");
-      if (route.endsWith("/colloquium/page.tsx")) {
-        return `${source}\n${readFileSync(join(process.cwd(), "src/app/colloquium/ChatClient.tsx"), "utf8")}`;
+      if (route.endsWith("/chat/page.tsx")) {
+        return `${source}\n${readFileSync(join(process.cwd(), "src/app/chat/ChatClient.tsx"), "utf8")}`;
       }
       return source;
     };
@@ -259,10 +259,10 @@ describe("public release safety contract", () => {
       expect(source).toMatch(/flex-wrap|grid|sm:|md:|lg:|max-w-/);
     }
 
-    const oculus = readFileSync(join(process.cwd(), "src/app/oculus/page.tsx"), "utf8");
-    expect(oculus).toContain("Selected preview");
-    expect(oculus).toContain("Analyze image locally");
-    expect(oculus).toContain("Save analysis to Notebook");
+    const vision = readFileSync(join(process.cwd(), "src/app/vision/page.tsx"), "utf8");
+    expect(vision).toContain("Selected preview");
+    expect(vision).toContain("Analyze image locally");
+    expect(vision).toContain("Save analysis to Notebook");
   });
 
   it("keeps release copy honest about local backends and cloud consent", () => {
@@ -272,10 +272,10 @@ describe("public release safety contract", () => {
     const localChat = read("docs/LOCAL_CHAT.md");
     const matrix = read("docs/LOCAL_MODEL_CAPABILITY_MATRIX.md");
     const checklist = read("docs/PUBLIC_LOCAL_RELEASE_CHECKLIST.md");
-    const nous = read("docs/NOUS_PUBLIC.md");
+    const insights = read("docs/NOUS_PUBLIC.md");
     const buildPlan = read("docs/PUBLIC_BUILD_PLAN.md");
     const settings = read("src/app/settings/page.tsx");
-    const colloquium = read("src/app/colloquium/ChatClient.tsx");
+    const chat = read("src/app/chat/ChatClient.tsx");
     const providerSetup = read("src/lib/providers/setup.ts");
 
     expect(readme).toContain("Ollama is validated end-to-end");
@@ -286,17 +286,17 @@ describe("public release safety contract", () => {
     expect(matrix).toContain("Real `llama-server` binary was not available");
     expect(checklist).toContain("Full `llama-server` support is validated");
     expect(checklist).toContain("Peh does not use cloud providers without explicit consent");
-    expect(nous).toContain("Ollama is the validated default local provider");
-    expect(nous).toMatch(/real\s+`llama-server` binary still needs manual validation/);
-    expect(nous).not.toContain("Ollama is the only active default provider");
+    expect(insights).toContain("Ollama is the validated default local provider");
+    expect(insights).toMatch(/real\s+`llama-server` binary still needs manual validation/);
+    expect(insights).not.toContain("Ollama is the only active default provider");
     expect(buildPlan).toContain("real `llama-server` binary validation still pending");
     expect(settings).toContain("OpenAI-compatible local backend (llama.cpp)");
     expect(settings).toContain("Narrow local smoke only, not a benchmark or proof of safety.");
     expect(settings).toContain("does not prove safety or general intelligence");
     expect(settings).not.toContain("replySnippet");
     expect(settings).not.toContain("prompt:");
-    expect(colloquium).toContain("llama-server support is pending real binary validation");
-    expect(colloquium).toContain("Cloud models would require an explicit future unlock and clear review first");
+    expect(chat).toContain("llama-server support is pending real binary validation");
+    expect(chat).toContain("Cloud models would require an explicit future unlock and clear review first");
     expect(providerSetup).toContain("real llama-server binary validation is still pending");
     expect(providerSetup).toContain("npm run smoke:llama-server");
     expect(`${readme}\n${setup}\n${matrix}`).not.toMatch(/works with llama-server using OpenAI-compatible API/);

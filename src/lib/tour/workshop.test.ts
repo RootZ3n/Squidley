@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { getTour } from "./index";
 import { workshopTour } from "./workshop";
 
-describe("fabrica tour", () => {
+describe("workshop tour", () => {
   it("is registered under the moduleId", () => {
-    expect(getTour("fabrica")).toBe(workshopTour);
+    expect(getTour("workshop")).toBe(workshopTour);
   });
 
   it("covers the single-file workshop flow", () => {
@@ -12,11 +12,11 @@ describe("fabrica tour", () => {
     for (const target of [
       "intro",
       "local-only-indicator",
-      "fabrica-inputs",
-      "fabrica-change",
-      "fabrica-model",
-      "fabrica-limits",
-      "fabrica-output",
+      "workshop-inputs",
+      "workshop-change",
+      "workshop-model",
+      "workshop-limits",
+      "workshop-output",
     ]) {
       expect(targets).toContain(target);
     }

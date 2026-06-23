@@ -1,7 +1,7 @@
 import type { ModuleTour } from "./types";
 
 export const workshopTour: ModuleTour = {
-  moduleId: "fabrica",
+  moduleId: "workshop",
   moduleName: "Workshop",
   steps: [
     {
@@ -18,31 +18,31 @@ export const workshopTour: ModuleTour = {
     },
     {
       id: "inputs",
-      target: "fabrica-inputs",
+      target: "workshop-inputs",
       title: "One file only",
       body: "Paste one file, or leave the original content blank to start from scratch.",
     },
     {
       id: "change",
-      target: "fabrica-change",
+      target: "workshop-change",
       title: "Describe a small change",
       body: "Keep the request narrow. Workshop is not a repo-wide coding agent.",
     },
     {
       id: "model",
-      target: "fabrica-model",
+      target: "workshop-model",
       title: "Local model choice",
       body: "Workshop uses the local model preference from Insights, with a local fallback when needed.",
     },
     {
       id: "limits",
-      target: "fabrica-limits",
+      target: "workshop-limits",
       title: "Public limits",
       body: "Workshop does not run shell commands, use tools, or write files automatically.",
     },
     {
       id: "output",
-      target: "fabrica-output",
+      target: "workshop-output",
       title: "Review the suggestion",
       body: "The result is only text on the page. You decide whether to copy or export it.",
     },

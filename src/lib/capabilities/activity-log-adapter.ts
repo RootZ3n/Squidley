@@ -9,9 +9,9 @@
  * Why a moduleId mapping is needed:
  *   `ActivityModule` is a strict union of canonical module identifiers used
  *   throughout the receipts ledger. Capability moduleIds include some that are
- *   not in that union (e.g. "more-input" — a routeAliasOf "archivum" — and
+ *   not in that union (e.g. "more-input" — a routeAliasOf "notebook" — and
  *   future/locked modules like "archelon", "legatus", "imaginanium", etc.).
- *   We map "more-input" to "archivum" because that is its canonical owner;
+ *   We map "more-input" to "notebook" because that is its canonical owner;
  *   everything else without a ActivityLog module slot lands under "system".
  *   The original capability moduleId is always preserved in metadata.
  *
@@ -36,12 +36,12 @@ import type { CapabilityDecisionReceiptEvent } from "./receipts";
 export const CAPABILITY_DECISION_TABULARIUM_ACTION = "capability.decision" as const;
 
 const TABULARIUM_MODULES: ReadonlySet<ActivityModule> = new Set<ActivityModule>([
-  "colloquium",
+  "chat",
   "velum",
-  "archivum",
-  "oculus",
-  "fabrica",
-  "nous",
+  "notebook",
+  "vision",
+  "workshop",
+  "insights",
   "settings",
   "system",
 ]);
@@ -63,7 +63,7 @@ export interface CapabilityActivityLogAdapterOptions {
 }
 
 export function moduleIdToActivityModule(moduleId: string): ActivityModule {
-  if (moduleId === "more-input") return "archivum";
+  if (moduleId === "more-input") return "notebook";
   if ((TABULARIUM_MODULES as ReadonlySet<string>).has(moduleId)) {
     return moduleId as ActivityModule;
   }

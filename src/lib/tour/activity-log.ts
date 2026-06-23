@@ -1,7 +1,7 @@
 import type { ModuleTour } from "./types";
 
 export const activityLogTour: ModuleTour = {
-  moduleId: "tabularium",
+  moduleId: "activity-log",
   moduleName: "ActivityLog",
   steps: [
     {

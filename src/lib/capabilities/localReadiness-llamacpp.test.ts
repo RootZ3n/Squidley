@@ -77,45 +77,45 @@ describe("llama-cpp models produce correct capability profiles", () => {
 });
 
 describe("llama-cpp models satisfy capability requirements", () => {
-  it("resolves colloquium:chat.basic as LOCAL_READY with llama-cpp chat model", () => {
+  it("resolves chat:chat.basic as LOCAL_READY with llama-cpp chat model", () => {
     const ctx = buildLocalCapabilityRuntimeContext([LLAMACPP_CHAT]);
-    const decision = resolveCapabilityRuntimeForId("colloquium:chat.basic", ctx);
+    const decision = resolveCapabilityRuntimeForId("chat:chat.basic", ctx);
     expect(decision.state).toBe("LOCAL_READY");
     expect(decision.canAttemptLocally).toBe(true);
     expect(decision.canUseCloud).toBe(false);
   });
 
-  it("resolves fabrica:fabrica.single-file-suggestion as LOCAL_READY with code model", () => {
+  it("resolves workshop:workshop.single-file-suggestion as LOCAL_READY with code model", () => {
     const ctx = buildLocalCapabilityRuntimeContext([LLAMACPP_CODE]);
-    const decision = resolveCapabilityRuntimeForId("fabrica:fabrica.single-file-suggestion", ctx);
+    const decision = resolveCapabilityRuntimeForId("workshop:workshop.single-file-suggestion", ctx);
     expect(decision.state).toBe("LOCAL_READY");
     expect(decision.canAttemptLocally).toBe(true);
   });
 
-  it("resolves oculus:oculus.local-image-analysis as LOCAL_LIMITED with vision model", () => {
+  it("resolves vision:vision.local-image-analysis as LOCAL_LIMITED with vision model", () => {
     const ctx = buildLocalCapabilityRuntimeContext([LLAMACPP_VISION]);
-    const decision = resolveCapabilityRuntimeForId("oculus:oculus.local-image-analysis", ctx);
+    const decision = resolveCapabilityRuntimeForId("vision:vision.local-image-analysis", ctx);
     expect(decision.state).toBe("LOCAL_LIMITED");
     expect(decision.canAttemptLocally).toBe(true);
   });
 
   it("resolves chat.advanced-planning as LOCAL_LIMITED with 14B model", () => {
     const ctx = buildLocalCapabilityRuntimeContext([LLAMACPP_LARGE]);
-    const decision = resolveCapabilityRuntimeForId("colloquium:chat.advanced-planning", ctx);
+    const decision = resolveCapabilityRuntimeForId("chat:chat.advanced-planning", ctx);
     expect(decision.state).toBe("LOCAL_LIMITED");
     expect(decision.canAttemptLocally).toBe(true);
   });
 
   it("resolves chat.advanced-planning as BLOCKED with small 3B model", () => {
     const ctx = buildLocalCapabilityRuntimeContext([LLAMACPP_CHAT]);
-    const decision = resolveCapabilityRuntimeForId("colloquium:chat.advanced-planning", ctx);
+    const decision = resolveCapabilityRuntimeForId("chat:chat.advanced-planning", ctx);
     expect(decision.state).toBe("BLOCKED");
     expect(decision.canAttemptLocally).toBe(false);
   });
 
-  it("resolves archivum:archivum.summarize as LOCAL_LIMITED with any chat model", () => {
+  it("resolves notebook:notebook.summarize as LOCAL_LIMITED with any chat model", () => {
     const ctx = buildLocalCapabilityRuntimeContext([LLAMACPP_CHAT]);
-    const decision = resolveCapabilityRuntimeForId("archivum:archivum.summarize", ctx);
+    const decision = resolveCapabilityRuntimeForId("notebook:notebook.summarize", ctx);
     expect(decision.state).toBe("LOCAL_LIMITED");
     expect(decision.canAttemptLocally).toBe(true);
   });
@@ -130,8 +130,8 @@ describe("llama-cpp models satisfy capability requirements", () => {
 describe("receipt data from llama-cpp capability decisions", () => {
   it("includes correct receipt hints for llama-cpp model decisions", () => {
     const ctx = buildLocalCapabilityRuntimeContext([LLAMACPP_CHAT]);
-    const decision = resolveCapabilityRuntimeForId("colloquium:chat.basic", ctx);
-    expect(decision.receiptHint.capabilityId).toBe("colloquium:chat.basic");
+    const decision = resolveCapabilityRuntimeForId("chat:chat.basic", ctx);
+    expect(decision.receiptHint.capabilityId).toBe("chat:chat.basic");
     expect(decision.receiptHint.state).toBe("LOCAL_READY");
     expect(decision.receiptHint.localAttemptAllowed).toBe(true);
     expect(decision.receiptHint.cloudAllowed).toBe(false);
@@ -141,8 +141,8 @@ describe("receipt data from llama-cpp capability decisions", () => {
 describe("no cloud escalation from llama-cpp models", () => {
   it("never allows cloud when only llama-cpp models are available", () => {
     const ctx = buildLocalCapabilityRuntimeContext([LLAMACPP_CHAT, LLAMACPP_CODE]);
-    const chatDecision = resolveCapabilityRuntimeForId("colloquium:chat.basic", ctx);
-    const codeDecision = resolveCapabilityRuntimeForId("fabrica:fabrica.single-file-suggestion", ctx);
+    const chatDecision = resolveCapabilityRuntimeForId("chat:chat.basic", ctx);
+    const codeDecision = resolveCapabilityRuntimeForId("workshop:workshop.single-file-suggestion", ctx);
 
     expect(chatDecision.canUseCloud).toBe(false);
     expect(codeDecision.canUseCloud).toBe(false);

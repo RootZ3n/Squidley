@@ -39,9 +39,9 @@ export function buildInsightsModuleMap(args: {
   const fabricaModel = resolveWorkshopBuildModel(args);
 
   return PUBLIC_MODULES.filter((module) =>
-    ["colloquium", "oculus", "fabrica", "velum", "archivum", "more-input", "tabularium", "nous"].includes(module.id),
+    ["chat", "vision", "workshop", "velum", "notebook", "more-input", "activity-log", "insights"].includes(module.id),
   ).map((module) => {
-    if (module.id === "colloquium") {
+    if (module.id === "chat") {
       return {
         moduleId: module.id,
         displayName: module.displayName,
@@ -61,7 +61,7 @@ export function buildInsightsModuleMap(args: {
       } satisfies InsightsModuleCapability;
     }
 
-    if (module.id === "oculus") {
+    if (module.id === "vision") {
       return {
         moduleId: module.id,
         displayName: module.displayName,
@@ -81,7 +81,7 @@ export function buildInsightsModuleMap(args: {
       } satisfies InsightsModuleCapability;
     }
 
-    if (module.id === "fabrica") {
+    if (module.id === "workshop") {
       return {
         moduleId: module.id,
         displayName: module.displayName,
@@ -124,13 +124,13 @@ function explanationForNoModel(moduleId: string): string {
   switch (moduleId) {
     case "velum":
       return "Velum uses deterministic browser-side checks for this public safety review. It does not call a model.";
-    case "archivum":
+    case "notebook":
       return "Notebook stores notes and documents in this browser. It does not use a model or server storage.";
     case "more-input":
       return "More Input is the manual paste flow for Notebook. It stores only what you explicitly save.";
-    case "tabularium":
+    case "activity-log":
       return "ActivityLog records browser-local receipts so you can see what happened. It does not upload telemetry.";
-    case "nous":
+    case "insights":
       return "Insights is this map. It explains modules, models, and providers without calling a model.";
     default:
       return "This module does not use a model in the current public local version.";

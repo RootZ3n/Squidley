@@ -61,7 +61,7 @@ export default function InsightsPage() {
   const [tourActive, setTourActive] = useState(false);
   const [tourRunId, setTourRunId] = useState(0);
   const [activeTarget, setActiveTarget] = useState<string | null>(null);
-  const tour = useMemo(() => getTour("nous")!, []);
+  const tour = useMemo(() => getTour("insights")!, []);
 
   useEffect(() => {
     setPreferences(loadModelPreferences(window.localStorage));
@@ -104,23 +104,23 @@ export default function InsightsPage() {
   );
   const ratioProfiles = useMemo(
     () => ({
-      colloquium: resolveAssessmentModelCapability({
+      chat: resolveAssessmentModelCapability({
         providerId: "ollama",
         providerType: "local",
         modelId: selectedChatModel,
-        moduleId: "colloquium",
+        moduleId: "chat",
       }),
-      oculus: resolveAssessmentModelCapability({
+      vision: resolveAssessmentModelCapability({
         providerId: "ollama",
         providerType: "local",
         modelId: selectedVisionModel,
-        moduleId: "oculus",
+        moduleId: "vision",
       }),
-      fabrica: resolveAssessmentModelCapability({
+      workshop: resolveAssessmentModelCapability({
         providerId: "ollama",
         providerType: "local",
         modelId: selectedWorkshopModel,
-        moduleId: "fabrica",
+        moduleId: "workshop",
       }),
     }),
     [selectedChatModel, selectedWorkshopModel, selectedVisionModel],
@@ -128,7 +128,7 @@ export default function InsightsPage() {
   const ratioDecisions = useMemo(
     () => [
       decideAssessmentAction({
-        moduleId: "colloquium",
+        moduleId: "chat",
         actionId: "chat.basic",
         providerId: "ollama",
         modelId: selectedChatModel,
@@ -140,7 +140,7 @@ export default function InsightsPage() {
         approvalPolicy: "none",
       }),
       decideAssessmentAction({
-        moduleId: "fabrica",
+        moduleId: "workshop",
         actionId: "workshop.single-file-suggestion",
         providerId: "ollama",
         modelId: selectedWorkshopModel,
@@ -152,7 +152,7 @@ export default function InsightsPage() {
         approvalPolicy: "none",
       }),
       decideAssessmentAction({
-        moduleId: "fabrica",
+        moduleId: "workshop",
         actionId: "workshop.multi-file-build",
         providerId: "ollama",
         modelId: selectedWorkshopModel,
@@ -292,7 +292,7 @@ export default function InsightsPage() {
       </TourHighlight>
 
       <section className="mt-6 grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <TourHighlight target="nous-model-controls" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
+        <TourHighlight target="insights-model-controls" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="font-serif text-xl font-semibold text-ink-900 dark:text-ink-50">
@@ -324,7 +324,7 @@ export default function InsightsPage() {
               value={selectedChatModel}
               models={localModels.models}
               disabled={localModels.models.length === 0}
-              onChange={(model) => updatePreference("colloquium", "chatModel", model)}
+              onChange={(model) => updatePreference("chat", "chatModel", model)}
               note="Used for local chat."
             />
             <ModelSelect
@@ -332,7 +332,7 @@ export default function InsightsPage() {
               value={selectedVisionModel}
               models={localModels.models}
               disabled={localModels.models.length === 0}
-              onChange={(model) => updatePreference("oculus", "visionModel", model)}
+              onChange={(model) => updatePreference("vision", "visionModel", model)}
               note="Vision-capable models are marked as likely vision."
               showVisionHint
             />
@@ -341,7 +341,7 @@ export default function InsightsPage() {
               value={selectedWorkshopModel}
               models={localModels.models}
               disabled={localModels.models.length === 0}
-              onChange={(model) => updatePreference("fabrica", "buildModel", model)}
+              onChange={(model) => updatePreference("workshop", "buildModel", model)}
               note="Used for local single-file suggestions. Workshop is not a full coding agent."
             />
           </div>
@@ -372,7 +372,7 @@ export default function InsightsPage() {
           )}
         </div>
 
-        <TourHighlight target="nous-asi" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
+        <TourHighlight target="insights-asi" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-iris-600 dark:text-iris-300">
@@ -388,9 +388,9 @@ export default function InsightsPage() {
             Assessment is the source for the capability notes shown across Peh. It changes gears based on the model and permissions available. Local models keep the public version private and safe. Capable cloud models can unlock advanced planning and agent workflows later, but only after explicit setup.
           </p>
           <div className="mt-4 grid gap-3 md:grid-cols-3">
-            <AssessmentProfileCard label="Chat model" model={selectedChatModel} profile={ratioProfiles.colloquium} />
-            <AssessmentProfileCard label="Vision model" model={selectedVisionModel} profile={ratioProfiles.oculus} />
-            <AssessmentProfileCard label="Workshop model" model={selectedWorkshopModel} profile={ratioProfiles.fabrica} />
+            <AssessmentProfileCard label="Chat model" model={selectedChatModel} profile={ratioProfiles.chat} />
+            <AssessmentProfileCard label="Vision model" model={selectedVisionModel} profile={ratioProfiles.vision} />
+            <AssessmentProfileCard label="Workshop model" model={selectedWorkshopModel} profile={ratioProfiles.workshop} />
           </div>
           <div className="mt-4 grid gap-2">
             {ratioDecisions.map((decision) => (
@@ -399,7 +399,7 @@ export default function InsightsPage() {
           </div>
         </TourHighlight>
 
-        <TourHighlight target="nous-module-map" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
+        <TourHighlight target="insights-module-map" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
           <div className="flex items-center justify-between gap-3">
             <h2 className="font-serif text-xl font-semibold text-ink-900 dark:text-ink-50">
               Public module map
@@ -415,7 +415,7 @@ export default function InsightsPage() {
       </section>
 
       <section className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <TourHighlight target="nous-provider-registry" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
+        <TourHighlight target="insights-provider-registry" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
           <h2 className="font-serif text-xl font-semibold text-ink-900 dark:text-ink-50">
             Provider registry
           </h2>
@@ -447,7 +447,7 @@ export default function InsightsPage() {
           </div>
         </TourHighlight>
 
-        <TourHighlight target="nous-cloud-lock" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
+        <TourHighlight target="insights-cloud-lock" active={activeTarget} className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm dark:border-ink-700 dark:bg-ink-800">
           <h2 className="font-serif text-xl font-semibold text-ink-900 dark:text-ink-50">
             Prepared for Cloud Unlock
           </h2>

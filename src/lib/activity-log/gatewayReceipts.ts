@@ -25,7 +25,7 @@ export interface PromptGatewayResponseMetadata {
 }
 
 export interface GatewayReceiptArgs {
-  module: Extract<ActivityModule, "colloquium" | "fabrica" | "oculus" | "system">;
+  module: Extract<ActivityModule, "chat" | "workshop" | "vision" | "system">;
   route: string;
   metadata: unknown;
   modelUsed: boolean;

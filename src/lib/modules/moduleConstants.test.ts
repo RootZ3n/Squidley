@@ -57,14 +57,14 @@ describe("module boundary constants", () => {
   });
 
   it("keeps registry declarations aligned with module constants", () => {
-    expect(getModuleById("colloquium")?.storageKeys).toEqual([
+    expect(getModuleById("chat")?.storageKeys).toEqual([
       CHAT_SESSIONS_STORAGE_KEY,
       CHAT_STORAGE_KEY,
     ]);
-    expect(getModuleById("colloquium")?.handoffKinds).toEqual(CHAT_HANDOFF_KINDS);
+    expect(getModuleById("chat")?.handoffKinds).toEqual(CHAT_HANDOFF_KINDS);
     expect(getModuleById("velum")?.handoffKinds).toEqual(VELUM_HANDOFF_KINDS);
     expect(getModuleById("more-input")?.handoffKinds).toEqual(MORE_INPUT_HANDOFF_KINDS);
-    expect(getModuleById("oculus")?.handoffKinds).toEqual([VISION_TO_CHAT_HANDOFF_KIND]);
-    expect(getModuleById("fabrica")?.receiptActions).toEqual(WORKSHOP_RECEIPT_ACTIONS);
+    expect(getModuleById("vision")?.handoffKinds).toEqual([VISION_TO_CHAT_HANDOFF_KIND]);
+    expect(getModuleById("workshop")?.receiptActions).toEqual(WORKSHOP_RECEIPT_ACTIONS);
   });
 });

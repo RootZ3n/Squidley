@@ -58,12 +58,12 @@ export async function POST(req: Request): Promise<Response> {
   }
   const prompt = parsed.prompt || DEFAULT_PROMPT;
   const gateway = buildGatewayDecision({
-    route: "/api/oculus/analyze",
+    route: "/api/vision/analyze",
     module: "vision",
     fields: [
       {
-        label: "oculus-prompt",
-        source: "oculus-prompt",
+        label: "vision-prompt",
+        source: "vision-prompt",
         text: prompt,
       },
     ],

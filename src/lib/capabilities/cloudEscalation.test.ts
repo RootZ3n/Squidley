@@ -27,13 +27,13 @@ const BASE_CONTEXT: Omit<CapabilityRuntimeInput, "capabilityId"> = {
 
 function cloudRequiredDecision(): CapabilityRuntimeDecision {
   return resolveCapabilityRuntimeForId(
-    "fabrica:fabrica.multi-file-build",
+    "workshop:workshop.multi-file-build",
     BASE_CONTEXT,
   );
 }
 
 function cloudRequiredWithCloudDecision(): CapabilityRuntimeDecision {
-  return resolveCapabilityRuntimeForId("fabrica:fabrica.multi-file-build", {
+  return resolveCapabilityRuntimeForId("workshop:workshop.multi-file-build", {
     ...BASE_CONTEXT,
     cloudUnlocked: true,
     cloudConsentGranted: true,
@@ -45,7 +45,7 @@ function cloudRequiredWithCloudDecision(): CapabilityRuntimeDecision {
 }
 
 function localReadyDecision(): CapabilityRuntimeDecision {
-  return resolveCapabilityRuntimeForId("colloquium:chat.basic", {
+  return resolveCapabilityRuntimeForId("chat:chat.basic", {
     ...BASE_CONTEXT,
     availableLocalProfiles: [
       { providerId: "ollama", capabilityProfile: "chat" },
@@ -54,7 +54,7 @@ function localReadyDecision(): CapabilityRuntimeDecision {
 }
 
 function localLimitedDecision(): CapabilityRuntimeDecision {
-  return resolveCapabilityRuntimeForId("colloquium:chat.advanced-planning", {
+  return resolveCapabilityRuntimeForId("chat:chat.advanced-planning", {
     ...BASE_CONTEXT,
     availableLocalProfiles: [
       { providerId: "ollama", capabilityProfile: "chat", paramsB: 8 },
@@ -73,7 +73,7 @@ function blockedDecision(): CapabilityRuntimeDecision {
 function cloudOptionalLocalLimitedDecision(): CapabilityRuntimeDecision {
   const cap: Capability = {
     id: "synthetic:cloud.optional.test",
-    moduleId: "colloquium",
+    moduleId: "chat",
     displayName: "Synthetic cloud-optional",
     beginnerDescription: "fixture",
     tier: "cloud-optional",
@@ -100,7 +100,7 @@ function cloudOptionalLocalLimitedDecision(): CapabilityRuntimeDecision {
 function cloudOptionalNoLocalDecision(): CapabilityRuntimeDecision {
   const cap: Capability = {
     id: "synthetic:cloud.optional.nolocal",
-    moduleId: "colloquium",
+    moduleId: "chat",
     displayName: "Synthetic cloud-optional (no local)",
     beginnerDescription: "fixture",
     tier: "cloud-optional",

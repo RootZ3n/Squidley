@@ -39,7 +39,7 @@ describe("capability runtime resolver", () => {
 
   it("blockedReason forces BLOCKED, even for ready local-core capabilities", () => {
     const decision = resolveCapabilityRuntime({
-      capabilityId: "colloquium:chat.basic",
+      capabilityId: "chat:chat.basic",
       ...baseContext,
       availableLocalProfiles: [
         { providerId: "ollama", capabilityProfile: "chat" },
@@ -65,7 +65,7 @@ describe("capability runtime resolver", () => {
 
   it("local-core resolves LOCAL_READY when local requirements are satisfied", () => {
     const decision = resolveCapabilityRuntime({
-      capabilityId: "colloquium:chat.basic",
+      capabilityId: "chat:chat.basic",
       ...baseContext,
       availableLocalProfiles: [
         { providerId: "ollama", capabilityProfile: "chat" },
@@ -78,7 +78,7 @@ describe("capability runtime resolver", () => {
 
   it("local-core with no provider requirements is LOCAL_READY by default (deterministic capability)", () => {
     const decision = resolveCapabilityRuntimeForId(
-      "tabularium:tabularium.local-receipts",
+      "activity-log:activity-log.local-receipts",
       baseContext,
     );
     expect(decision.state).toBe("LOCAL_READY");
@@ -87,7 +87,7 @@ describe("capability runtime resolver", () => {
 
   it("local-core without matching local requirement does not silently claim ready", () => {
     const decision = resolveCapabilityRuntimeForId(
-      "colloquium:chat.basic",
+      "chat:chat.basic",
       baseContext,
     );
     expect(decision.state).not.toBe("LOCAL_READY");
@@ -97,7 +97,7 @@ describe("capability runtime resolver", () => {
 
   it("local-limited resolves LOCAL_LIMITED when the local path exists", () => {
     const decision = resolveCapabilityRuntime({
-      capabilityId: "colloquium:chat.advanced-planning",
+      capabilityId: "chat:chat.advanced-planning",
       ...baseContext,
       availableLocalProfiles: [
         { providerId: "ollama", capabilityProfile: "chat", paramsB: 8 },
@@ -110,7 +110,7 @@ describe("capability runtime resolver", () => {
 
   it("local-limited honors minParamsB on local requirements", () => {
     const decision = resolveCapabilityRuntime({
-      capabilityId: "colloquium:chat.advanced-planning",
+      capabilityId: "chat:chat.advanced-planning",
       ...baseContext,
       availableLocalProfiles: [
         { providerId: "ollama", capabilityProfile: "chat", paramsB: 3 },
@@ -120,9 +120,9 @@ describe("capability runtime resolver", () => {
     expect(decision.canAttemptLocally).toBe(false);
   });
 
-  it("oculus local vision resolves LOCAL_LIMITED when a vision model is available", () => {
+  it("vision local vision resolves LOCAL_LIMITED when a vision model is available", () => {
     const decision = resolveCapabilityRuntimeForId(
-      "oculus:oculus.local-image-analysis",
+      "vision:vision.local-image-analysis",
       {
         ...baseContext,
         availableLocalProfiles: [
@@ -136,7 +136,7 @@ describe("capability runtime resolver", () => {
 
   it("cloud-required resolves CLOUD_REQUIRED with canUseCloud=false before consent", () => {
     const decision = resolveCapabilityRuntimeForId(
-      "fabrica:fabrica.multi-file-build",
+      "workshop:workshop.multi-file-build",
       baseContext,
     );
     expect(decision.state).toBe("CLOUD_REQUIRED");
@@ -149,7 +149,7 @@ describe("capability runtime resolver", () => {
 
   it("cloud-required canUseCloud is false when Velum review has not passed", () => {
     const decision = resolveCapabilityRuntimeForId(
-      "fabrica:fabrica.multi-file-build",
+      "workshop:workshop.multi-file-build",
       {
         ...baseContext,
         cloudUnlocked: true,
@@ -169,7 +169,7 @@ describe("capability runtime resolver", () => {
   });
 
   it("cloud-required canUseCloud is true only after unlock + consent + Velum + matching cloud requirement", () => {
-    const cap = need("fabrica:fabrica.multi-file-build");
+    const cap = need("workshop:workshop.multi-file-build");
     expect(cap.velumGated).toBe(true);
 
     const decision = resolveCapabilityRuntimeForId(cap.id, {
@@ -188,7 +188,7 @@ describe("capability runtime resolver", () => {
 
   it("cloud-required without matching cloud profile keeps canUseCloud=false even when consent + Velum granted", () => {
     const decision = resolveCapabilityRuntimeForId(
-      "fabrica:fabrica.multi-file-build",
+      "workshop:workshop.multi-file-build",
       {
         ...baseContext,
         cloudUnlocked: true,
@@ -203,7 +203,7 @@ describe("capability runtime resolver", () => {
 
   it("cloud-required honest message does not imply data has been sent", () => {
     const decision = resolveCapabilityRuntimeForId(
-      "fabrica:fabrica.multi-file-build",
+      "workshop:workshop.multi-file-build",
       baseContext,
     );
     expect(decision.honestMessage.toLowerCase()).not.toMatch(/sent|uploaded|transmitted/);
@@ -214,7 +214,7 @@ describe("capability runtime resolver", () => {
 
   const syntheticCloudOptional: Capability = {
     id: "synthetic:cloud.optional",
-    moduleId: "colloquium",
+    moduleId: "chat",
     displayName: "Synthetic cloud-optional capability",
     beginnerDescription: "test fixture only",
     tier: "cloud-optional",
@@ -296,7 +296,7 @@ describe("capability runtime resolver", () => {
 
   it("receiptHint mirrors capabilityId, moduleId, tier, and state", () => {
     const decision = resolveCapabilityRuntime({
-      capabilityId: "colloquium:chat.basic",
+      capabilityId: "chat:chat.basic",
       ...baseContext,
       availableLocalProfiles: [
         { providerId: "ollama", capabilityProfile: "chat" },

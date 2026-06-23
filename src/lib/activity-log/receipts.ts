@@ -8,7 +8,7 @@ export const ACTIVITY_LOG_MAX_RECEIPTS = 200;
 export const ACTIVITY_LOG_SUMMARY_MAX_CHARS = 220;
 export const ACTIVITY_LOG_MAX_METADATA_ENTRIES = 16;
 
-export type ActivityModule = "colloquium" | "velum" | "archivum" | "oculus" | "fabrica" | "nous" | "settings" | "system";
+export type ActivityModule = "chat" | "velum" | "notebook" | "vision" | "workshop" | "insights" | "settings" | "system";
 export type ActivityStatus = "running" | "succeeded" | "failed" | "interrupted" | "info";
 export type ActivityModuleFilter = "all" | ActivityModule;
 export type ActivityStatusFilter = "all" | ActivityStatus;
@@ -290,7 +290,7 @@ function isMetadata(value: unknown): value is Record<string, string | number | b
 }
 
 function isModule(value: unknown): value is ActivityModule {
-  return value === "colloquium" || value === "velum" || value === "archivum" || value === "oculus" || value === "fabrica" || value === "nous" || value === "settings" || value === "system";
+  return value === "chat" || value === "velum" || value === "notebook" || value === "vision" || value === "workshop" || value === "insights" || value === "settings" || value === "system";
 }
 
 function isStatus(value: unknown): value is ActivityStatus {

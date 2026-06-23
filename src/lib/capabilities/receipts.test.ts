@@ -32,7 +32,7 @@ function need(id: string): Capability {
 
 function localOnlyDecision() {
   return resolveCapabilityRuntime({
-    capabilityId: "colloquium:chat.basic",
+    capabilityId: "chat:chat.basic",
     ...baseContext,
     availableLocalProfiles: [
       { providerId: "ollama", capabilityProfile: "chat" },
@@ -41,7 +41,7 @@ function localOnlyDecision() {
 }
 
 function cloudReadyDecision() {
-  return resolveCapabilityRuntimeForId("fabrica:fabrica.multi-file-build", {
+  return resolveCapabilityRuntimeForId("workshop:workshop.multi-file-build", {
     ...baseContext,
     cloudUnlocked: true,
     cloudConsentGranted: true,
@@ -61,7 +61,7 @@ function blockedDecision() {
 
 function cloudRequiredPendingDecision() {
   return resolveCapabilityRuntimeForId(
-    "fabrica:fabrica.multi-file-build",
+    "workshop:workshop.multi-file-build",
     baseContext,
   );
 }
@@ -146,7 +146,7 @@ describe("capability decision receipt — providerMode", () => {
   it("mixed when both local and cloud are allowed (synthetic cloud-optional)", () => {
     const synthetic: Capability = {
       id: "synthetic:cloud.optional",
-      moduleId: "colloquium",
+      moduleId: "chat",
       displayName: "Synthetic cloud-optional",
       beginnerDescription: "fixture only",
       tier: "cloud-optional",

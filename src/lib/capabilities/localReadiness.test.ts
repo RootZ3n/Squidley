@@ -296,10 +296,10 @@ describe("buildLocalCapabilityRuntimeContext", () => {
 // ---------------------------------------------------------------------------
 
 describe("integration with resolveCapabilityRuntimeForId", () => {
-  it("resolves colloquium:chat.basic as LOCAL_READY when a chat model exists", () => {
+  it("resolves chat:chat.basic as LOCAL_READY when a chat model exists", () => {
     const ctx = buildLocalCapabilityRuntimeContext([CHAT_MODEL]);
     const decision = resolveCapabilityRuntimeForId(
-      "colloquium:chat.basic",
+      "chat:chat.basic",
       ctx,
     );
     expect(decision.state).toBe("LOCAL_READY");
@@ -307,30 +307,30 @@ describe("integration with resolveCapabilityRuntimeForId", () => {
     expect(decision.canUseCloud).toBe(false);
   });
 
-  it("resolves colloquium:chat.basic as BLOCKED when no models exist", () => {
+  it("resolves chat:chat.basic as BLOCKED when no models exist", () => {
     const ctx = buildLocalCapabilityRuntimeContext([]);
     const decision = resolveCapabilityRuntimeForId(
-      "colloquium:chat.basic",
+      "chat:chat.basic",
       ctx,
     );
     expect(decision.state).toBe("BLOCKED");
     expect(decision.canAttemptLocally).toBe(false);
   });
 
-  it("resolves colloquium:chat.basic as BLOCKED when only embedding models exist", () => {
+  it("resolves chat:chat.basic as BLOCKED when only embedding models exist", () => {
     const ctx = buildLocalCapabilityRuntimeContext([EMBED_MINILM, EMBED_NOMIC]);
     const decision = resolveCapabilityRuntimeForId(
-      "colloquium:chat.basic",
+      "chat:chat.basic",
       ctx,
     );
     expect(decision.state).toBe("BLOCKED");
     expect(decision.canAttemptLocally).toBe(false);
   });
 
-  it("resolves archivum:archivum.summarize as LOCAL_LIMITED when a chat model exists", () => {
+  it("resolves notebook:notebook.summarize as LOCAL_LIMITED when a chat model exists", () => {
     const ctx = buildLocalCapabilityRuntimeContext([CHAT_MODEL]);
     const decision = resolveCapabilityRuntimeForId(
-      "archivum:archivum.summarize",
+      "notebook:notebook.summarize",
       ctx,
     );
     expect(decision.state).toBe("LOCAL_LIMITED");
@@ -340,7 +340,7 @@ describe("integration with resolveCapabilityRuntimeForId", () => {
   it("does not claim summarize readiness for embedding-only models", () => {
     const ctx = buildLocalCapabilityRuntimeContext([EMBED_MINILM]);
     const decision = resolveCapabilityRuntimeForId(
-      "archivum:archivum.summarize",
+      "notebook:notebook.summarize",
       ctx,
     );
     expect(decision.state).toBe("BLOCKED");

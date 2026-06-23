@@ -146,14 +146,14 @@ describe("ActivityLog receipts", () => {
   it("supports Vision receipts without storing full analysis text", () => {
     const receipt = createActivityReceipt({
       module: "vision",
-      action: "save-analysis-to-archivum",
+      action: "save-analysis-to-notebook",
       status: "succeeded",
       title: "Vision analysis saved to Notebook",
       summary: "Only the Vision analysis text was saved as a local Notebook entry. The image was not stored.",
       modelUsed: true,
       relatedItemId: "entry-1",
     });
-    expect(receipt.module).toBe("oculus");
+    expect(receipt.module).toBe("vision");
     expect(receipt.localOnly).toBe(true);
     expect(receipt.cloudUsed).toBe(false);
     expect(receipt.toolsUsed).toBe(false);
@@ -173,7 +173,7 @@ describe("ActivityLog receipts", () => {
       modelUsed: true,
       metadata: { fileSystemWrites: false },
     });
-    expect(receipt.module).toBe("fabrica");
+    expect(receipt.module).toBe("workshop");
     expect(receipt.localOnly).toBe(true);
     expect(receipt.cloudUsed).toBe(false);
     expect(receipt.toolsUsed).toBe(false);
@@ -225,7 +225,7 @@ describe("ActivityLog receipts", () => {
   });
 
   it("accepts receipt modules for active public workflows", () => {
-    const modules = ["colloquium", "velum", "archivum", "oculus", "fabrica", "nous", "settings", "system"] as const;
+    const modules = ["chat", "velum", "notebook", "vision", "workshop", "insights", "settings", "system"] as const;
     const doc = createActivityDocument(modules.map((module) =>
       createActivityReceipt({
         module,

@@ -1,7 +1,7 @@
 import type { ModuleTour } from "./types";
 
 export const notebookTour: ModuleTour = {
-  moduleId: "archivum",
+  moduleId: "notebook",
   moduleName: "Notebook",
   steps: [
     {
@@ -24,13 +24,13 @@ export const notebookTour: ModuleTour = {
     },
     {
       id: "velum-review",
-      target: "archivum-velum-review",
+      target: "notebook-velum-review",
       title: "Review in Velum first",
       body: "Before saving, you can send the draft to Velum for a local safety review. Nothing is saved automatically.",
     },
     {
       id: "save",
-      target: "archivum-save",
+      target: "notebook-save",
       title: "Save only when ready",
       body: "Saving is explicit. More Input does not store the draft until you choose Save to Notebook.",
     },
@@ -42,25 +42,25 @@ export const notebookTour: ModuleTour = {
     },
     {
       id: "entries",
-      target: "archivum-list",
+      target: "notebook-list",
       title: "Saved entries",
       body: "Saved entries show title, type, local-only state, and whether Velum reviewed them.",
     },
     {
       id: "badges",
-      target: "archivum-badges",
+      target: "notebook-badges",
       title: "Reviewed and unreviewed badges",
       body: "Badges remind you whether an entry stayed local and whether it was reviewed in Velum.",
     },
     {
       id: "details",
-      target: "archivum-entry-detail",
+      target: "notebook-entry-detail",
       title: "Delete and export",
       body: "You can view details, export one entry locally, or delete an entry from this browser.",
     },
     {
       id: "actions",
-      target: "archivum-entry-actions",
+      target: "notebook-entry-actions",
       title: "Entry controls",
       body: "Edit, export, and delete are all local actions. Editing text may reset Velum review until you review it again.",
     },

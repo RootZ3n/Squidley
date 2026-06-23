@@ -135,7 +135,7 @@ export const pehProfile: AgentProfile = {
     "memory",
     "routing",
     "planning",
-    "archivum",
+    "notebook",
     "career",
     "learning",
     "toba",

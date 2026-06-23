@@ -32,7 +32,7 @@ import type {
   ActivityReceiptInput,
 } from "@/lib/activity-log/receipts";
 
-export const CHAT_CAPABILITY_ID = "colloquium:chat.basic" as const;
+export const CHAT_CAPABILITY_ID = "chat:chat.basic" as const;
 
 export interface ChatCapabilityReceiptArgs {
   /**

@@ -31,7 +31,7 @@ import { isCapabilityDecisionReceipt, isCloudConsentDecisionReceipt, isCloudEsca
 import { CapabilityBadge } from "@/components/capabilities/CapabilityBadge";
 import { buildReceiptChains, type ActivityReceiptChain, type ActivityReceiptChainStep } from "@/lib/activity-log/receiptChains";
 
-const MODULE_FILTERS: ActivityModuleFilter[] = ["all", "colloquium", "velum", "archivum", "oculus", "fabrica", "nous", "settings", "system"];
+const MODULE_FILTERS: ActivityModuleFilter[] = ["all", "chat", "velum", "notebook", "vision", "workshop", "insights", "settings", "system"];
 const STATUS_FILTERS: ActivityStatusFilter[] = ["all", "succeeded", "failed", "interrupted", "info"];
 
 export default function ActivityLogPage() {

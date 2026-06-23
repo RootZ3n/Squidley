@@ -46,10 +46,10 @@ describe("Assessment UI decisions", () => {
 
   it("shows no-model local modules as available deterministic work", () => {
     const velum = velumDeterministicReviewDecision();
-    const archivum = archivumLocalStorageDecision();
+    const notebook = archivumLocalStorageDecision();
     const tabularium = tabulariumLocalReceiptsDecision();
 
-    for (const decision of [velum, archivum, tabularium]) {
+    for (const decision of [velum, notebook, tabularium]) {
       expect(decision.allowed).toBe(true);
       expect(decision.status).toBe("available");
       expect(decision.effectiveMode).toBe("deterministic");
@@ -74,7 +74,7 @@ describe("Assessment UI decisions", () => {
 
   it("maps public module ids to Assessment decisions", () => {
     expect(ratioDecisionForPublicModule("velum").status).toBe("available");
-    expect(ratioDecisionForPublicModule("fabrica").status).toBe("needs-stronger-model");
+    expect(ratioDecisionForPublicModule("workshop").status).toBe("needs-stronger-model");
     expect(ratioDecisionForPublicModule("legatus").status).toBe("needs-cloud-unlock");
   });
 });

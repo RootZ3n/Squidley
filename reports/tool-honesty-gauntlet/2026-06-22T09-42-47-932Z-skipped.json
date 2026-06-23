@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "tool": "scripts/tool-honesty-gauntlet.mjs",
+  "completedAt": "2026-06-22T09:42:47.932Z",
+  "endpoint": "http://127.0.0.1:65529",
+  "status": "SKIP_LOCAL_SERVER_NOT_RUNNING",
+  "reason": "Could not reach http://127.0.0.1:65529/api/local/health. Run 'npm run dev' first.",
+  "remoteAttempts": [],
+  "results": []
+}

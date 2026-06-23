@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { notebookTour } from "./notebook";
 import { getTour } from "./index";
 
-describe("archivum tour", () => {
+describe("notebook tour", () => {
   it("is registered under the moduleId", () => {
-    expect(getTour("archivum")).toBe(notebookTour);
+    expect(getTour("notebook")).toBe(notebookTour);
   });
 
   it("covers Notebook and More Input regions", () => {
@@ -12,13 +12,13 @@ describe("archivum tour", () => {
     for (const required of [
       "intro",
       "more-input-form",
-      "archivum-velum-review",
-      "archivum-save",
+      "notebook-velum-review",
+      "notebook-save",
       "local-only-indicator",
-      "archivum-list",
-      "archivum-badges",
-      "archivum-entry-actions",
-      "archivum-entry-detail",
+      "notebook-list",
+      "notebook-badges",
+      "notebook-entry-actions",
+      "notebook-entry-detail",
     ]) {
       expect(targets).toContain(required);
     }

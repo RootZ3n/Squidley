@@ -28,13 +28,13 @@ import type {
 } from "@/lib/activity-log/receipts";
 
 export const ARCHIVUM_LOCAL_STORAGE_CAPABILITY_ID =
-  "archivum:archivum.local-storage" as const;
+  "notebook:notebook.local-storage" as const;
 export const ARCHIVUM_SUMMARIZE_CAPABILITY_ID =
-  "archivum:archivum.summarize" as const;
+  "notebook:notebook.summarize" as const;
 export const MORE_INPUT_LOCAL_STORAGE_CAPABILITY_ID =
-  "more-input:archivum.local-storage" as const;
+  "more-input:notebook.local-storage" as const;
 export const MORE_INPUT_SUMMARIZE_CAPABILITY_ID =
-  "more-input:archivum.summarize" as const;
+  "more-input:notebook.summarize" as const;
 
 export interface NotebookCapabilityReceiptArgs {
   createdAt?: number;

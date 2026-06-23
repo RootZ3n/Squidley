@@ -31,7 +31,7 @@ const BASE_CONTEXT: Omit<CapabilityRuntimeInput, "capabilityId"> = {
 function actionablePacket(): CloudEscalationPacket {
   const cap: Capability = {
     id: "synthetic:orch-test",
-    moduleId: "fabrica",
+    moduleId: "workshop",
     displayName: "Orch test",
     beginnerDescription: "fixture",
     tier: "cloud-optional",
@@ -268,7 +268,7 @@ describe("recordCloudEscalationOfferAndDecision", () => {
     recordCloudEscalationOfferAndDecision(storage, actionablePacket(), "denied");
     expect(storage.setItem).toHaveBeenCalled();
     expect(storage.setItem.mock.calls.every(
-      (call: [string, string]) => call[0].includes("tabularium"),
+      (call: [string, string]) => call[0].includes("activity-log"),
     )).toBe(true);
   });
 

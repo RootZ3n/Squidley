@@ -37,7 +37,7 @@
   },
   "rows": [
     {
-      "capabilityId": "colloquium:chat.basic",
+      "capabilityId": "chat:chat.basic",
       "name": "Local chat (Colloquium)",
       "route": "/api/chat, /api/chat/stream",
       "files": [
@@ -55,7 +55,7 @@
         "llamaCpp": "LOCAL_PARTIAL"
       },
       "canRunWithNoModel": "no",
-      "uiStatus": "active, surfaced in /colloquium with local-only badge and tour",
+      "uiStatus": "active, surfaced in /chat with local-only badge and tour",
       "tests": [
         "src/lib/chat/handler.test.ts",
         "src/lib/chat/handler-llamacpp.test.ts",
@@ -64,7 +64,7 @@
         "src/lib/egressGuard.test.ts",
         "src/lib/publicReleaseSafety.test.ts"
       ],
-      "receipts": "colloquium.local-chat — Tabularium receipt with provider=local, cloudUsed=false, toolsUsed=false",
+      "receipts": "chat.local-chat — Tabularium receipt with provider=local, cloudUsed=false, toolsUsed=false",
       "proofReferences": [
         "reports/local-model-gauntlet/2026-05-15T10-28-39-621Z-qwen3.5-0.8b-ollama.json (live Ollama)",
         "src/lib/chat/handler.test.ts (unit)",
@@ -78,7 +78,7 @@
       "canonicalTier": "LOCAL_READY"
     },
     {
-      "capabilityId": "colloquium:chat.advanced-planning",
+      "capabilityId": "chat:chat.advanced-planning",
       "name": "Local advanced planning chat",
       "route": "/api/chat, /api/chat/stream",
       "files": ["src/lib/chat/handler.ts", "src/lib/capabilities/registry.ts"],
@@ -96,7 +96,7 @@
         "src/lib/capabilities/runtime.test.ts",
         "src/lib/ratio/ratio.test.ts"
       ],
-      "receipts": "colloquium.local-chat",
+      "receipts": "chat.local-chat",
       "proofReferences": [
         "src/lib/capabilities/runtime.test.ts (decision logic)"
       ],
@@ -105,12 +105,12 @@
       "canonicalTier": "LOCAL_PARTIAL"
     },
     {
-      "capabilityId": "fabrica:fabrica.single-file-suggestion",
+      "capabilityId": "workshop:workshop.single-file-suggestion",
       "name": "Fabrica single-file suggestion",
-      "route": "/api/fabrica/suggest",
+      "route": "/api/workshop/suggest",
       "files": [
-        "src/app/api/fabrica/suggest/route.ts",
-        "src/lib/fabrica/suggestion.ts"
+        "src/app/api/workshop/suggest/route.ts",
+        "src/lib/workshop/suggestion.ts"
       ],
       "localImplementationExists": "yes",
       "localModelRequired": "yes",
@@ -121,17 +121,17 @@
         "llamaCpp": "LOCAL_PARTIAL"
       },
       "canRunWithNoModel": "no",
-      "uiStatus": "active at /fabrica; explicit single-file scope",
+      "uiStatus": "active at /workshop; explicit single-file scope",
       "tests": [
-        "src/app/api/fabrica/suggest/route.test.ts",
-        "src/app/api/fabrica/suggest/route-backend.test.ts",
-        "src/lib/fabrica/suggestion.test.ts",
-        "src/lib/fabrica/receipts.test.ts",
+        "src/app/api/workshop/suggest/route.test.ts",
+        "src/app/api/workshop/suggest/route-backend.test.ts",
+        "src/lib/workshop/suggestion.test.ts",
+        "src/lib/workshop/receipts.test.ts",
         "src/lib/egressGuard.test.ts"
       ],
-      "receipts": "fabrica.local-suggestion",
+      "receipts": "workshop.local-suggestion",
       "proofReferences": [
-        "src/app/api/fabrica/suggest/route.test.ts",
+        "src/app/api/workshop/suggest/route.test.ts",
         "src/lib/egressGuard.test.ts"
       ],
       "risks": ["Single-file hard cap (24KB). No FS writes, no shell, no tools."],
@@ -139,7 +139,7 @@
       "canonicalTier": "LOCAL_READY"
     },
     {
-      "capabilityId": "fabrica:fabrica.multi-file-build",
+      "capabilityId": "workshop:workshop.multi-file-build",
       "name": "Multi-file build",
       "route": "(none)",
       "files": ["src/lib/capabilities/registry.ts"],
@@ -161,13 +161,13 @@
       "canonicalTier": "CLOUD_PLANNED"
     },
     {
-      "capabilityId": "archivum:archivum.local-storage",
+      "capabilityId": "notebook:notebook.local-storage",
       "name": "Local note storage (Archivum)",
       "route": "(browser-only)",
       "files": [
-        "src/lib/archivum/storage.ts",
-        "src/lib/archivum/receipts.ts",
-        "src/app/archivum/page.tsx"
+        "src/lib/notebook/storage.ts",
+        "src/lib/notebook/receipts.ts",
+        "src/app/notebook/page.tsx"
       ],
       "localImplementationExists": "yes",
       "localModelRequired": "no",
@@ -178,15 +178,15 @@
         "llamaCpp": "NOT_APPLICABLE"
       },
       "canRunWithNoModel": "yes",
-      "uiStatus": "active at /archivum",
+      "uiStatus": "active at /notebook",
       "tests": [
-        "src/lib/archivum/storage.test.ts",
-        "src/lib/archivum/receipts.test.ts",
-        "src/lib/archivum/capabilityReceipts.test.ts"
+        "src/lib/notebook/storage.test.ts",
+        "src/lib/notebook/receipts.test.ts",
+        "src/lib/notebook/capabilityReceipts.test.ts"
       ],
-      "receipts": "archivum.local-storage",
+      "receipts": "notebook.local-storage",
       "proofReferences": [
-        "src/lib/archivum/storage.test.ts (same-id import does not overwrite)",
+        "src/lib/notebook/storage.test.ts (same-id import does not overwrite)",
         "src/lib/publicReleaseSafety.test.ts (bundle import regression)"
       ],
       "risks": [],
@@ -194,7 +194,7 @@
       "canonicalTier": "LOCAL_READY"
     },
     {
-      "capabilityId": "archivum:archivum.summarize",
+      "capabilityId": "notebook:notebook.summarize",
       "name": "Local note summary",
       "route": "(via /api/chat through summarize prompt; no dedicated route)",
       "files": ["src/lib/capabilities/registry.ts"],
@@ -209,17 +209,17 @@
       "canRunWithNoModel": "no",
       "uiStatus": "Ratio decision surfaced; small-model warnings shown",
       "tests": ["src/lib/capabilities/registry.test.ts"],
-      "receipts": "archivum.local-summary",
+      "receipts": "notebook.local-summary",
       "proofReferences": ["src/lib/capabilities/registry.test.ts"],
       "risks": ["Local summary quality bounded by installed model."],
       "classification": "LOCAL_PARTIAL",
       "canonicalTier": "LOCAL_PARTIAL"
     },
     {
-      "capabilityId": "more-input:archivum.local-storage",
+      "capabilityId": "more-input:notebook.local-storage",
       "name": "More Input — local capture",
       "route": "(browser-only)",
-      "files": ["src/app/archivum/page.tsx"],
+      "files": ["src/app/notebook/page.tsx"],
       "localImplementationExists": "yes",
       "localModelRequired": "no",
       "toolRequired": "no",
@@ -230,15 +230,15 @@
       },
       "canRunWithNoModel": "yes",
       "uiStatus": "active",
-      "tests": ["src/lib/archivum/storage.test.ts"],
-      "receipts": "archivum.local-storage",
-      "proofReferences": ["src/lib/archivum/storage.test.ts"],
+      "tests": ["src/lib/notebook/storage.test.ts"],
+      "receipts": "notebook.local-storage",
+      "proofReferences": ["src/lib/notebook/storage.test.ts"],
       "risks": [],
       "classification": "LOCAL_READY",
       "canonicalTier": "LOCAL_READY"
     },
     {
-      "capabilityId": "more-input:archivum.summarize",
+      "capabilityId": "more-input:notebook.summarize",
       "name": "More Input — local summary",
       "route": "(via /api/chat)",
       "files": ["src/lib/capabilities/registry.ts"],
@@ -253,7 +253,7 @@
       "canRunWithNoModel": "no",
       "uiStatus": "active",
       "tests": ["src/lib/capabilities/registry.test.ts"],
-      "receipts": "archivum.local-summary",
+      "receipts": "notebook.local-summary",
       "proofReferences": ["src/lib/capabilities/registry.test.ts"],
       "risks": ["Quality bounded by installed model."],
       "classification": "LOCAL_PARTIAL",
@@ -313,12 +313,12 @@
       "canonicalTier": "NOT_IMPLEMENTED"
     },
     {
-      "capabilityId": "oculus:oculus.local-image-analysis",
+      "capabilityId": "vision:vision.local-image-analysis",
       "name": "Local image review (Oculus)",
-      "route": "/api/oculus/analyze",
+      "route": "/api/vision/analyze",
       "files": [
-        "src/app/api/oculus/analyze/route.ts",
-        "src/lib/oculus/helpers.ts"
+        "src/app/api/vision/analyze/route.ts",
+        "src/lib/vision/helpers.ts"
       ],
       "localImplementationExists": "yes (Ollama vision only)",
       "localModelRequired": "yes",
@@ -329,17 +329,17 @@
         "llamaCpp": "LOCAL_BLOCKED"
       },
       "canRunWithNoModel": "no",
-      "uiStatus": "active at /oculus; refuses non-vision models with explicit message",
+      "uiStatus": "active at /vision; refuses non-vision models with explicit message",
       "tests": [
-        "src/app/api/oculus/analyze/route.test.ts",
-        "src/app/api/oculus/analyze/route-backend.test.ts",
-        "src/lib/oculus/helpers.test.ts",
-        "src/lib/oculus/receipts.test.ts",
+        "src/app/api/vision/analyze/route.test.ts",
+        "src/app/api/vision/analyze/route-backend.test.ts",
+        "src/lib/vision/helpers.test.ts",
+        "src/lib/vision/receipts.test.ts",
         "src/lib/egressGuard.test.ts"
       ],
-      "receipts": "oculus.local-image-analysis",
+      "receipts": "vision.local-image-analysis",
       "proofReferences": [
-        "src/app/api/oculus/analyze/route.test.ts",
+        "src/app/api/vision/analyze/route.test.ts",
         "src/lib/egressGuard.test.ts"
       ],
       "risks": [
@@ -350,10 +350,10 @@
       "canonicalTier": "LOCAL_LIMITED"
     },
     {
-      "capabilityId": "tabularium:tabularium.local-receipts",
+      "capabilityId": "activity-log:activity-log.local-receipts",
       "name": "Local receipts ledger",
       "route": "(browser-only)",
-      "files": ["src/lib/tabularium/receipts.ts", "src/app/tabularium/page.tsx"],
+      "files": ["src/lib/activity-log/receipts.ts", "src/app/activity-log/page.tsx"],
       "localImplementationExists": "yes",
       "localModelRequired": "no",
       "toolRequired": "no",
@@ -365,13 +365,13 @@
       "canRunWithNoModel": "yes",
       "uiStatus": "active",
       "tests": [
-        "src/lib/tabularium/receipts.test.ts",
-        "src/lib/tabularium/receiptChains.test.ts",
-        "src/lib/tabularium/gatewayReceipts.test.ts"
+        "src/lib/activity-log/receipts.test.ts",
+        "src/lib/activity-log/receiptChains.test.ts",
+        "src/lib/activity-log/gatewayReceipts.test.ts"
       ],
-      "receipts": "tabularium.local-view",
+      "receipts": "activity-log.local-view",
       "proofReferences": [
-        "src/lib/tabularium/receipts.test.ts (PII-redaction)",
+        "src/lib/activity-log/receipts.test.ts (PII-redaction)",
         "src/lib/publicReleaseSafety.test.ts (receipts do not leak secrets)"
       ],
       "risks": [],
@@ -379,10 +379,10 @@
       "canonicalTier": "LOCAL_READY"
     },
     {
-      "capabilityId": "nous:nous.system-map",
+      "capabilityId": "insights:insights.system-map",
       "name": "System understanding map",
       "route": "(browser-only)",
-      "files": ["src/app/nous/page.tsx", "src/lib/nous/modelMap.ts"],
+      "files": ["src/app/insights/page.tsx", "src/lib/insights/modelMap.ts"],
       "localImplementationExists": "yes",
       "localModelRequired": "no",
       "toolRequired": "no",
@@ -392,16 +392,16 @@
         "llamaCpp": "NOT_APPLICABLE"
       },
       "canRunWithNoModel": "yes",
-      "uiStatus": "active at /nous",
+      "uiStatus": "active at /insights",
       "tests": [
-        "src/lib/nous/modelMap.test.ts",
-        "src/lib/nous/modelPreferences.test.ts",
-        "src/lib/nous/localCapabilitySummary.test.ts"
+        "src/lib/insights/modelMap.test.ts",
+        "src/lib/insights/modelPreferences.test.ts",
+        "src/lib/insights/localCapabilitySummary.test.ts"
       ],
-      "receipts": "nous.local-view",
+      "receipts": "insights.local-view",
       "proofReferences": [
-        "src/lib/nous/modelMap.test.ts",
-        "src/lib/nous/localCapabilitySummary.test.ts"
+        "src/lib/insights/modelMap.test.ts",
+        "src/lib/insights/localCapabilitySummary.test.ts"
       ],
       "risks": [],
       "classification": "LOCAL_READY",
@@ -514,7 +514,7 @@
         "llamaCpp": "LOCAL_PARTIAL"
       },
       "canRunWithNoModel": "yes (returns 503)",
-      "uiStatus": "used by /setup, /colloquium, /settings",
+      "uiStatus": "used by /setup, /chat, /settings",
       "tests": [
         "src/lib/providers/ollama.test.ts",
         "src/lib/providers/llamacpp.test.ts",
@@ -549,7 +549,7 @@
         "llamaCpp": "LOCAL_PARTIAL"
       },
       "canRunWithNoModel": "yes (returns empty=true)",
-      "uiStatus": "used by /colloquium, /oculus, /fabrica, /nous, /setup, /settings",
+      "uiStatus": "used by /chat, /vision, /workshop, /insights, /setup, /settings",
       "tests": [
         "src/lib/providers/ollama.test.ts",
         "src/lib/providers/llamacpp.test.ts",
@@ -934,7 +934,7 @@
       "receipts": "(every chat receipt includes mode, model, cloudUsed:false, toolsUsed:false)",
       "proofReferences": [
         "src/lib/publicReleaseSafety.test.ts (provenance shape)",
-        "scripts/peh-pub-diagnostic.mjs (greps colloquium for 'answered by local model only')"
+        "scripts/peh-pub-diagnostic.mjs (greps chat for 'answered by local model only')"
       ],
       "honestyNote": "cloudUsed:false and toolsUsed:false are literal types on the response shape; not booleans that could be flipped at runtime.",
       "risks": [],
@@ -962,7 +962,7 @@
         "llamaCpp": "NOT_APPLICABLE"
       },
       "canRunWithNoModel": "yes",
-      "uiStatus": "surfaced in /nous and /settings as the current mode badge",
+      "uiStatus": "surfaced in /insights and /settings as the current mode badge",
       "tests": [
         "src/lib/mode/resolver.test.ts",
         "src/lib/mode/productStatus.test.ts",
@@ -998,7 +998,7 @@
         "llamaCpp": "NOT_APPLICABLE"
       },
       "canRunWithNoModel": "n/a",
-      "uiStatus": "surfaced in /nous and /settings as locked metadata only",
+      "uiStatus": "surfaced in /insights and /settings as locked metadata only",
       "tests": [
         "src/lib/providers/cloudRegistry.test.ts (if present) / src/lib/publicReleaseSafety.test.ts (locked-by-default)"
       ],

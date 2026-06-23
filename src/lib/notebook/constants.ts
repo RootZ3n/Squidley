@@ -1,4 +1,4 @@
-export const NOTEBOOK_STORAGE_KEY = "peh.archivum.entries.v1";
+export const NOTEBOOK_STORAGE_KEY = "peh.notebook.entries.v1";
 export const ARCHIVUM_EXPORT_HEADER = "Peh Public Notebook Export";
 export const ARCHIVUM_BUNDLE_NAME = "Peh Public Notebook Bundle";
 

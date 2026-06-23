@@ -76,7 +76,7 @@ describe("public capability registry", () => {
   });
 
   it("getCapabilitiesForModule returns capabilities for known modules and empty for unknown", () => {
-    expect(getCapabilitiesForModule("colloquium").length).toBeGreaterThan(0);
+    expect(getCapabilitiesForModule("chat").length).toBeGreaterThan(0);
     expect(getCapabilitiesForModule("does-not-exist")).toEqual([]);
   });
 

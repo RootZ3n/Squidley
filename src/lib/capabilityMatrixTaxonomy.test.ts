@@ -117,7 +117,7 @@ describe("capability matrix — taxonomy contract", () => {
     // vision-capable models (it refuses non-vision models with a clear
     // message). All other LOCAL_LIMITED rows must be approval-gated.
     const scopeLimitedExceptions = new Set([
-      "oculus:oculus.local-image-analysis",
+      "vision:vision.local-image-analysis",
     ]);
     for (const row of limited) {
       if (scopeLimitedExceptions.has(row.capabilityId)) continue;

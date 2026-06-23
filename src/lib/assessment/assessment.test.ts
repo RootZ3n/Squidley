@@ -58,7 +58,7 @@ describe("Assessment Adaptive System Intelligence", () => {
   it("allows Workshop single-file suggestions in public-local", () => {
     const decision = decideAssessmentAction({
       ...base,
-      moduleId: "fabrica",
+      moduleId: "workshop",
       actionId: "workshop.single-file-suggestion",
       modelId: "llama3.2:3b",
     });
@@ -71,7 +71,7 @@ describe("Assessment Adaptive System Intelligence", () => {
   it("locks Workshop multi-file build until cloud-agent mode", () => {
     const decision = decideAssessmentAction({
       ...base,
-      moduleId: "fabrica",
+      moduleId: "workshop",
       actionId: "workshop.multi-file-build",
       modelId: "qwen2.5-coder:3b",
     });
@@ -83,7 +83,7 @@ describe("Assessment Adaptive System Intelligence", () => {
   it("allows Chat basic chat with a local model", () => {
     const decision = decideAssessmentAction({
       ...base,
-      moduleId: "colloquium",
+      moduleId: "chat",
       actionId: "chat.basic",
       modelId: "llama3.2:3b",
     });
@@ -95,7 +95,7 @@ describe("Assessment Adaptive System Intelligence", () => {
   it("limits Chat advanced planning with a small local model", () => {
     const decision = decideAssessmentAction({
       ...base,
-      moduleId: "colloquium",
+      moduleId: "chat",
       actionId: "chat.advanced-planning",
       modelId: "llama3.2:3b",
     });
@@ -151,7 +151,7 @@ describe("Assessment Adaptive System Intelligence", () => {
   it("high prompt gateway risk affects decisions", () => {
     const decision = decideAssessmentAction({
       ...base,
-      moduleId: "fabrica",
+      moduleId: "workshop",
       actionId: "workshop.single-file-suggestion",
       modelId: "llama3.2:3b",
       taskRisk: "medium",
@@ -165,7 +165,7 @@ describe("Assessment Adaptive System Intelligence", () => {
   it("does not overstate unknown model capability in beginner messages", () => {
     const decision = decideAssessmentAction({
       ...base,
-      moduleId: "colloquium",
+      moduleId: "chat",
       actionId: "chat.basic",
       modelId: "unknown-model",
     });
@@ -178,7 +178,7 @@ describe("Assessment Adaptive System Intelligence", () => {
     expect(cloudProvidersAreLockedByDefault()).toBe(true);
     const decision = decideAssessmentAction({
       ...base,
-      moduleId: "colloquium",
+      moduleId: "chat",
       actionId: "chat.basic",
       modelId: "llama3.2:3b",
     });

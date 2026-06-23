@@ -14,7 +14,7 @@ function findModelCall(spy: { mock: { calls: unknown[][] } }): [string, RequestI
 }
 
 function oculusRequest(overrides: Record<string, unknown> = {}): Request {
-  return new Request("http://test/api/oculus/analyze", {
+  return new Request("http://test/api/vision/analyze", {
     method: "POST",
     body: JSON.stringify({
       model: "qwen3-vl:4b",
@@ -24,7 +24,7 @@ function oculusRequest(overrides: Record<string, unknown> = {}): Request {
   });
 }
 
-describe("/api/oculus/analyze backend honesty", () => {
+describe("/api/vision/analyze backend honesty", () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });

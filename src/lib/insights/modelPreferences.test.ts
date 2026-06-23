@@ -56,13 +56,13 @@ describe("Insights model preferences", () => {
     const storage = new MemoryStorage();
     const doc = setModuleModelPreference(
       createModelPreferencesDocument({}, 1),
-      "colloquium",
+      "chat",
       "chatModel",
       " llama3.2 ",
       2,
     );
     saveModelPreferences(storage, doc);
-    expect(loadModelPreferences(storage).modules.colloquium?.chatModel).toBe("llama3.2");
+    expect(loadModelPreferences(storage).modules.chat?.chatModel).toBe("llama3.2");
     expect(storage.getItem(INSIGHTS_MODEL_PREFERENCES_KEY)).toContain('"cloudUsed":false');
     resetModelPreferences(storage, 3);
     expect(loadModelPreferences(storage).modules).toEqual({});
@@ -71,7 +71,7 @@ describe("Insights model preferences", () => {
   it("resolves Chat preference, configured model, then first local model", () => {
     const preferred = setModuleModelPreference(
       createModelPreferencesDocument(),
-      "colloquium",
+      "chat",
       "chatModel",
       "qwen2.5:3b",
     );
@@ -92,20 +92,20 @@ describe("Insights model preferences", () => {
   });
 
   it("resolves Vision to a selected or likely vision model", () => {
-    const preferred = setModuleModelPreference(createModelPreferencesDocument(), "oculus", "visionModel", "llava:latest");
+    const preferred = setModuleModelPreference(createModelPreferencesDocument(), "vision", "visionModel", "llava:latest");
     expect(resolveVisionVisionModel({ preferences: preferred, models, configuredModel: "llama3.2" })).toBe("llava:latest");
     expect(resolveVisionVisionModel({ preferences: createModelPreferencesDocument(), models, configuredModel: "llama3.2" })).toBe("llama3.2");
     expect(resolveVisionVisionModel({ preferences: createModelPreferencesDocument(), models: models.filter((m) => m.name !== "llama3.2"), configuredModel: "missing" })).toBe("llava:latest");
   });
 
   it("keeps Workshop model assignment prepared without enabling cloud", () => {
-    const preferred = setModuleModelPreference(createModelPreferencesDocument(), "fabrica", "buildModel", "qwen2.5:3b");
+    const preferred = setModuleModelPreference(createModelPreferencesDocument(), "workshop", "buildModel", "qwen2.5:3b");
     expect(resolveWorkshopBuildModel({ preferences: preferred, models, configuredModel: "llama3.2" })).toBe("qwen2.5:3b");
     expect(preferred.cloudUsed).toBe(false);
   });
 
   it("falls Workshop back to the Chat local preference when no Workshop model is saved", () => {
-    const prefs = setModuleModelPreference(createModelPreferencesDocument(), "colloquium", "chatModel", "qwen2.5:3b");
+    const prefs = setModuleModelPreference(createModelPreferencesDocument(), "chat", "chatModel", "qwen2.5:3b");
     expect(resolveWorkshopBuildModel({ preferences: prefs, models, configuredModel: "llama3.2" })).toBe("qwen2.5:3b");
   });
 

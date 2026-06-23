@@ -9,7 +9,7 @@ import {
   buildChatSentReceipt,
   buildChatCompletedReceipt,
   buildChatFailedReceipt,
-} from "./receipts";
+} from "./moduleReceipts";
 import { buildChatCapabilityDecisionReceiptInput } from "./capabilityReceipts";
 
 const FORBIDDEN_KEYS = [
@@ -125,7 +125,7 @@ describe("Chat gateway — existing receipts unaffected", () => {
       createdAt: 1,
       model: "llama3.1:8b",
     });
-    expect(receipt.module).toBe("colloquium");
+    expect(receipt.module).toBe("chat");
     expect(receipt.action).toBe("chat.sent");
   });
 
@@ -140,7 +140,7 @@ describe("Chat gateway — existing receipts unaffected", () => {
       characterCount: 50,
       tokenEstimate: 12,
     });
-    expect(receipt.module).toBe("colloquium");
+    expect(receipt.module).toBe("chat");
   });
 
   it("chat failed receipt still builds correctly", () => {
@@ -153,7 +153,7 @@ describe("Chat gateway — existing receipts unaffected", () => {
       receiptId: "r-1",
       interrupted: false,
     });
-    expect(receipt.module).toBe("colloquium");
+    expect(receipt.module).toBe("chat");
   });
 
   it("capability preflight receipt still builds correctly", () => {

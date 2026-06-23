@@ -29,7 +29,7 @@ const BASE_CONTEXT: Omit<CapabilityRuntimeInput, "capabilityId"> = {
 
 function cloudRequiredPacket(): CloudEscalationPacket {
   const decision = resolveCapabilityRuntimeForId(
-    "fabrica:fabrica.multi-file-build",
+    "workshop:workshop.multi-file-build",
     BASE_CONTEXT,
   );
   return createCloudEscalationPacket(decision, {
@@ -53,7 +53,7 @@ function blockedPacket(): CloudEscalationPacket {
 
 function cloudRequiredWithVelumPacket(): CloudEscalationPacket {
   const decision = resolveCapabilityRuntimeForId(
-    "fabrica:fabrica.multi-file-build",
+    "workshop:workshop.multi-file-build",
     BASE_CONTEXT,
   );
   return createCloudEscalationPacket(decision, {
@@ -65,7 +65,7 @@ function cloudRequiredWithVelumPacket(): CloudEscalationPacket {
 
 function deniedPacket(): CloudEscalationPacket {
   const decision = resolveCapabilityRuntimeForId(
-    "fabrica:fabrica.multi-file-build",
+    "workshop:workshop.multi-file-build",
     BASE_CONTEXT,
   );
   return createCloudEscalationPacket(decision, {
@@ -301,7 +301,7 @@ describe("recordCloudEscalationOfferReceipt", () => {
     );
     expect(receipt).not.toBeNull();
     expect(storage.setItem).toHaveBeenCalledTimes(1);
-    expect(storage.setItem.mock.calls[0][0]).toContain("tabularium");
+    expect(storage.setItem.mock.calls[0][0]).toContain("activity-log");
     expect(receipt!.localOnly).toBe(true);
     expect(receipt!.cloudUsed).toBe(false);
   });

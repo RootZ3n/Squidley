@@ -14,8 +14,8 @@ describe("Vision handoff", () => {
     expect(payload).toEqual({
       version: 1,
       createdAt: 100,
-      source: "oculus",
-      target: "colloquium",
+      source: "vision",
+      target: "chat",
       localOnly: true,
       cloudUsed: false,
       imageIncluded: false,

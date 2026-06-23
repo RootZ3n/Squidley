@@ -13,7 +13,7 @@ function cloudRequiredInput(
   overrides: Partial<GuardedCloudPreflightInput> = {},
 ): GuardedCloudPreflightInput {
   return {
-    capabilityId: "fabrica:fabrica.multi-file-build",
+    capabilityId: "workshop:workshop.multi-file-build",
     dataCategories: ["metadata-only"],
     availableLocalProfiles: [],
     availableCloudProfiles: [
@@ -32,7 +32,7 @@ function localCoreInput(
   overrides: Partial<GuardedCloudPreflightInput> = {},
 ): GuardedCloudPreflightInput {
   return {
-    capabilityId: "colloquium:chat.basic",
+    capabilityId: "chat:chat.basic",
     dataCategories: ["user-message"],
     availableLocalProfiles: [
       { providerId: "ollama", capabilityProfile: "chat" },

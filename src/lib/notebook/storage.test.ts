@@ -89,10 +89,10 @@ describe("Notebook storage", () => {
 
   it("creates Vision analysis entries without image data", () => {
     const entry = createNotebookEntryFromVisionAnalysis({
-      id: "oculus-1",
+      id: "vision-1",
       title: "Vision analysis: screenshot.png",
       text: "The screenshot shows a settings page.",
-      tags: "oculus, screenshot",
+      tags: "vision, screenshot",
       now: 100,
     });
     expect(entry).toMatchObject({
@@ -100,7 +100,7 @@ describe("Notebook storage", () => {
       localOnly: true,
       cloudUsed: false,
       velumReviewed: false,
-      tags: ["oculus", "screenshot"],
+      tags: ["vision", "screenshot"],
     });
     expect(JSON.stringify(entry)).not.toContain("data:image");
     expect(JSON.stringify(entry)).not.toContain("base64");
@@ -108,10 +108,10 @@ describe("Notebook storage", () => {
 
   it("creates Workshop suggestion entries as notes without executable treatment", () => {
     const entry = createNotebookEntryFromWorkshopSuggestion({
-      id: "fabrica-1",
+      id: "workshop-1",
       title: "Workshop suggestion: card.tsx",
       text: "export function Card() { return null; }",
-      tags: "fabrica, suggestion",
+      tags: "workshop, suggestion",
       now: 120,
     });
     expect(entry).toMatchObject({
@@ -120,7 +120,7 @@ describe("Notebook storage", () => {
       localOnly: true,
       cloudUsed: false,
       velumReviewed: false,
-      tags: ["fabrica", "suggestion"],
+      tags: ["workshop", "suggestion"],
     });
   });
 

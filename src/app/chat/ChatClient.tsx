@@ -285,7 +285,7 @@ export default function ChatClient() {
     endpoint: "http://localhost:11434",
   });
 
-  const tour = useMemo(() => getTour("colloquium")!, []);
+  const tour = useMemo(() => getTour("chat")!, []);
   const showingExamples = messages.length === 0;
   const visibleMessages = showingExamples ? EXAMPLE_MESSAGES : messages;
   const threadEndRef = useRef<HTMLDivElement | null>(null);
@@ -493,13 +493,13 @@ export default function ChatClient() {
     }));
     const next = setModuleModelPreference(
       loadModelPreferences(window.localStorage),
-      "colloquium",
+      "chat",
       "chatModel",
       model,
     );
     saveModelPreferences(window.localStorage, next);
     logActivityReceipt(window.localStorage, buildInsightsModelPreferenceChangedReceipt({
-      moduleId: "colloquium",
+      moduleId: "chat",
       role: "chatModel",
       model,
       title: "Chat local model preference changed",
@@ -1144,7 +1144,7 @@ export default function ChatClient() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `peh-colloquium-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.download = `peh-chat-${new Date().toISOString().slice(0, 10)}.txt`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -1159,7 +1159,7 @@ export default function ChatClient() {
       return;
     }
     logActivityReceipt(window.localStorage, buildChatVelumHandoffCreatedReceipt());
-    router.push("/velum?from=colloquium");
+    router.push("/velum?from=chat");
   }
 
   // ---- Render -------------------------------------------------------------

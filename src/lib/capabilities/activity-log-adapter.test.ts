@@ -29,7 +29,7 @@ const baseContext: Omit<CapabilityRuntimeInput, "capabilityId"> = {
 
 function localReadyEvent(): CapabilityDecisionReceiptEvent {
   const decision = resolveCapabilityRuntime({
-    capabilityId: "colloquium:chat.basic",
+    capabilityId: "chat:chat.basic",
     ...baseContext,
     availableLocalProfiles: [
       { providerId: "ollama", capabilityProfile: "chat" },
@@ -44,7 +44,7 @@ function localReadyEvent(): CapabilityDecisionReceiptEvent {
 
 function cloudRequiredPendingEvent(): CapabilityDecisionReceiptEvent {
   const decision = resolveCapabilityRuntimeForId(
-    "fabrica:fabrica.multi-file-build",
+    "workshop:workshop.multi-file-build",
     baseContext,
   );
   return createCapabilityEscalationOfferedReceipt(decision, { createdAt: 2000 });
@@ -52,7 +52,7 @@ function cloudRequiredPendingEvent(): CapabilityDecisionReceiptEvent {
 
 function cloudAllowedEvent(): CapabilityDecisionReceiptEvent {
   const decision = resolveCapabilityRuntimeForId(
-    "fabrica:fabrica.multi-file-build",
+    "workshop:workshop.multi-file-build",
     {
       ...baseContext,
       cloudUnlocked: true,
@@ -80,7 +80,7 @@ function blockedEvent(): CapabilityDecisionReceiptEvent {
 
 function moreInputEvent(): CapabilityDecisionReceiptEvent {
   const decision = resolveCapabilityRuntimeForId(
-    "more-input:archivum.local-storage",
+    "more-input:notebook.local-storage",
     baseContext,
   );
   return createCapabilityDecisionReceipt(decision, { createdAt: 5000 });
@@ -120,12 +120,12 @@ function assertNoForbiddenKeysDeep(value: unknown, path = "<root>"): void {
 describe("capability tabularium adapter — module mapping", () => {
   it("maps known canonical ActivityLog modules straight through", () => {
     for (const id of [
-      "colloquium",
+      "chat",
       "velum",
-      "archivum",
-      "oculus",
-      "fabrica",
-      "nous",
+      "notebook",
+      "vision",
+      "workshop",
+      "insights",
       "settings",
       "system",
     ] as const) {
@@ -133,8 +133,8 @@ describe("capability tabularium adapter — module mapping", () => {
     }
   });
 
-  it("maps more-input to archivum (its canonical owner)", () => {
-    expect(moduleIdToActivityModule("more-input")).toBe("archivum");
+  it("maps more-input to notebook (its canonical owner)", () => {
+    expect(moduleIdToActivityModule("more-input")).toBe("notebook");
   });
 
   it("maps locked / future modules without a ActivityLog slot to system", () => {
@@ -233,7 +233,7 @@ describe("capability tabularium adapter — passes through createActivityReceipt
     expect(receipt.modelUsed).toBe(false);
     expect(receipt.toolsUsed).toBe(false);
     expect(receipt.action).toBe(CAPABILITY_DECISION_TABULARIUM_ACTION);
-    expect(receipt.module).toBe("colloquium");
+    expect(receipt.module).toBe("chat");
   });
 
   it("the adapter input is accepted by createActivityReceipt directly", () => {
@@ -250,11 +250,11 @@ describe("capability tabularium adapter — passes through createActivityReceipt
     expect(direct.metadata).toEqual(viaHelper.metadata);
   });
 
-  it("maps more-input events to module=archivum on the resulting receipt", () => {
+  it("maps more-input events to module=notebook on the resulting receipt", () => {
     const receipt = createCapabilityDecisionActivityReceipt(moreInputEvent(), {
       receiptId: "fixed-id-3",
     });
-    expect(receipt.module).toBe("archivum");
+    expect(receipt.module).toBe("notebook");
     expect(receipt.metadata!.moduleId).toBe("more-input");
   });
 
@@ -363,7 +363,7 @@ describe("capability tabularium adapter — worst-case metadata", () => {
     const event: CapabilityDecisionReceiptEvent = {
       type: "capability.decision",
       capabilityId: "synthetic:cap.worstcase",
-      moduleId: "colloquium",
+      moduleId: "chat",
       tier: "cloud-required",
       state: "CLOUD_REQUIRED",
       localAttemptAllowed: false,

@@ -96,7 +96,7 @@ function makeOfferReceipt(opts: {
     metadata: {
       escalationPacketId: opts.escalationPacketId ?? SHARED_PACKET_ID,
       capabilityId: "test-cap",
-      moduleId: "nous",
+      moduleId: "insights",
       consentState: opts.consentState ?? "required",
       nothingSentYet: opts.nothingSentYet !== false,
       requiresVelumReview: false,
@@ -122,7 +122,7 @@ function makeConsentReceipt(opts: {
     metadata: {
       escalationPacketId: opts.escalationPacketId ?? SHARED_PACKET_ID,
       capabilityId: "test-cap",
-      moduleId: "nous",
+      moduleId: "insights",
       decision,
       nothingSentYet: opts.nothingSentYet !== false,
       requiresVelumReview: false,
@@ -176,8 +176,8 @@ function makeVelumPrepReceipt(opts: {
     title: "Velum review preparation recorded for Workshop multi-file build",
     summary: "Workshop recorded that Velum review is needed before cloud consent can be offered. Nothing has been sent.",
     metadata: {
-      capabilityId: opts.capabilityId ?? "fabrica:fabrica.multi-file-build",
-      sourceModule: "fabrica",
+      capabilityId: opts.capabilityId ?? "workshop:workshop.multi-file-build",
+      sourceModule: "workshop",
       requiresVelumReview: true,
       velumReviewPassed: false,
       nothingSentYet: true,
@@ -198,8 +198,8 @@ function makeVelumReviewReceipt(opts: {
     title: "Velum review marked complete for Workshop multi-file build",
     summary: "Workshop recorded that Velum review was completed locally. Cloud consent can now be offered. Nothing has been sent.",
     metadata: {
-      capabilityId: opts.capabilityId ?? "fabrica:fabrica.multi-file-build",
-      sourceModule: "fabrica",
+      capabilityId: opts.capabilityId ?? "workshop:workshop.multi-file-build",
+      sourceModule: "workshop",
       requiresVelumReview: true,
       velumReviewPassed: true,
       nothingSentYet: true,
@@ -749,7 +749,7 @@ describe("classifyReceiptChainStep — Velum receipts", () => {
 
 describe("buildReceiptChains — Velum grouping", () => {
   it("velum-prep groups with other capabilityId receipts within timestamp window", () => {
-    const capId = "fabrica:fabrica.multi-file-build";
+    const capId = "workshop:workshop.multi-file-build";
     const receipts = [
       makeVelumPrepReceipt({ createdAt: 1000, capabilityId: capId }),
       makeVelumReviewReceipt({ createdAt: 1500, capabilityId: capId }),
@@ -777,7 +777,7 @@ describe("buildReceiptChains — Velum grouping", () => {
   });
 
   it("velum steps + assessment + policy groups as cloud-consent-flow", () => {
-    const capId = "fabrica:fabrica.multi-file-build";
+    const capId = "workshop:workshop.multi-file-build";
     const receipts = [
       makeVelumPrepReceipt({ createdAt: 1000, capabilityId: capId }),
       makeVelumReviewReceipt({ createdAt: 1200, capabilityId: capId }),
@@ -794,7 +794,7 @@ describe("buildReceiptChains — Velum grouping", () => {
 
   it("velum-prep + velum-review + offer + consent all group via escalationPacketId", () => {
     const pktId = "pkt-fab-1";
-    const capId = "fabrica:fabrica.multi-file-build";
+    const capId = "workshop:workshop.multi-file-build";
     // Give velum receipts an escalationPacketId to group with cloud flow
     const prepReceipt = makeReceipt({
       id: "vp-1",
@@ -883,7 +883,7 @@ describe("summarizeReceiptChain — Velum summaries", () => {
   });
 
   it("prep + review summary mentions gateway and Velum checks", () => {
-    const capId = "fabrica:fabrica.multi-file-build";
+    const capId = "workshop:workshop.multi-file-build";
     const receipts = [
       makeVelumPrepReceipt({ createdAt: 1000, capabilityId: capId }),
       makeVelumReviewReceipt({ createdAt: 1500, capabilityId: capId }),
@@ -904,7 +904,7 @@ describe("summarizeReceiptChain — Velum summaries", () => {
       summary: "Prep recorded.",
       metadata: {
         escalationPacketId: pktId,
-        capabilityId: "fabrica:fabrica.multi-file-build",
+        capabilityId: "workshop:workshop.multi-file-build",
         velumReviewPassed: false,
         nothingSentYet: true,
         cloudUsed: false,
@@ -919,7 +919,7 @@ describe("summarizeReceiptChain — Velum summaries", () => {
       summary: "Review completed.",
       metadata: {
         escalationPacketId: pktId,
-        capabilityId: "fabrica:fabrica.multi-file-build",
+        capabilityId: "workshop:workshop.multi-file-build",
         velumReviewPassed: true,
         nothingSentYet: true,
         cloudUsed: false,

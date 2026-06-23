@@ -10,7 +10,7 @@ import {
 } from "@/lib/velum/capabilityReceipts";
 import {
   buildChatCapabilityDecisionReceiptInput,
-  COLLOQUIUM_CHAT_CAPABILITY_ID,
+  CHAT_CAPABILITY_ID,
 } from "@/lib/chat/capabilityReceipts";
 
 const FORBIDDEN_KEYS = [
@@ -65,15 +65,15 @@ describe("buildCapabilityPreflightReceiptInput", () => {
 
   it("preserves capabilityId, moduleId, tier, state, providerMode in metadata", () => {
     const input = buildCapabilityPreflightReceiptInput({
-      capabilityId: COLLOQUIUM_CHAT_CAPABILITY_ID,
+      capabilityId: CHAT_CAPABILITY_ID,
       availableLocalProfiles: [{ providerId: "ollama", capabilityProfile: "chat" }],
       providerId: "ollama",
       modelId: "llama3.1:8b",
       createdAt: 200,
     });
     const meta = input.metadata!;
-    expect(meta.capabilityId).toBe(COLLOQUIUM_CHAT_CAPABILITY_ID);
-    expect(meta.moduleId).toBe("colloquium");
+    expect(meta.capabilityId).toBe(CHAT_CAPABILITY_ID);
+    expect(meta.moduleId).toBe("chat");
     expect(meta.capabilityTier).toBe("local-core");
     expect(meta.capabilityState).toBe("LOCAL_READY");
     expect(meta.providerMode).toBe("local");
@@ -94,7 +94,7 @@ describe("buildCapabilityPreflightReceiptInput", () => {
 
   it("does not include forbidden fields", () => {
     const input = buildCapabilityPreflightReceiptInput({
-      capabilityId: COLLOQUIUM_CHAT_CAPABILITY_ID,
+      capabilityId: CHAT_CAPABILITY_ID,
       availableLocalProfiles: [{ providerId: "ollama", capabilityProfile: "chat" }],
       providerId: "ollama",
       modelId: "llama3.1:8b",
@@ -118,7 +118,7 @@ describe("recordCapabilityPreflightReceipt", () => {
     });
     expect(receipt).not.toBeNull();
     expect(storage.setItem).toHaveBeenCalledTimes(1);
-    expect(storage.setItem.mock.calls[0][0]).toContain("tabularium");
+    expect(storage.setItem.mock.calls[0][0]).toContain("activity-log");
     expect(receipt!.localOnly).toBe(true);
     expect(receipt!.cloudUsed).toBe(false);
   });
@@ -142,7 +142,7 @@ describe("recordCapabilityPreflightReceipt", () => {
 describe("ActivityLog badge detection works for generic preflight receipts", () => {
   it("receipts from buildCapabilityPreflightReceiptInput are detected by isCapabilityDecisionReceipt", () => {
     const input = buildCapabilityPreflightReceiptInput({
-      capabilityId: COLLOQUIUM_CHAT_CAPABILITY_ID,
+      capabilityId: CHAT_CAPABILITY_ID,
       availableLocalProfiles: [{ providerId: "ollama", capabilityProfile: "chat" }],
       createdAt: 1,
     });
@@ -181,7 +181,7 @@ describe("Chat helper produces identical metadata after delegating", () => {
       modelId: "llama3.1:8b",
     });
     const genericInput = buildCapabilityPreflightReceiptInput({
-      capabilityId: COLLOQUIUM_CHAT_CAPABILITY_ID,
+      capabilityId: CHAT_CAPABILITY_ID,
       availableLocalProfiles: [{ providerId: "ollama", capabilityProfile: "chat" }],
       providerId: "ollama",
       modelId: "llama3.1:8b",
@@ -231,7 +231,7 @@ describe("generic preflight — no fetch / no cloud calls", () => {
       createdAt: 1,
     });
     recordCapabilityPreflightReceipt(storage, {
-      capabilityId: COLLOQUIUM_CHAT_CAPABILITY_ID,
+      capabilityId: CHAT_CAPABILITY_ID,
       availableLocalProfiles: [{ providerId: "ollama", capabilityProfile: "chat" }],
       createdAt: 2,
     });

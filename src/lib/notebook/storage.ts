@@ -109,7 +109,7 @@ export function createNotebookEntry(args: {
   const text = args.text.trim();
   const title = (args.title ?? "").trim() || fallbackNotebookTitle(text);
   return {
-    id: args.id ?? `archivum-${now}-${Math.random().toString(36).slice(2, 8)}`,
+    id: args.id ?? `notebook-${now}-${Math.random().toString(36).slice(2, 8)}`,
     title,
     type: isEntryType(args.type) ? args.type : "other",
     text,
@@ -380,7 +380,7 @@ export function importNotebookBundle(
 ): { doc: NotebookDocument; importedCount: number } {
   const existing = new Set(doc.entries.map((entry) => entry.id));
   const imported = bundle.entries.map((entry, index) => {
-    const id = existing.has(entry.id) ? `archivum-import-${now}-${index}` : entry.id;
+    const id = existing.has(entry.id) ? `notebook-import-${now}-${index}` : entry.id;
     existing.add(id);
     return createNotebookEntry({
       id,

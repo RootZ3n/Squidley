@@ -208,7 +208,7 @@ export function parseChatToVelumPayload(
   if (
     !payload ||
     payload.version !== VELUM_HANDOFF_VERSION ||
-    payload.source !== "colloquium" ||
+    payload.source !== "chat" ||
     payload.localOnly !== true ||
     payload.cloudUsed !== false ||
     payload.modelUsed !== false ||

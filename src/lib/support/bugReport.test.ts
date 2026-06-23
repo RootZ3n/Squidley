@@ -23,7 +23,7 @@ describe("bug report helpers", () => {
       model: "llama3.2",
       provider: "local",
       browserUserAgent: "Test Browser",
-      currentUrl: "http://localhost:3000/colloquium",
+      currentUrl: "http://localhost:3000/chat",
     });
 
     expect(url).toContain("mailto:bugs%40example.com");

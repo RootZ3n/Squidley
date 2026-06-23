@@ -84,9 +84,9 @@ export const MODULE_TERMINOLOGY = {
     tooltip:
       "Pick an image; if your local model supports vision, Peh describes what it sees. Image stays on your machine.",
   },
-  activityLog: {
+  "activity-log": {
     friendlyLabel: "Activity Log",
-    latinName: "",
+    latinName: "ActivityLog",
     beginnerDescription: "Review what Peh actually did, with receipts.",
     tooltip:
       "An audit trail of every action. Stored in your browser. Receipts never contain raw secrets.",
@@ -136,7 +136,7 @@ export const MODULE_TERMINOLOGY = {
       "Compare and evaluate cloud models. Cloud Mode is not implemented yet.",
     statusSuffix: "(locked)",
   },
-  advancedSettings: {
+  imperium: {
     friendlyLabel: "Advanced Control",
     latinName: "",
     beginnerDescription: "High-trust controls — Cloud Mode only.",

@@ -26,7 +26,7 @@ import {
 import type { PromptInjectionAssessment } from "@/lib/security/promptInjection";
 import type { GatewayPolicyDecision } from "@/lib/security/gatewayPolicy";
 
-const DEMO_CAPABILITY_ID = "fabrica:fabrica.multi-file-build";
+const DEMO_CAPABILITY_ID = "workshop:workshop.multi-file-build";
 
 const DEMO_CONTEXT: Omit<CapabilityRuntimeInput, "capabilityId"> = {
   availableLocalProfiles: [],

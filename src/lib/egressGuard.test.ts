@@ -16,8 +16,8 @@ import { handleChatRequest } from "@/lib/chat/handler";
 import { openLocalChatStream } from "@/lib/chat/stream";
 import { getLocalProviderConfig, type LocalProviderConfig } from "@/lib/providers/local";
 import { detectLocalBackend } from "@/lib/providers/detection";
-import { POST as fabricaSuggest } from "@/app/api/fabrica/suggest/route";
-import { POST as oculusAnalyze } from "@/app/api/oculus/analyze/route";
+import { POST as workshopSuggest } from "@/app/api/workshop/suggest/route";
+import { POST as visionAnalyze } from "@/app/api/vision/analyze/route";
 import { GET as localModels } from "@/app/api/local/models/route";
 import { GET as localHealth } from "@/app/api/local/health/route";
 
@@ -181,11 +181,11 @@ describe("egress guard — every server-side fetch hits a local URL", () => {
     }
   });
 
-  it("/api/fabrica/suggest only touches local URLs", async () => {
+  it("/api/workshop/suggest only touches local URLs", async () => {
     const guard = installEgressGuard();
     try {
-      await fabricaSuggest(
-        new Request("http://test.invalid/api/fabrica/suggest", {
+      await workshopSuggest(
+        new Request("http://test.invalid/api/workshop/suggest", {
           method: "POST",
           body: JSON.stringify({
             fileName: "demo.ts",
@@ -201,11 +201,11 @@ describe("egress guard — every server-side fetch hits a local URL", () => {
     }
   });
 
-  it("/api/oculus/analyze only touches local URLs", async () => {
+  it("/api/vision/analyze only touches local URLs", async () => {
     const guard = installEgressGuard();
     try {
-      await oculusAnalyze(
-        new Request("http://test.invalid/api/oculus/analyze", {
+      await visionAnalyze(
+        new Request("http://test.invalid/api/vision/analyze", {
           method: "POST",
           body: JSON.stringify({
             imageBase64: "iVBORw0KGgo=",

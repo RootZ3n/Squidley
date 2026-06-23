@@ -9,7 +9,7 @@ import {
   buildChatCompletedReceipt,
   buildChatFailedReceipt,
   buildChatSentReceipt,
-} from "./receipts";
+} from "./moduleReceipts";
 
 const FORBIDDEN_KEYS = [
   "prompt",
@@ -49,10 +49,10 @@ function assertNoForbiddenKeysDeep(value: unknown, path = "<root>"): void {
 }
 
 describe("Chat chat capability id", () => {
-  it("matches a registered capability with moduleId=colloquium", () => {
+  it("matches a registered capability with moduleId=chat", () => {
     const cap = getCapabilityById(CHAT_CAPABILITY_ID);
     expect(cap).toBeDefined();
-    expect(cap!.moduleId).toBe("colloquium");
+    expect(cap!.moduleId).toBe("chat");
     expect(cap!.tier).toBe("local-core");
   });
 });
@@ -164,14 +164,14 @@ describe("buildChatCapabilityDecisionReceiptInput — legacy localChatReady", ()
       providerId: "ollama",
       modelId: "llama3.1:8b",
     });
-    expect(input.module).toBe("colloquium");
+    expect(input.module).toBe("chat");
     expect(input.action).toBe("capability.decision");
     expect(input.modelUsed).toBe(false);
     expect(input.title).toContain(CHAT_CAPABILITY_ID);
 
     const meta = input.metadata!;
     expect(meta.capabilityId).toBe(CHAT_CAPABILITY_ID);
-    expect(meta.moduleId).toBe("colloquium");
+    expect(meta.moduleId).toBe("chat");
     expect(meta.capabilityTier).toBe("local-core");
     expect(meta.capabilityState).toBe("LOCAL_READY");
     expect(meta.providerMode).toBe("local");
@@ -220,14 +220,14 @@ describe("recordChatCapabilityDecisionReceipt", () => {
     };
     const receipt = recordChatCapabilityDecisionReceipt(storage, {
       createdAt: 50,
-      receiptId: "colloquium-cap-1",
+      receiptId: "chat-cap-1",
       localModels: [{ name: "llama3.1:8b" }],
       selectedModel: "llama3.1:8b",
     });
     expect(receipt).not.toBeNull();
     expect(storage.setItem).toHaveBeenCalledTimes(1);
     expect(storage.setItem.mock.calls[0][0]).toContain("activity-log");
-    expect(receipt!.module).toBe("colloquium");
+    expect(receipt!.module).toBe("chat");
     expect(receipt!.metadata!.capabilityId).toBe(CHAT_CAPABILITY_ID);
     expect(receipt!.localOnly).toBe(true);
     expect(receipt!.cloudUsed).toBe(false);
@@ -282,7 +282,7 @@ describe("Chat capability receipt — purity and existing flow preserved", () =>
   beforeEach(() => {
     originalFetch = globalThis.fetch;
     fetchSpy = vi.fn<unknown[], unknown>(() => {
-      throw new Error("colloquium capability receipt attempted a network call");
+      throw new Error("chat capability receipt attempted a network call");
     });
     (globalThis as unknown as { fetch: typeof globalThis.fetch }).fetch =
       fetchSpy as unknown as typeof globalThis.fetch;
@@ -342,8 +342,8 @@ describe("Chat capability receipt — purity and existing flow preserved", () =>
       characterCount: 100,
       tokenEstimate: 25,
     });
-    expect(sent.module).toBe("colloquium");
-    expect(failed.module).toBe("colloquium");
-    expect(completed.module).toBe("colloquium");
+    expect(sent.module).toBe("chat");
+    expect(failed.module).toBe("chat");
+    expect(completed.module).toBe("chat");
   });
 });

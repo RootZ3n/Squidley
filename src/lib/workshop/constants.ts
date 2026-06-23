@@ -4,7 +4,7 @@ export const WORKSHOP_RECEIPT_ACTION = {
   suggestionFailed: "workshop.single-file-suggestion.failed",
   outputCopied: "workshop.output.copied",
   outputExported: "workshop.output.exported",
-  outputSavedToNotebook: "workshop.output.saved-to-archivum",
+  outputSavedToNotebook: "workshop.output.saved-to-notebook",
 } as const;
 
 export const WORKSHOP_RECEIPT_ACTIONS = Object.values(WORKSHOP_RECEIPT_ACTION);
