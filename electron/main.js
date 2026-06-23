@@ -12,7 +12,7 @@
  *  - No remote module
  */
 
-const { app, BrowserWindow, shell } = require("electron");
+const { app, BrowserWindow, shell, ipcMain } = require("electron");
 const { createServer } = require("net");
 const { spawn } = require("child_process");
 const path = require("path");
@@ -93,6 +93,7 @@ function createWindow(port) {
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
+      preload: path.join(__dirname, "preload.js"),
     },
   });
 
@@ -122,15 +123,29 @@ function createWindow(port) {
     return { action: "deny" };
   });
 
-  // First-run detection: open /setup if no flag, /colloquium otherwise
-  const setupComplete = app.getPath("userData") + "/setup-complete";
+  // First-run detection: open /setup if no flag, /colloquium otherwise.
+  // The flag is written by the renderer via IPC (preload.js exposes
+  // electronAPI.markSetupComplete → setup:complete channel).
   const fs = require("fs");
-  const startPath = fs.existsSync(setupComplete) ? "/colloquium" : "/setup";
+  const startPath = fs.existsSync(setupFlagPath) ? "/colloquium" : "/setup";
 
   win.loadURL(`http://127.0.0.1:${port}${startPath}`);
 
   return win;
 }
+
+// IPC handler: renderer calls electronAPI.markSetupComplete() → writes flag file.
+const setupFlagPath = path.join(app.getPath("userData"), "setup-complete");
+ipcMain.handle("setup:complete", () => {
+  const fs = require("fs");
+  try {
+    fs.writeFileSync(setupFlagPath, new Date().toISOString(), "utf8");
+    return { ok: true };
+  } catch (err) {
+    console.error("Failed to write setup-complete flag:", err);
+    return { ok: false, error: String(err) };
+  }
+});
 
 app.whenReady().then(async () => {
   try {

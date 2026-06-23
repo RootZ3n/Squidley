@@ -153,8 +153,16 @@ export default function SetupPage() {
   };
 
   const markComplete = () => {
-    // In Electron, this would also write the setup-complete flag.
+    // In Electron, write the setup-complete flag via IPC so next launch skips /setup.
     // In browser, just navigate to the main app.
+    try {
+      const api = (window as unknown as { electronAPI?: { markSetupComplete?: () => Promise<unknown> } }).electronAPI;
+      if (api?.markSetupComplete) {
+        void api.markSetupComplete();
+      }
+    } catch {
+      /* not in Electron — non-fatal */
+    }
     window.location.href = "/chat";
   };
 
