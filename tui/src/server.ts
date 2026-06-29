@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * Ptah HTTP Server — the lab task runner.
+ * the Pehlichi-pub HTTP Server — the lab task runner.
  *
  * Blocker 1: production now runs on the HARDENED KERNEL. Every /chat request drives
  * the kernel's `runAgent()` (via KernelChatSession) instead of an ad-hoc fetch loop:
@@ -43,7 +43,7 @@ import { bridgeRegistry } from '../../src/core/bridges/registry.js';
 import { listMemory } from 'lab-memory';
 import { ReceiptStore, type Receipt } from '../../src/core/receipt-store.js';
 
-const PORT = parseInt(process.env.PEHLICHI_PORT || '18830', 10);
+const PORT = parseInt(process.env.PEHLICHI_PORT || '18832', 10);
 const HOST = process.env.PEHLICHI_HOST || '127.0.0.1';
 
 // Model configuration: env vars override defaults
@@ -59,6 +59,33 @@ function resolveApiKey(): string | undefined {
     if (match) return match[0].trim();
   } catch {}
   return undefined;
+}
+
+// ── Intent routing (fast-path) ───────────────────────────────────────────────
+// The kernel /chat loop runs a multi-iteration tool cycle per message — far too heavy
+// (and slow) for small-talk like "hi", which makes the model grind tools until its
+// budget is exhausted. A message that carries NO task keyword is treated as casual chat
+// and routed to the tool-free /converse lane instead, so greetings get an instant reply
+// and never touch the tool budget. A message WITH a task keyword uses the kernel+tools
+// path as before.
+const TASK_KEYWORDS = [
+  'build', 'fix', 'run', 'deploy', 'create', 'add', 'write', 'modify', 'test', 'commit',
+  'install', 'remove', 'delete', 'update', 'change', 'implement', 'refactor',
+  'debug', 'diagnose', 'repair', 'generate',
+] as const;
+const TASK_KEYWORD_RE = new RegExp(`\\b(?:${TASK_KEYWORDS.join('|')})\\b`, 'i');
+
+/** True when the message contains at least one task keyword (case-insensitive, word boundary). */
+export function hasTaskKeyword(message: string): boolean {
+  return TASK_KEYWORD_RE.test(message);
+}
+
+/** Overall wall-clock budget for a single /chat turn — the run is returned as a partial past this. */
+const CHAT_TIMEOUT_MS = parseInt(process.env.CHAT_TIMEOUT_MS || '60000', 10);
+
+/** The minimal converse lane the fast-path needs — a single tool-free model turn. */
+export interface ConverseLike {
+  send(message: string): Promise<{ content: string }>;
 }
 
 // ── Static web UI (served directly from this port) ───────────────────────────
@@ -184,10 +211,19 @@ export interface PehServerOptions {
   readonly cleanupIntervalMs?: number;
   /** Injectable clock (ms). Tests advance it to drive TTL eviction deterministically. Default Date.now. */
   readonly now?: () => number;
+  /**
+   * CONVERSE LANE (intent routing): factory for the tool-free converse session used by the
+   * fast-path (a keyword-free /chat message is answered here, not by the kernel). Defaults to
+   * a real `ChatSession` (one model call, no tools). Tests inject a stub so the fast-path is
+   * exercised without network — mirroring how `driver` injects the kernel's model.
+   */
+  readonly makeConverse?: () => ConverseLike;
+  /** Overall wall-clock budget for a single /chat turn (ms). Default $CHAT_TIMEOUT_MS or 60s. */
+  readonly chatTimeoutMs?: number;
 }
 
 /**
- * Build the Ptah HTTP server WITHOUT listening. Exposes the kernel session and tool
+ * Build the Pehlichi-pub HTTP server WITHOUT listening. Exposes the kernel session and tool
  * names so tests can drive the real request path with an injected driver.
  */
 export function createPehServer(opts: PehServerOptions = {}): {
@@ -201,7 +237,7 @@ export function createPehServer(opts: PehServerOptions = {}): {
 } {
   const skin = loadSkin();
   const personality = loadPersonality();
-  const workspaceRoot = opts.workspaceRoot ?? process.env.PEHLICHI_WORKSPACE ?? '/pehverse/repos/pehlichi';
+  const workspaceRoot = opts.workspaceRoot ?? process.env.PEHLICHI_WORKSPACE ?? '/pehverse/repos/ecosystem/pehlichi-pub';
   const labStoreRoot = opts.labStoreRoot ?? process.env.LAB_STORE_ROOT ?? join(workspaceRoot, '..', 'lab-store');
   const apiKey = resolveApiKey();
 
@@ -316,12 +352,15 @@ export function createPehServer(opts: PehServerOptions = {}): {
   // /converse drives the model ONCE via ChatSession (personality prompt, no tools), so
   // greetings and casual chat get an instant reply and never touch the tool budget. Keyed
   // per room, evicted on the same TTL as the kernel sessions.
-  interface ConverseEntry { cs: ChatSession; lastAccessedAt: number; }
+  interface ConverseEntry { cs: ConverseLike; lastAccessedAt: number; }
   const converseSessions = new Map<string, ConverseEntry>();
-  const converseFor = (roomKey: string): ChatSession => {
+  const chatTimeoutMs = opts.chatTimeoutMs ?? CHAT_TIMEOUT_MS;
+  const makeConverse = opts.makeConverse
+    ?? ((): ConverseLike => new ChatSession({ apiKey: resolveApiKey(), baseUrl: BASE_URL, model: MODEL, capabilities: converseCapabilities }));
+  const converseFor = (roomKey: string): ConverseLike => {
     let entry = converseSessions.get(roomKey);
     if (entry === undefined) {
-      entry = { cs: new ChatSession({ apiKey: resolveApiKey(), baseUrl: BASE_URL, model: MODEL, capabilities: converseCapabilities }), lastAccessedAt: now() };
+      entry = { cs: makeConverse(), lastAccessedAt: now() };
       converseSessions.set(roomKey, entry);
     } else {
       entry.lastAccessedAt = now();
@@ -416,8 +455,9 @@ export function createPehServer(opts: PehServerOptions = {}): {
     // through to the JSON API routes below (so /health, /api/*, etc. are unaffected).
     if (req.method === 'GET' && serveStatic(res, url.pathname)) return;
 
-    if (req.method === 'GET' && url.pathname === '/health') {
+    if (req.method === 'GET' && (url.pathname === '/health' || url.pathname === '/api/local/health')) {
       // Lab Agent Contract §1.1: include `service` and `ok` for contract probe compatibility.
+      // /api/local/health is an alias for Howa adapter compatibility (public variant probes this path).
       return json(res, 200, {
         ok: true,
         service: skin.branding.agent_name,
@@ -496,7 +536,7 @@ export function createPehServer(opts: PehServerOptions = {}): {
     }
 
     // Ecosystem agents Peh coordinates (Council Chamber / Training Grounds).
-    if (req.method === 'GET' && url.pathname === '/api/agents') {
+    if (req.method === 'GET' && (url.pathname === '/agents' || url.pathname === '/api/agents')) {
       const agents = bridgeRegistry.list().map((b) => ({
         id: b.name,
         name: b.name,
@@ -595,7 +635,8 @@ export function createPehServer(opts: PehServerOptions = {}): {
       }
     }
 
-    if (req.method === 'POST' && url.pathname === '/chat') {
+    if (req.method === 'POST' && (url.pathname === '/chat' || url.pathname === '/api/chat')) {
+      // /api/chat is an alias for Howa adapter compatibility (public variant probes this path).
       if (!chatAuthorized(req)) {
         return json(res, 401, { error: 'unauthorized: a valid Bearer token is required' });
       }
@@ -605,6 +646,26 @@ export function createPehServer(opts: PehServerOptions = {}): {
       const body = await parseBody(req);
       const message = body.message as string;
       if (!message) return json(res, 400, { error: 'message is required' });
+
+      // FAST-PATH (intent routing): a message with NO task keyword is small-talk — answer it
+      // on the tool-free converse lane so it returns instantly and never grinds the kernel's
+      // tool loop. This is what kept /chat from hanging on greetings like "hi, who are you?".
+      if (!hasTaskKeyword(message)) {
+        const cs = converseFor(roomKeyOf(body));
+        try {
+          const reply = await cs.send(message);
+          return json(res, 200, {
+            content: reply.content,
+            agent: skin.branding.agent_name,
+            ok: true,
+            partial: false,
+            mode: 'converse',
+            toolCalls: [],
+          });
+        } catch (err) {
+          return json(res, 500, { error: err instanceof Error ? err.message : String(err) });
+        }
+      }
 
       // N-WORKSPACE: when the caller supplies a workspace directory, Pehlichi's file
       // tools resolve paths against it instead of the server's default root.
@@ -633,7 +694,36 @@ export function createPehServer(opts: PehServerOptions = {}): {
       if (taskId) tasks.set(taskId, { status: 'running', caller: callerId, correlationId, startedAt: now() });
 
       try {
-        const response = await roomSession.send(message);
+        // OVERALL TIMEOUT: never let /chat hang. Race the kernel turn against a wall-clock
+        // budget; if it wins, return a clear partial (the work may still finish in the
+        // background and update its task record, which a caller can poll via /task/:id/status).
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const timeout = new Promise<'timeout'>((resolve) => {
+          timer = setTimeout(() => resolve('timeout'), chatTimeoutMs);
+        });
+        const work = roomSession.send(message);
+        const raced = await Promise.race([work.then((r) => ({ r })), timeout]);
+        if (timer) clearTimeout(timer);
+
+        if (raced === 'timeout') {
+          // Settle the orphaned run in the background: mark the task and swallow any late
+          // rejection so it never surfaces as an unhandled rejection.
+          void work.then(
+            (r) => { const rec = taskId ? tasks.get(taskId) : undefined; if (rec) { rec.status = 'completed'; rec.finishedAt = now(); rec.partial = r.partial; } },
+            () => { const rec = taskId ? tasks.get(taskId) : undefined; if (rec) { rec.status = 'failed'; rec.finishedAt = now(); } },
+          );
+          return json(res, 422, {
+            content: `This took longer than ${Math.round(chatTimeoutMs / 1000)}s and was returned as partial. The work may still be completing — narrow the task or, if you supplied X-Task-Id, poll /task/<id>/status.`,
+            agent: skin.branding.agent_name,
+            ok: false,
+            partial: true,
+            timedOut: true,
+            accomplished: [],
+            toolCalls: [],
+          });
+        }
+
+        const response = raced.r;
         if (taskId) {
           const rec = tasks.get(taskId);
           if (rec) { rec.status = 'completed'; rec.finishedAt = now(); rec.partial = response.partial; }
@@ -715,8 +805,9 @@ export function createPehServer(opts: PehServerOptions = {}): {
 
       res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
       try {
-        // Blocker 5: stream EVERY kernel event (tool-call/result/receipt/summary) as SSE.
-        const response = await roomSession.send(message, (e: AgentEvent) => {
+        // Blocker 5: stream EVERY kernel event (tool-call/result/receipt/summary) as SSE,
+        // flushed the instant it is emitted (stream() does not buffer).
+        const response = await roomSession.stream(message, (e: AgentEvent) => {
           res.write(`data: ${JSON.stringify({ event: e })}\n\n`);
         });
         if (streamTaskId) {
@@ -767,7 +858,7 @@ export function createPehServer(opts: PehServerOptions = {}): {
       return json(res, 200, {
         agent: skin.branding.agent_name,
         tools: toolNames,
-        endpoints: ['/health', '/tools', '/info', '/chat', '/chat/stream', '/reset', '/agent', '/capabilities', '/task/:id/status', '/api/sessions', '/api/memories', '/api/agents', '/api/bridge', '/receipts'],
+        endpoints: ['/health', '/tools', '/info', '/chat', '/chat/stream', '/reset', '/agent', '/capabilities', '/task/:id/status', '/api/sessions', '/api/memories', '/agents', '/api/agents', '/api/bridge', '/receipts'],
         model: MODEL,
         features: ['kernel_loop', 'tool_calling', 'streaming', 'conversation_memory', 'approval_gate', 'partial_on_exhaustion'],
         conversations: {

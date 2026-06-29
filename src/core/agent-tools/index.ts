@@ -41,6 +41,7 @@ import { ikbiToolSpecs, createIkbiToolHandlers } from './ikbi-tools.js';
 import { musicToolSpecs, createMusicToolHandlers } from './music-tools.js';
 import { labContextToolSpecs, createLabContextToolHandlers } from './lab-context-tools.js';
 import { labmemToolSpecs, createLabmemToolHandlers } from './labmem-tools.js';
+import { teachingToolSpecs, createTeachingToolHandlers } from './teaching-tools.js';
 import { bridgeToolSpecs, createBridgeToolHandlers } from '../bridges/bridge-tools.js';
 import { bridgeRegistry } from '../bridges/registry.js';
 
@@ -213,6 +214,10 @@ export function createFullToolRegistry(config: AgentToolConfig): ToolDef[] {
   // LABMEM: lab-wide memory system (recall shared/own/project memory; record own).
   const labmemHandlers = createLabmemToolHandlers();
 
+  // TEACHING (pehlichi-pub primary directive): lesson cards, UI hover-explain, and
+  // mini challenges. Pure data lookups over src/data — no config, never fails.
+  const teachingHandlers = createTeachingToolHandlers();
+
   // BRIDGES: inter-agent communication via HTTP. getServiceUrl resolves service
   // names to base URLs using the bridge registry (known ports).
   const bridgeHandlers = createBridgeToolHandlers((name: string) => {
@@ -322,6 +327,12 @@ export function createFullToolRegistry(config: AgentToolConfig): ToolDef[] {
   // Labmem tools (lab-wide memory recall/record)
   for (const spec of labmemToolSpecs) {
     const handler = labmemHandlers.get(spec.name);
+    if (handler) tools.push({ spec, handler });
+  }
+
+  // Teaching tools (lesson cards, hover-explain, mini challenges)
+  for (const spec of teachingToolSpecs) {
+    const handler = teachingHandlers.get(spec.name);
     if (handler) tools.push({ spec, handler });
   }
 

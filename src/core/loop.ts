@@ -34,9 +34,11 @@ import {
 } from "./agent-tools/unattended.js";
 
 // Runaway guard default. Deliberately MODEST: a direct/library run never silently grinds through
-// 50 iterations. A trusted operator can raise it explicitly via opts.maxIterations (e.g. the server
-// assigns a higher budget for an escalated mutation/delegation task).
-const DEFAULT_MAX_ITERATIONS = 12;
+// dozens of iterations. Eight is enough for real work; a trusted operator can raise it explicitly
+// via opts.maxIterations (e.g. the server assigns a higher budget for an escalated mutation/delegation
+// task), or re-submit if more is genuinely needed. Twenty iterations on a "hi" message is absurd —
+// the model just grinds tools until its budget is exhausted.
+const DEFAULT_MAX_ITERATIONS = 8;
 
 /**
  * Default approval when NO approvalCallback is wired (direct/library use). It auto-approves only
@@ -215,6 +217,8 @@ export interface RunAgentResult {
   readonly output?: string;
   /** The numbered plan captured at the start (when planning is enabled) and how many steps completed. */
   readonly plan?: { readonly steps: readonly string[]; readonly progress: number };
+  /** Token usage accumulated during this run (from the driver's drainUsage). */
+  readonly tokenUsage?: { readonly totalInput: number; readonly totalOutput: number; readonly totalCached: number; readonly callCount: number };
 }
 
 export interface RunAgentInShadowOptions extends Omit<RunAgentOptions, "workspaceRoot"> {
@@ -368,6 +372,7 @@ export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
   // PARTIAL RESULTS (item 3): every successful tool call appends an accomplishment.
   const accomplished: string[] = [];
   const planResult = () => (planningEnabled && planSteps.length > 0 ? { plan: { steps: planSteps, progress: planProgress } } : {});
+  const tokenResult = () => ({ tokenUsage: tokenMonitor.summary() });
 
   // BUDGET GOVERNOR: track consecutive tool failures to detect stuck loops.
   // After N failures of the same tool, inject a stop directive.
@@ -392,7 +397,7 @@ export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
       if (opts.partialOnExhaustion === true) {
         const output = `Budget exhausted after ${i} steps. Completed: ${accomplished.length > 0 ? accomplished.join("; ") : "nothing"}`;
         emitter.emit({ kind: "narrate", phase: "other", text: output });
-        return { ok: false, partial: true, accomplished, output, ...planResult() };
+        return { ok: false, partial: true, accomplished, output, ...planResult(), ...tokenResult() };
       }
       emitter.emit({ kind: "error", where: "loop", message });
       throw new Error(message);
@@ -539,7 +544,7 @@ export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
           emitter.emit({ kind: "narrate", phase: "other", text: output });
           emitter.emit({ kind: "summary", rootCause: verdict.reason ?? "stopped", changes: [], verification: [] });
           if (opts.partialOnExhaustion === true) {
-            return { ok: false, partial: true, accomplished, output, ...planResult() };
+            return { ok: false, partial: true, accomplished, output, ...planResult(), ...tokenResult() };
           }
           throw new Error(output);
         }
@@ -599,7 +604,7 @@ export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
               verification: [],
             });
             if (opts.partialOnExhaustion === true) {
-              return { ok: false, partial: true, accomplished, output, ...planResult() };
+              return { ok: false, partial: true, accomplished, output, ...planResult(), ...tokenResult() };
             }
             throw new Error(output);
           }
@@ -634,7 +639,7 @@ export async function runAgent(opts: RunAgentOptions): Promise<RunAgentResult> {
           verification: action.summary.verification,
         });
         emitter.emit({ kind: "done" });
-        return { ok: true, accomplished, output: action.summary.rootCause, ...planResult() };
+        return { ok: true, accomplished, output: action.summary.rootCause, ...planResult(), ...tokenResult() };
       }
     }
 

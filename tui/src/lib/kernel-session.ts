@@ -49,7 +49,10 @@ import { sanitizeMessage } from '../../../src/core/agent-tools/input-sanitizatio
 import { classifyError } from '../../../src/core/agent-tools/error-classifier.js';
 import { withRetry } from '../../../src/core/agent-tools/retry.js';
 
-const DEFAULT_MAX_ITERATIONS = 20;
+// Eight is enough for real chat-driven work; the operator can re-submit for more. Twenty
+// made "hi" grind the tool loop until the budget was exhausted (the dead-/chat bug). A caller
+// may still override per-session via KernelChatSessionOptions.maxIterations.
+const DEFAULT_MAX_ITERATIONS = 8;
 
 /** One structured tool call as surfaced to HTTP consumers — INCLUDING its receipt (Blocker 5). */
 export interface KernelToolCall {
@@ -135,7 +138,7 @@ export interface KernelChatSessionOptions {
   /**
    * TOOL LANE (H1): when set, the run is narrowed to exactly these tool names — both
    * what the model is shown AND what may execute. Unset => the full registry, unchanged.
-   * A restricted profile (e.g. Luna) passes its allowlist so it cannot serve tools its
+   * A restricted profile (e.g. the Artist) passes its allowlist so it cannot serve tools its
    * profile forbids (write_file, terminal, …).
    */
   readonly toolNames?: readonly string[];
@@ -211,6 +214,18 @@ export class KernelChatSession {
     this.tokenMonitor.reset();
   }
 
+  /**
+   * STREAMING (additive): identical to send(), but named for the SSE path and with a
+   * REQUIRED per-event callback. The callback fires synchronously the instant each kernel
+   * event is emitted (tool-call / tool-result / terminal-receipt / narrate / summary) — the
+   * run does NOT buffer events, so an SSE endpoint can flush every step the moment it
+   * happens instead of waiting for the whole turn to finish. The returned response is the
+   * same final blob send() returns, so the caller can emit a closing `done` frame from it.
+   */
+  async stream(userMessage: string, onEvent: (e: AgentEvent) => void): Promise<KernelChatResponse> {
+    return this.send(userMessage, onEvent);
+  }
+
   async send(userMessage: string, onEvent?: (e: AgentEvent) => void): Promise<KernelChatResponse> {
     // 1. PROMPT INJECTION SCAN — refuse unsafe input before the kernel ever runs.
     const injection = scanForInjection(userMessage, 'context');
@@ -267,13 +282,15 @@ export class KernelChatSession {
       ...(this.opts.clock !== undefined ? { clock: this.opts.clock } : {}),
     });
 
-    // H4: drain the REAL token usage the driver recorded during this run into the
-    // TokenMonitor. Previously the monitor was wired but never fed, so it always read
-    // zero; now every model call's usage is accounted for and surfaced as tokenUsage.
-    if (isUsageReportingDriver(this.opts.driver)) {
-      for (const u of this.opts.driver.drainUsage()) {
-        this.tokenMonitor.recordUsage(u);
-      }
+    // H4: use the token usage that runAgent already collected from the driver.
+    // The loop drains the driver's drainUsage() internally, so we must NOT drain
+    // again — we'd get an empty array. Instead, use the result's tokenUsage.
+    if (result.tokenUsage) {
+      this.tokenMonitor.recordUsage({
+        input: result.tokenUsage.totalInput,
+        output: result.tokenUsage.totalOutput,
+        cached: result.tokenUsage.totalCached,
+      });
     }
 
     const toolCalls = collectToolCalls(events);
