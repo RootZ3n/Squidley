@@ -176,6 +176,24 @@ const WORKSPACE_REGISTRY={
   'shield-privacy':       {product:'pehlichi', title:'Privacy',               kind:'live', route:'/velum',     dock:'right',      peh:'gear'}
 };
 
+// ── PANEL_META — which panels tile on the Voltron dashboard, and in what
+// order. One primary panel per hub (torii-gate) area, mirroring every other
+// Pehverse product's pack-tight cockpit. role tints each tile's top rule.
+const PANEL_META={
+  'console':            {role:'status',      priority:1},
+  'dojo-lessons':       {role:'metrics',     priority:2},
+  'castle-config':      {role:'config',      priority:3},
+  'forge-suggest':      {role:'diagnostics', priority:4},
+  'teahouse-chat':      {role:'results',     priority:5},
+  'garden-notebook':    {role:'metrics',     priority:6},
+  'shrine-diagnostics': {role:'diagnostics', priority:7},
+  'scrolls-log':        {role:'results',     priority:8},
+  'pavilion-plans':     {role:'config',      priority:9},
+  'watchtower-vision':  {role:'status',      priority:10},
+  'shield-velum':       {role:'config',      priority:11}
+};
+function pehPanelMeta(defId){return PANEL_META[defId]||{}}
+
 // ── Registry lookups ─────────────────────────────────────────────────
 function pehProduct(id){return PRODUCT_REGISTRY.find((p)=>p.id===id)||null}
 function pehPublicProducts(){return PRODUCT_REGISTRY.filter((p)=>p.status==='public').sort((a,b)=>a.order-b.order)}
@@ -255,22 +273,62 @@ function pehDevSwitchProduct(productId){
   try{localStorage.setItem('pehverse-product',p.id);if(state.pehverse.scene)localStorage.setItem('pehverse-scene',state.pehverse.scene)}catch(e){}
   render();
 }
+// The Dashboard button assembles the full pack-tight cockpit: every dashboard
+// panel opens as a Voltron tile. On boot into dashboard mode, render()'s hook
+// below calls pehAutoOpenDashboard() once so the wall is populated first paint.
 var _dashAutoOpenDone=false;
-function pehAutoOpenDashboard(){
-  // No-op: auto-opening every product workspace on load floods the dashboard
-  // and steals focus before the user picks anything. The user now opens
-  // workspaces explicitly, so this intentionally does nothing.
-}
+function pehAutoOpenDashboard(){pehEnsureAllOpen();}
 function pehSetMode(mode){
   if(mode!=='immersive'&&mode!=='dashboard')return;
-  state.pehverse.mode=mode;
-  localStorage.setItem('pehverse-mode',mode);
-  if(mode==='dashboard'){_dashAutoOpenDone=false;}
-  if(mode==='immersive'){
-    state.pehverse.workspaces=[];
+  pehMorph(()=>{
+    state.pehverse.mode=mode;
+    if(mode==='dashboard')pehEnsureAllOpen();      // dashboard assembles the full cockpit
+    else{state.pehverse.workspaces=[];}            // Map returns CLEAN — no stacked windows
     state.pehverse.focus=null;
+    try{localStorage.setItem('pehverse-mode',mode)}catch(e){}
+    render();
+  });
+}
+// Run a state change inside a View Transition when available (Chromium/Brave);
+// otherwise just apply it. This is what makes the merge a transformation, not a swap.
+function pehMorph(fn){
+  try{ if(typeof document!=='undefined'&&typeof document.startViewTransition==='function'){ document.startViewTransition(fn); return; } }catch(e){}
+  fn();
+}
+// The product's dashboard panels, ordered by PANEL_META.priority.
+function pehProductPanelIds(){
+  return Object.keys(PANEL_META)
+    .filter((id)=>{const d=WORKSPACE_REGISTRY[id];return d&&pehWorkspaceBelongsToActive(d);})
+    .sort((a,b)=>(pehPanelMeta(a).priority||99)-(pehPanelMeta(b).priority||99));
+}
+function pehHotspotForPanel(defId){
+  for(const s of pehScenes(pehActiveProductId())){
+    const h=(s.hotspots||[]).find((x)=>x.workspace===defId);
+    if(h)return h;
   }
-  render();
+  return null;
+}
+// Open every dashboard panel not already open, seeding each window's position
+// from its hotspot so the reverse morph (dashboard → map) scatters them home.
+function pehEnsureAllOpen(){
+  for(const id of pehProductPanelIds()){
+    if(state.pehverse.workspaces.find((w)=>w.defId===id))continue;
+    const def=WORKSPACE_REGISTRY[id]||{};
+    const ws={uid:'ws'+(++state.pehverse.wsSeq),defId:id,dock:(def.dock||'right'),min:false};
+    const h=pehHotspotForPanel(id);
+    if(h){ws.x=h.x;ws.y=h.y;}
+    state.pehverse.workspaces.push(ws);
+  }
+}
+// Pack-tight row plan: split n tiles into balanced rows so the wall fills with
+// no holes. n=11 → [3,3,3,2]; n=4 → [2,2]; n=2 → [2]; n=1 → [1].
+function pehPackRows(n){
+  if(n<=1)return[n];
+  const cols=Math.ceil(Math.sqrt(n));
+  const rows=Math.ceil(n/cols);
+  const base=Math.floor(n/rows), extra=n%rows;
+  const out=[]; for(let r=0;r<rows;r++)out.push(base+(r<extra?1:0));
+  return out;
 }
 function pehToggleMode(){pehSetMode(state.pehverse.mode==='immersive'?'dashboard':'immersive')}
 function pehToggleFastTravel(force){
@@ -294,6 +352,19 @@ function pehOpenWorkspace(defId,opts){
   }
   ws.min=false;
   pehFocusWorkspace(ws.uid,true);
+  render();
+}
+// Open a workspace anchored at a map location (x/y %) — used when a dashboard
+// tile's ⤢ button pops the panel back up beside its own hotspot.
+function pehOpenWorkspaceAt(defId,x,y){
+  const def=pehWorkspaceDef(defId); if(!def)return;
+  if(!pehWorkspaceBelongsToActive(def))return;
+  let ws=state.pehverse.workspaces.find((w)=>w.defId===defId);
+  if(ws){pehFocusWorkspace(ws.uid);return}
+  const sx=x!=null?x:50, sy=y!=null?y:50;
+  ws={uid:'ws'+(++state.pehverse.wsSeq),defId,x:sx,y:sy,min:false};
+  state.pehverse.workspaces.push(ws);
+  state.pehverse.focus=ws.uid;
   render();
 }
 
@@ -496,8 +567,70 @@ function renderPehTopBar(product,scene){
 
 function renderPehStage(product,scene,deckMarkup){
   return state.pehverse.mode==='dashboard'
-    ? renderPehDashboard(product,scene,deckMarkup)
+    ? renderDashboardSurface(product,scene,deckMarkup)
     : renderPehImmersive(product,scene,deckMarkup);
+}
+
+// ── DashboardSurface — the Voltron pack-tight wall ─────────────────────
+// Packs the open dashboard panels into balanced, hole-free rows (PACK-TIGHT),
+// exactly like every other Pehverse product. Each tile is a borderless panel
+// that shares its view-transition-name with the floating window so the browser
+// morphs window⇄tile when the mode flips. Replaces the old .peh-grid dashboard.
+function renderDashboardSurface(product,scene,deckMarkup){
+  const open=state.pehverse.workspaces.filter((w)=>!w.min&&WORKSPACE_REGISTRY[w.defId]);
+  if(!open.length)return `<div class="peh-dash-surface" data-mode="dashboard" role="group" aria-label="${esc(product.displayName)} Village Grid">
+    <header class="peh-dash-bar">
+      <button class="peh-backmap" type="button" onclick="pehSetMode('immersive')"><span aria-hidden="true">‹</span> Map</button>
+      <span class="peh-dash-bar-title">${esc(product.displayName)} · Village Grid</span>
+    </header>
+    <div style="flex:1 1 auto;display:flex;align-items:center;justify-content:center;color:var(--ink-dim);font-style:italic;text-align:center;padding:24px">All panels are closed — <button type="button" class="peh-backmap" style="margin:0 6px" onclick="pehSetMode('immersive')">return to the map</button> to reopen hotspots.</div>
+  </div>`;
+  const rows=pehPackRows(open.length);
+  let i=0;
+  const wall=rows.map((count)=>{
+    let cells='';
+    for(let k=0;k<count;k++){const w=open[i++];if(w)cells+=renderTransformingPanel(w.defId,'dashboard',deckMarkup);}
+    return `<div class="peh-dash-row">${cells}</div>`;
+  }).join('');
+  return `<div class="peh-dash-surface" data-mode="dashboard" role="group" aria-label="${esc(product.displayName)} Village Grid">
+    <header class="peh-dash-bar">
+      <button class="peh-backmap" type="button" title="Back to the map" aria-label="Back to the world map" onclick="pehSetMode('immersive')"><span aria-hidden="true">‹</span> Map</button>
+      <span class="peh-dash-bar-title">${esc(product.displayName)} · Village Grid</span>
+      <span class="peh-dash-bar-tag">${open.length} panel${open.length===1?'':'s'}</span>
+    </header>
+    <div class="peh-dash-wall peh-dash-wall-flex">${wall}</div>
+  </div>`;
+}
+// One panel as a borderless Voltron tile. The body flows through pehWorkspaceBody
+// (which app.js overrides to inject live data) using a synthetic console:false
+// window, so the tile renders the live glance of each panel.
+function renderTransformingPanel(defId,mode,deckMarkup){
+  const def=WORKSPACE_REGISTRY[defId]||{};
+  const meta=pehPanelMeta(defId);
+  if(mode==='dashboard'){
+    const w={uid:'dash-'+defId,defId,console:false,dash:true};
+    return `<section class="peh-dash-tile role-${esc(meta.role||'panel')}" style="view-transition-name:peh-panel-${esc(defId)}" data-panel="${esc(defId)}" aria-label="${esc(def.title||defId)}">
+      <header class="peh-dash-tile-head">
+        <span class="peh-dash-tile-glyph">${pehGlyph(def.peh)}</span>
+        <span class="peh-dash-tile-title">${esc(def.title||defId)}</span>
+        <button class="peh-dash-open" type="button" title="Open ${esc(def.title||defId)}" aria-label="Open ${esc(def.title||defId)}" onclick="pehOpenSolo('${esc(defId)}')">⤢</button>
+      </header>
+      <div class="peh-dash-tile-body">${pehWorkspaceBody(w,deckMarkup)}</div>
+    </section>`;
+  }
+  return '';
+}
+// Open a single panel in SOLO mode from a dashboard tile: leave the wall, return
+// to the map, and pop the panel up beside its own hotspot.
+function pehOpenSolo(defId){
+  const def=pehWorkspaceDef(defId);if(!def)return;
+  state.pehverse.mode='immersive';
+  try{localStorage.setItem('pehverse-mode','immersive')}catch(e){}
+  state.pehverse.workspaces=[];
+  state.pehverse.focus=null;
+  const h=pehHotspotForPanel(defId);
+  if(h){state.pehverse.pehPopUp={x:h.x,y:h.y};pehOpenWorkspaceAt(defId,h.x,h.y);}
+  else{pehOpenWorkspaceAt(defId);}
 }
 
 function renderPehImmersive(product,scene,deckMarkup){
@@ -727,6 +860,7 @@ window.pehSetScene=pehSetScene;
 window.pehGoScene=pehGoScene;
 window.pehDevSwitchProduct=pehDevSwitchProduct;
 window.pehOpenWorkspace=pehOpenWorkspace;
+window.pehOpenSolo=pehOpenSolo;
 window.pehFocusWorkspace=pehFocusWorkspace;
 window.pehCloseWorkspace=pehCloseWorkspace;
 window.pehDockWorkspace=pehDockWorkspace;

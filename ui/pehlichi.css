@@ -879,7 +879,97 @@ button{font-family:inherit}
 .peh-grid.multi .peh-tile{min-height:min(52vh,520px)}
 @media (min-width:1280px){.peh-grid.multi .peh-tile{min-height:min(46vh,500px)}}
 
+/* Mobile: single scrolling column of cards — matches the other Pehverse
+   products' dashboards. Force ONE column for .peh-grid and its .multi variant
+   at the same 880px breakpoint the rest use (was 768), and let each card size
+   between 200px and 80vh with its own internal scroll (the .peh-panel-body is
+   overflow:auto) so no single card dominates the screen. Placed after the
+   .multi height tuning above so it wins the cascade at equal specificity. */
+@media (max-width:880px){
+  .peh-grid,.peh-grid.multi{grid-template-columns:1fr}
+  .peh-grid .peh-tile,.peh-grid.multi .peh-tile{min-height:200px;max-height:80vh}
+}
+
 @media (max-width:640px){
   .peh-float-btn{bottom:160px;right:12px;width:48px;height:48px;font-size:17px}
   .peh-float-drawer{right:12px;bottom:220px;width:calc(100vw - 24px);max-height:400px}
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   DashboardSurface — the Voltron pack-tight wall. Ported from The
+   Settlement so The Village's dashboard matches every other Pehverse
+   product on desktop AND mobile (replaces the old .peh-grid dashboard;
+   see renderDashboardSurface() in index.html). Generic .peh-dash-* rules
+   theme via --peh-accent/--bg-card; the .peh-product-pehlichi skin below
+   is the same bronze/parchment frame The Settlement uses.
+   ════════════════════════════════════════════════════════════════════ */
+.peh-dash-surface{
+  flex:1 1 auto;min-height:0;display:flex;flex-direction:column;padding:12px;gap:10px;overflow:hidden;
+  background:
+    radial-gradient(120% 80% at 50% -10%,color-mix(in srgb,var(--peh-accent) 12%,transparent),transparent 60%),
+    linear-gradient(180deg,rgba(10,8,22,.55),rgba(8,6,18,.85));
+}
+.peh-dash-bar{flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:2px 4px}
+.peh-dash-bar-title{font-weight:800;font-size:14px;letter-spacing:.04em;color:var(--ink)}
+.peh-dash-bar-tag{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim)}
+.peh-dash-wall{
+  flex:1 1 auto;min-height:0;display:grid;gap:1px;background:var(--border-subtle);
+  border:1px solid var(--border-subtle);border-radius:16px;box-shadow:var(--shadow-panel,0 18px 60px rgba(0,0,0,.55));overflow:hidden;
+}
+.peh-dash-wall-flex{display:flex;flex-direction:column;gap:1px}
+.peh-dash-row{display:flex;flex:1 1 0;gap:1px;min-height:0}
+.peh-dash-wall-flex .peh-dash-tile{flex:1 1 0;min-width:0}
+/* Mobile: single scrolling column of cards — rows dissolve; tall tiles cap at 80vh. */
+@media (max-width:880px){
+  .peh-dash-surface{overflow-y:auto;overflow-x:hidden}
+  .peh-dash-wall-flex{flex:0 0 auto}
+  .peh-dash-row{display:contents}
+  .peh-dash-wall-flex .peh-dash-tile{flex:0 0 auto;min-width:0;min-height:200px;max-height:80vh}
+}
+.peh-dash-tile{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--bg-card,rgba(22,18,52,.96));border:0;border-radius:0;box-shadow:none;overflow:hidden}
+.peh-dash-tile-head{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border-subtle);background:linear-gradient(180deg,rgba(255,255,255,.035),transparent)}
+.peh-dash-tile-glyph{color:var(--peh-accent);display:inline-flex;flex:0 0 auto}
+.peh-dash-tile-title{flex:1 1 auto;min-width:0;font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.peh-dash-open{flex:0 0 auto;border:1px solid var(--border-subtle);background:transparent;color:var(--ink-soft);border-radius:7px;cursor:pointer;font-size:12px;line-height:1;padding:3px 6px;transition:.14s}
+.peh-dash-open:hover{border-color:var(--peh-accent);color:var(--ink)}
+.peh-dash-tile-body{flex:1 1 auto;min-height:0;overflow:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.peh-dash-tile.role-status{border-top:2px solid color-mix(in srgb,var(--peh-accent) 70%,transparent)}
+.peh-dash-tile.role-results{border-top:2px solid color-mix(in srgb,var(--peh-accent) 45%,transparent)}
+.peh-dash-tile.role-config{border-top:2px solid color-mix(in srgb,var(--peh-accent2,#8b5cf6) 50%,transparent)}
+.peh-dash-tile.role-metrics{border-top:2px solid color-mix(in srgb,var(--peh-accent) 35%,transparent)}
+.peh-dash-tile.role-diagnostics{border-top:2px solid color-mix(in srgb,var(--success) 50%,transparent)}
+/* Make the window⇄tile merge a glide, not a snap. */
+::view-transition-group(*){animation-duration:.5s;animation-timing-function:cubic-bezier(.22,1,.36,1)}
+@media (prefers-reduced-motion:reduce){::view-transition-group(*){animation-duration:.01ms}}
+/* Settlement bronze/parchment skin for the wall (scoped to this product). */
+.peh-product-pehlichi .peh-dash-surface{
+  background:
+    radial-gradient(120% 80% at 50% -10%,color-mix(in srgb,var(--obs-amber) 14%,transparent),transparent 60%),
+    linear-gradient(180deg,rgba(20,14,6,.55),rgba(14,10,5,.85));
+}
+.peh-product-pehlichi .peh-dash-wall{
+  background:var(--obs-amber-dk);
+  border:2px solid var(--obs-amber);
+  box-shadow:0 22px 70px rgba(0,0,0,.65),0 0 0 1px rgba(244,221,146,.15) inset;
+}
+.peh-product-pehlichi .peh-dash-tile{background:linear-gradient(180deg,rgba(26,21,56,.72),rgba(12,10,26,.70));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.peh-product-pehlichi .peh-dash-tile-head{background:linear-gradient(180deg,rgba(200,150,46,.12),transparent);border-bottom:1px solid rgba(138,90,22,.28)}
+.peh-product-pehlichi .peh-dash-tile-title{font-family:var(--obs-display);color:var(--obs-paper)}
+.peh-product-pehlichi .peh-dash-tile-glyph{color:var(--obs-amber)}
+.peh-product-pehlichi .peh-dash-open{border-color:rgba(138,90,22,.4);color:var(--obs-paper)}
+.peh-product-pehlichi .peh-dash-open:hover{border-color:var(--obs-amber);color:var(--obs-amber-hi)}
+.peh-product-pehlichi .peh-dash-bar-title{font-family:var(--obs-display);color:var(--obs-amber-hi)}
+.peh-product-pehlichi .peh-dash-bar-tag{color:var(--obs-amber-dk)}
+.peh-product-pehlichi .peh-dash-surface .peh-backmap{border-color:rgba(138,90,22,.4);color:var(--obs-paper)}
+/* Themed always-visible bronze scrollbars inside the tiles (Chromium). */
+.peh-product-pehlichi .peh-dash-tile-body::-webkit-scrollbar,
+.peh-product-pehlichi .peh-dash-tile-body *::-webkit-scrollbar{width:12px;height:12px}
+.peh-product-pehlichi .peh-dash-tile-body::-webkit-scrollbar-track,
+.peh-product-pehlichi .peh-dash-tile-body *::-webkit-scrollbar-track{background:rgba(12,10,26,.5)}
+.peh-product-pehlichi .peh-dash-tile-body::-webkit-scrollbar-thumb,
+.peh-product-pehlichi .peh-dash-tile-body *::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--obs-amber-hi),var(--obs-amber-dk));border-radius:8px;border:2px solid rgba(12,10,26,.5);background-clip:padding-box}
+.peh-product-pehlichi .peh-dash-tile-body::-webkit-scrollbar-thumb:hover,
+.peh-product-pehlichi .peh-dash-tile-body *::-webkit-scrollbar-thumb:hover{background:var(--obs-amber);background-clip:padding-box;border:2px solid rgba(12,10,26,.5)}
+@-moz-document url-prefix(){
+  .peh-product-pehlichi .peh-dash-tile-body *{scrollbar-width:thin;scrollbar-color:var(--obs-amber-dk) rgba(12,10,26,.5)}
 }
